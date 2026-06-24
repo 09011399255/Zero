@@ -691,6 +691,159 @@ function App() {
     resolved: true
   });
 
+  // Onboarding Wizard States
+  const [isOnboarded, setIsOnboarded] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'login'>('signup');
+  
+  // Step 1: Account
+  const [onboardingAdminName, setOnboardingAdminName] = useState('');
+  const [onboardingEmail, setOnboardingEmail] = useState('');
+  const [onboardingPassword, setOnboardingPassword] = useState('');
+  
+  // Step 2: Clinic Info
+  const [onboardingClinicName, setOnboardingClinicName] = useState('');
+  const [onboardingAddress, setOnboardingAddress] = useState('');
+  const [onboardingHours, setOnboardingHours] = useState('');
+  const [onboardingServices, setOnboardingServices] = useState('');
+  
+  // Step 4: Add Doctor
+  const [onboardingDoctorName, setOnboardingDoctorName] = useState('');
+  const [onboardingDoctorEmail, setOnboardingDoctorEmail] = useState('');
+  const [onboardingDoctorRole, setOnboardingDoctorRole] = useState('Lead Physician');
+
+  // Step 4 -> 5 Transition state
+  const [isTransitioningStep, setIsTransitioningStep] = useState(false);
+  const [transitionStatusIndex, setTransitionStatusIndex] = useState(0);
+
+  // Step 5 Preview state
+  const [previewMessages, setPreviewMessages] = useState<{ sender: 'patient' | 'ai'; text: string; time: string }[]>([]);
+  const [previewTyping, setPreviewTyping] = useState(false);
+
+  // Simulated conversation in Step 5
+  useEffect(() => {
+    if (onboardingStep !== 5) {
+      setPreviewMessages([]);
+      setPreviewTyping(false);
+      return;
+    }
+
+    const clinic = onboardingClinicName.trim() || 'Apex Family Clinic';
+    const firstService = onboardingServices.split(',')[0]?.trim() || 'General Consultation';
+    const doctorPart = onboardingDoctorName.trim() ? ` with Dr. ${onboardingDoctorName.trim()}` : '';
+    const address = onboardingAddress.trim() || '123 Eldene Way, Suite 400, Apex City';
+
+    const fullConversation = [
+      {
+        sender: 'patient' as const,
+        text: `Hi, I'd like to book an appointment for a ${firstService} at ${clinic}.`,
+        time: '02:30 PM'
+      },
+      {
+        sender: 'ai' as const,
+        text: `Hi there! I can help you book a ${firstService} at ${clinic}${doctorPart}. We have availability this Tuesday at 10:00 AM or Thursday at 2:00 PM. Would either of those work for you?`,
+        time: '02:31 PM'
+      },
+      {
+        sender: 'patient' as const,
+        text: `Tuesday at 10:00 AM works great for me.`,
+        time: '02:31 PM'
+      },
+      {
+        sender: 'ai' as const,
+        text: `Perfect! I've booked your ${firstService} appointment${doctorPart} for Tuesday at 10:00 AM. We look forward to seeing you at ${address}!`,
+        time: '02:32 PM'
+      }
+    ];
+
+    const timers: number[] = [];
+
+    // Message 1 (Patient)
+    const t1 = window.setTimeout(() => {
+      setPreviewMessages([fullConversation[0]]);
+    }, 600);
+    timers.push(t1);
+
+    // AI typing for Message 2
+    const t2 = window.setTimeout(() => {
+      setPreviewTyping(true);
+    }, 1800);
+    timers.push(t2);
+
+    // Show Message 2 (AI)
+    const t3 = window.setTimeout(() => {
+      setPreviewTyping(false);
+      setPreviewMessages(prev => [...prev, fullConversation[1]]);
+    }, 3800);
+    timers.push(t3);
+
+    // Message 3 (Patient)
+    const t4 = window.setTimeout(() => {
+      setPreviewMessages(prev => [...prev, fullConversation[2]]);
+    }, 5500);
+    timers.push(t4);
+
+    // AI typing for Message 4
+    const t5 = window.setTimeout(() => {
+      setPreviewTyping(true);
+    }, 6800);
+    timers.push(t5);
+
+    // Show Message 4 (AI)
+    const t6 = window.setTimeout(() => {
+      setPreviewTyping(false);
+      setPreviewMessages(prev => [...prev, fullConversation[3]]);
+    }, 9000);
+    timers.push(t6);
+
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [onboardingStep]);
+
+  const startTransitionToStep5 = () => {
+    setIsTransitioningStep(true);
+    setTransitionStatusIndex(0);
+    
+    const t1 = setTimeout(() => setTransitionStatusIndex(1), 1200);
+    const t2 = setTimeout(() => setTransitionStatusIndex(2), 2400);
+    const t3 = setTimeout(() => {
+      setIsTransitioningStep(false);
+      setOnboardingStep(5);
+      
+      // Save onboarding info to settings state
+      setSettingsClinicName(onboardingClinicName || 'Apex Family Clinic');
+      setSavedClinicName(onboardingClinicName || 'Apex Family Clinic');
+      setSettingsAddress(onboardingAddress || '123 Eldene Way, Suite 400, Apex City');
+      setSavedAddress(onboardingAddress || '123 Eldene Way, Suite 400, Apex City');
+      setSettingsHours(onboardingHours || 'Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
+      setSavedHours(onboardingHours || 'Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
+      setSettingsServices(onboardingServices || 'Cardiology, Dermatology, Physiotherapy, General Medicine');
+      setSavedServices(onboardingServices || 'Cardiology, Dermatology, Physiotherapy, General Medicine');
+      
+      // Add doctor to staff list if provided
+      if (onboardingDoctorName.trim()) {
+        const initials = onboardingDoctorName.trim().split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'MD';
+        setStaffList(prev => {
+          if (prev.some(s => s.email.toLowerCase() === (onboardingDoctorEmail.trim() || 'doctor@clinic.com').toLowerCase())) {
+            return prev;
+          }
+          const nextId = prev.length ? Math.max(...prev.map(s => s.id)) + 1 : 1;
+          return [
+            ...prev,
+            {
+              id: nextId,
+              name: onboardingDoctorName.trim(),
+              role: onboardingDoctorRole,
+              email: onboardingDoctorEmail.trim() || 'doctor@clinic.com',
+              initials
+            }
+          ];
+        });
+      }
+    }, 3600);
+  };
+
   // Settings screen states
   const [settingsClinicName, setSettingsClinicName] = useState('Apex Family Clinic');
   const [settingsAddress, setSettingsAddress] = useState('123 Eldene Way, Suite 400, Apex City');
@@ -2461,6 +2614,447 @@ function App() {
     );
   };
 
+  // Render Onboarding Wizard Screen
+  const renderOnboardingWizard = () => {
+    if (isTransitioningStep) {
+      const statusTexts = [
+        "Reading your clinic's services...",
+        `Preparing Zero for ${onboardingClinicName || 'your clinic'}...`,
+        "Almost ready..."
+      ];
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center max-w-md bg-surface-base rounded-2xl shadow-soft border border-surface-border/30 w-full animate-fade-in space-y-6">
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ai-500 opacity-20"></span>
+            <div className="relative inline-flex rounded-full h-14 w-14 bg-gradient-to-tr from-ai-500 to-ai-600 shadow-lg items-center justify-center text-white text-base font-bold select-none">
+              Zero
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold text-text-primary">Configuring Clinic Assistant</h3>
+            <p className="text-xs text-text-muted animate-pulse">{statusTexts[transitionStatusIndex]}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-xl w-full mx-auto pb-16 pt-8 animate-fade-in font-sans text-xs relative">
+        {/* Back Button (except Step 1 and 5) */}
+        {onboardingStep > 1 && onboardingStep < 5 && (
+          <button
+            onClick={() => setOnboardingStep(prev => prev - 1)}
+            className="absolute -top-4 left-0 flex items-center gap-1 text-text-secondary hover:text-text-primary text-[11px] font-bold transition duration-150"
+          >
+            <ChevronLeft size={16} /> Back
+          </button>
+        )}
+
+        {/* Step Indicator dots */}
+        <div className="flex justify-center items-center gap-2 mb-8">
+          {[1, 2, 3, 4, 5].map((stepNum) => (
+            <div
+              key={stepNum}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                stepNum === onboardingStep
+                  ? 'w-8 bg-brand-500'
+                  : stepNum < onboardingStep
+                  ? 'w-2 bg-brand-200'
+                  : 'w-2 bg-surface-border'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* STEP 1: ACCOUNT SETUP */}
+        {onboardingStep === 1 && (
+          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex w-10 h-10 bg-brand-50 rounded-xl items-center justify-center border border-brand-100 mb-2">
+                <span className="text-lg font-bold text-brand-600">Z</span>
+              </div>
+              <h2 className="text-lg font-bold text-text-primary">Welcome to Zero Clinic OS</h2>
+              <p className="text-text-secondary">Let's set up your clinic's AI patient operator in minutes.</p>
+            </div>
+
+            {/* Sign Up / Log In Toggle */}
+            <div className="flex bg-surface-subtle p-1 rounded-xl">
+              <button
+                onClick={() => setOnboardingAuthMode('signup')}
+                className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
+                  onboardingAuthMode === 'signup'
+                    ? 'bg-surface-base text-brand-600 shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Sign Up
+              </button>
+              <button
+                onClick={() => setOnboardingAuthMode('login')}
+                className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
+                  onboardingAuthMode === 'login'
+                    ? 'bg-surface-base text-brand-600 shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Log In
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setOnboardingStep(2);
+              }}
+              className="space-y-4"
+            >
+              {onboardingAuthMode === 'signup' && (
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Admin Full Name</label>
+                  <input
+                    type="text"
+                    value={onboardingAdminName}
+                    onChange={(e) => setOnboardingAdminName(e.target.value)}
+                    required
+                    placeholder="e.g. Sarah Sedai"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email</label>
+                <input
+                  type="email"
+                  value={onboardingEmail}
+                  onChange={(e) => setOnboardingEmail(e.target.value)}
+                  required
+                  placeholder="e.g. admin@yourclinic.com"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
+                <input
+                  type="password"
+                  value={onboardingPassword}
+                  onChange={(e) => setOnboardingPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+              >
+                {onboardingAuthMode === 'signup' ? 'Create Account' : 'Log In'}
+              </button>
+            </form>
+
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-surface-border/40"></div>
+              <span className="flex-shrink mx-4 text-text-muted text-[10px] font-bold uppercase tracking-wider">Or</span>
+              <div className="flex-grow border-t border-surface-border/40"></div>
+            </div>
+
+            <button
+              onClick={() => setOnboardingStep(2)}
+              className="w-full py-3 bg-surface-base hover:bg-surface-subtle border border-surface-border rounded-xl font-bold text-text-primary transition duration-150 text-xs flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.579-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l3.227-3.11C18.281 1.77 15.485 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.984 0-.743-.08-1.302-.178-1.782h-10.615z" />
+              </svg>
+              Continue with Google
+            </button>
+          </div>
+        )}
+
+        {/* STEP 2: CLINIC INFO */}
+        {onboardingStep === 2 && (
+          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-text-primary">Clinic Details</h2>
+              <p className="text-text-secondary">Provide details to train your AI operator on your services and hours.</p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setOnboardingStep(3);
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Name</label>
+                  <input
+                    type="text"
+                    value={onboardingClinicName}
+                    onChange={(e) => setOnboardingClinicName(e.target.value)}
+                    required
+                    placeholder="e.g. Apex Family Clinic"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Services Offered (Comma Separated)</label>
+                  <input
+                    type="text"
+                    value={onboardingServices}
+                    onChange={(e) => setOnboardingServices(e.target.value)}
+                    required
+                    placeholder="e.g. Cardiology, Dermatology, General Medicine"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Address</label>
+                  <input
+                    type="text"
+                    value={onboardingAddress}
+                    onChange={(e) => setOnboardingAddress(e.target.value)}
+                    required
+                    placeholder="e.g. 123 Eldene Way, Suite 400, Apex City"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Operating Hours</label>
+                  <input
+                    type="text"
+                    value={onboardingHours}
+                    onChange={(e) => setOnboardingHours(e.target.value)}
+                    required
+                    placeholder="e.g. Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+              >
+                Continue
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* STEP 3: CONNECT WHATSAPP */}
+        {onboardingStep === 3 && (
+          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-text-primary">Connect WhatsApp Business API</h2>
+              <p className="text-text-secondary">Deploy Zero directly onto your official business number.</p>
+            </div>
+
+            {/* Honest Status Pattern */}
+            <div className="p-4 bg-status-warningBg border border-status-warning/10 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-status-warning flex items-center gap-1.5">
+                  <Clock size={14} /> Verification Pending
+                </span>
+                <span className="text-[10px] font-bold text-text-muted bg-surface-base px-2 py-0.5 rounded-md border border-surface-border/30">Meta API Review</span>
+              </div>
+              <p className="text-[11px] text-text-secondary leading-relaxed">
+                Once verified, your patients will be able to book, get reminders, and reach your clinic 24/7 — right from WhatsApp, with no app to download.
+              </p>
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Meta Integration Steps</h4>
+              <div className="space-y-2 bg-surface-subtle p-4 rounded-xl">
+                <div className="flex items-center gap-2.5 text-text-secondary">
+                  <CheckCircle2 size={14} className="text-status-success" />
+                  <span className="line-through font-medium text-text-muted">Create Meta Developer Account</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-text-secondary">
+                  <CheckCircle2 size={14} className="text-status-success" />
+                  <span className="line-through font-medium text-text-muted">Link Business Manager Portfolio</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-text-secondary">
+                  <Clock size={14} className="text-status-warning animate-pulse" />
+                  <span className="font-bold text-text-primary">Meta Business Verification (In Review)</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-text-muted">
+                  <div className="w-3.5 h-3.5 rounded-full border border-surface-border flex items-center justify-center text-[8px] font-bold">4</div>
+                  <span>Phone Number Registration</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-brand-50/50 border border-brand-100 p-4 rounded-xl flex gap-3">
+              <span className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] text-brand-600 font-bold flex-shrink-0">i</span>
+              <p className="text-[11px] text-brand-700 leading-relaxed">
+                <strong>Sandbox active:</strong> While Meta verifies your business details, we have pre-configured a Sandbox environment so you can experience Zero's patient interaction immediately.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setOnboardingStep(4)}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+            >
+              Continue to Staff Setup
+            </button>
+          </div>
+        )}
+
+        {/* STEP 4: ADD STAFF / DOCTORS */}
+        {onboardingStep === 4 && (
+          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-text-primary">Practitioner Profiles</h2>
+              <p className="text-text-secondary">Add at least one doctor to help Zero schedule appointments correctly.</p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                startTransitionToStep5();
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor Name</label>
+                <input
+                  type="text"
+                  value={onboardingDoctorName}
+                  onChange={(e) => setOnboardingDoctorName(e.target.value)}
+                  required
+                  placeholder="e.g. Dr. Lan Mandragoran"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Role / Specialization</label>
+                  <select
+                    value={onboardingDoctorRole}
+                    onChange={(e) => setOnboardingDoctorRole(e.target.value)}
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  >
+                    <option value="Lead Physician">Lead Physician</option>
+                    <option value="General Practitioner">General Practitioner</option>
+                    <option value="Cardiologist">Cardiologist</option>
+                    <option value="Dermatologist">Dermatologist</option>
+                    <option value="Physiotherapist">Physiotherapist</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email Address</label>
+                  <input
+                    type="email"
+                    value={onboardingDoctorEmail}
+                    onChange={(e) => setOnboardingDoctorEmail(e.target.value)}
+                    required
+                    placeholder="e.g. lan.m@apexfamily.com"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+              >
+                Continue to Preview
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* STEP 5: SIMULATED PREVIEW */}
+        {onboardingStep === 5 && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-bold text-text-primary">Zero is Ready</h2>
+              <p className="text-text-secondary">Here is how Zero interacts with a patient booking at your clinic in real time.</p>
+            </div>
+
+            {/* Chat preview card (Ask Super AI Card-shaped representation) */}
+            <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/30 p-6 space-y-4 max-w-md mx-auto relative overflow-hidden">
+              {/* Simple Agent Header (Christian/Agent Header-shaped representation) */}
+              <div className="flex items-center gap-3 pb-3 border-b border-surface-border/40">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-ai-500 to-ai-600 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
+                  Z
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-text-primary text-xs">Zero AI</span>
+                    <span className="w-2 h-2 rounded-full bg-status-success"></span>
+                  </div>
+                  <span className="text-[10px] text-text-muted">WhatsApp Care Operator</span>
+                </div>
+              </div>
+
+              {/* Message List */}
+              <div className="space-y-3.5 min-h-[220px] flex flex-col justify-end">
+                {previewMessages.map((msg, index) => {
+                  const isAI = msg.sender === 'ai';
+                  return (
+                    <div
+                      key={index}
+                      className={`flex flex-col max-w-[80%] ${
+                        isAI ? 'self-start items-start' : 'self-end items-end'
+                      }`}
+                    >
+                      <div
+                        className={`px-4 py-3 text-xs leading-relaxed ${
+                          isAI
+                            ? 'bg-ai-50/70 text-ai-900 border border-ai-100/50 rounded-2xl rounded-tl-none font-medium'
+                            : 'bg-surface-subtle/70 text-text-primary border border-surface-border/20 rounded-2xl rounded-tr-none font-medium'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                      <span className="text-[9px] text-text-muted mt-1 px-1">{msg.time}</span>
+                    </div>
+                  );
+                })}
+
+                {/* Bouncing Dots typing indicator */}
+                {previewTyping && (
+                  <div className="flex gap-1.5 items-center bg-ai-50/40 border border-ai-100/30 px-4 py-3 rounded-2xl w-fit max-w-[70%] text-text-secondary self-start rounded-tl-none">
+                    <span className="w-1.5 h-1.5 bg-ai-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-ai-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-ai-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-center space-y-4 max-w-sm mx-auto">
+              <p className="text-[13px] text-text-primary font-bold">
+                This is Zero, working for {onboardingClinicName.trim() || 'your clinic'}.
+              </p>
+              <button
+                onClick={() => {
+                  setIsOnboarded(true);
+                  setCurrentRoute('dashboard');
+                }}
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Render Settings Screen
   const renderSettingsScreen = () => {
     const isDirty =
@@ -2904,6 +3498,14 @@ function App() {
     );
   };
 
+  if (!isOnboarded) {
+    return (
+      <div className="flex min-h-screen bg-surface-subtle justify-center items-center p-6 w-full relative">
+        {renderOnboardingWizard()}
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-surface-subtle">
       {/* 1. SIDEBAR */}
@@ -3056,11 +3658,11 @@ function App() {
           {/* User Profile */}
           <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/5 transition duration-150 cursor-pointer">
             <div className="w-9 h-9 bg-brand-700 rounded-full flex items-center justify-center font-bold text-sm border border-brand-500">
-              AD
+              {isOnboarded ? (onboardingAdminName.trim().split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'AD') : 'AD'}
             </div>
             <div className="overflow-hidden">
-              <div className="text-[13px] font-semibold text-white truncate">Apex Clinic Admin</div>
-              <div className="text-[10px] text-brand-100/60 truncate">admin@apexclinic.com</div>
+              <div className="text-[13px] font-semibold text-white truncate">{isOnboarded ? onboardingAdminName || 'Apex Clinic Admin' : 'Apex Clinic Admin'}</div>
+              <div className="text-[10px] text-brand-100/60 truncate">{isOnboarded ? onboardingEmail || 'admin@apexclinic.com' : 'admin@apexclinic.com'}</div>
             </div>
           </div>
 
@@ -3088,7 +3690,7 @@ function App() {
         {/* 2. TOPBAR */}
         <header className="h-16 bg-surface-base border-b border-surface-border/50 flex items-center justify-between px-8 sticky top-0 z-20">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary font-medium">Apex Family Clinic</span>
+            <span className="text-text-secondary font-medium">{isOnboarded ? settingsClinicName : 'Apex Family Clinic'}</span>
             <ChevronRight size={14} className="text-text-muted" />
             <span className="text-text-primary font-semibold capitalize">
               {currentRoute === 'dashboard' ? 'Dashboard' : currentRoute.replace('-', ' ')}
@@ -3216,7 +3818,7 @@ function App() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-[24px] font-semibold text-text-primary leading-tight">
-                    Good afternoon, {mockClinicInfo.name}
+                    Good afternoon, {isOnboarded ? settingsClinicName : mockClinicInfo.name}
                   </h2>
                   <p className="text-[14px] text-text-secondary mt-1">
                     {mockClinicInfo.todayPatients} patients today · {mockClinicInfo.doctorsOnDuty} doctors on duty ·{' '}
