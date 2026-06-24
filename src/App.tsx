@@ -69,6 +69,20 @@ interface ChatConversation {
   assignedStaff?: string;
 }
 
+interface NotificationItem {
+  id: string;
+  type: 'escalation' | 'recall' | 'no-show';
+  title: string;
+  description: string;
+  time: string;
+  read: boolean;
+  linkData: {
+    route: string;
+    patientId?: number;
+    tab?: string;
+  };
+}
+
 interface QueueEntry {
   id: number;
   patientId?: number | null;
@@ -518,6 +532,104 @@ function App() {
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+
+  // Notifications State & Logic
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'notif-1',
+      type: 'escalation',
+      title: 'Escalation Alert',
+      description: "Escalation: patient reported chest tightness — Nynaeve al'Meara",
+      time: '12 min ago',
+      read: false,
+      linkData: {
+        route: 'zero-chat',
+        patientId: 1
+      }
+    },
+    {
+      id: 'notif-2',
+      type: 'recall',
+      title: 'Recall Reminder',
+      description: 'Recall due: Elayne Trakand (due for 6-month checkup)',
+      time: '1 hour ago',
+      read: false,
+      linkData: {
+        route: 'patients',
+        patientId: 6,
+        tab: 'recalls'
+      }
+    },
+    {
+      id: 'notif-3',
+      type: 'no-show',
+      title: 'No-show Alert',
+      description: 'No-show: Galad Damodred missed 09:30 AM appointment',
+      time: '2 hours ago',
+      read: false,
+      linkData: {
+        route: 'live-queue',
+        tab: 'no_show'
+      }
+    },
+    {
+      id: 'notif-4',
+      type: 'escalation',
+      title: 'Billing Dispute Escalation',
+      description: "Escalation: billing dispute requires human review — Egwene al'Vere",
+      time: '4 hours ago',
+      read: true,
+      linkData: {
+        route: 'zero-chat',
+        patientId: 3
+      }
+    }
+  ]);
+  const [isNotificationsDropdownOpen, setIsNotificationsDropdownOpen] = useState(false);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleNotificationClick = (notif: NotificationItem) => {
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+    setIsNotificationsDropdownOpen(false);
+
+    if (notif.linkData.route === 'zero-chat') {
+      if (notif.linkData.patientId !== undefined) {
+        setSelectedChatId(notif.linkData.patientId);
+      }
+      setCurrentRoute('zero-chat');
+    } else if (notif.linkData.route === 'patients') {
+      setCurrentRoute('patients');
+      if (notif.linkData.tab === 'recalls') {
+        setPatientsTab('recall');
+      }
+      if (notif.linkData.patientId !== undefined) {
+        setSelectedPatientId(notif.linkData.patientId);
+      }
+    } else if (notif.linkData.route === 'live-queue') {
+      setCurrentRoute('live-queue');
+      if (notif.linkData.tab === 'no_show') {
+        setQueueTab('no_show');
+      }
+    }
+  };
+
+  // Handle click outside notifications dropdown to close it
+  useEffect(() => {
+    if (!isNotificationsDropdownOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('#notification-bell-btn') && !target.closest('#notification-dropdown-panel')) {
+        setIsNotificationsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isNotificationsDropdownOpen]);
 
   // Patients screen states
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -2993,10 +3105,91 @@ function App() {
               <span className="text-xs text-status-success font-medium">Connected</span>
             </div>
 
-            <button className="relative w-9 h-9 flex items-center justify-center text-text-secondary hover:bg-surface-subtle rounded-xl transition duration-150 border border-surface-border/30">
-              <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-status-danger rounded-full border border-surface-base"></span>
-            </button>
+            <div className="relative">
+              <button
+                id="notification-bell-btn"
+                onClick={() => setIsNotificationsDropdownOpen(!isNotificationsDropdownOpen)}
+                className={`relative w-9 h-9 flex items-center justify-center rounded-xl transition duration-150 border ${
+                  isNotificationsDropdownOpen
+                    ? 'bg-brand-50 border-brand-200 text-brand-600'
+                    : 'text-text-secondary hover:bg-surface-subtle border-surface-border/30'
+                }`}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-status-danger text-white rounded-full border border-surface-base text-[9px] font-extrabold flex items-center justify-center shadow-sm">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* DROPDOWN PANEL */}
+              {isNotificationsDropdownOpen && (
+                <div
+                  id="notification-dropdown-panel"
+                  className="absolute right-0 mt-2 w-80 bg-surface-base rounded-2xl shadow-soft border border-surface-border/60 py-3 z-50 animate-fade-in text-xs"
+                >
+                  <div className="px-4 pb-2 border-b border-surface-border/30 flex items-center justify-between">
+                    <span className="font-bold text-text-primary">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-brand-500 hover:text-brand-600 font-bold transition duration-150 text-[10px]"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto divide-y divide-surface-border/10">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-text-muted">
+                        You're all caught up!
+                      </div>
+                    ) : (
+                      notifications.map((notif) => {
+                        const isUnread = !notif.read;
+                        return (
+                          <div
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`px-4 py-3 cursor-pointer transition duration-150 flex items-start gap-3 hover:bg-surface-subtle/50 ${
+                              isUnread ? 'bg-brand-50/20' : ''
+                            }`}
+                          >
+                            {/* Color-coded dot */}
+                            <span
+                              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                notif.type === 'escalation'
+                                  ? notif.description.includes('dispute')
+                                    ? 'bg-status-warning'
+                                    : 'bg-status-danger'
+                                  : notif.type === 'recall'
+                                  ? 'bg-status-warning'
+                                  : 'bg-status-danger'
+                              }`}
+                            />
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[11px] leading-relaxed text-text-primary ${isUnread ? 'font-bold' : 'font-medium'}`}>
+                                {notif.description}
+                              </p>
+                              <span className="text-[10px] text-text-muted mt-1 block">
+                                {notif.time}
+                              </span>
+                            </div>
+
+                            {isUnread && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 flex-shrink-0" />
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
