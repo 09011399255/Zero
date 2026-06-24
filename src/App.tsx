@@ -23,7 +23,9 @@ import {
   Plus,
   X,
   ChevronLeft,
-  Send
+  Send,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -576,6 +578,35 @@ function App() {
     ai_handling: true,
     resolved: true
   });
+
+  // Settings screen states
+  const [settingsClinicName, setSettingsClinicName] = useState('Apex Family Clinic');
+  const [settingsAddress, setSettingsAddress] = useState('123 Eldene Way, Suite 400, Apex City');
+  const [settingsHours, setSettingsHours] = useState('Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
+  const [settingsServices, setSettingsServices] = useState('Cardiology, Dermatology, Physiotherapy, General Medicine');
+
+  // To track initial/saved values for dirty state comparison
+  const [savedClinicName, setSavedClinicName] = useState('Apex Family Clinic');
+  const [savedAddress, setSavedAddress] = useState('123 Eldene Way, Suite 400, Apex City');
+  const [savedHours, setSavedHours] = useState('Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
+  const [savedServices, setSavedServices] = useState('Cardiology, Dermatology, Physiotherapy, General Medicine');
+
+  // Staff list state
+  const [staffList, setStaffList] = useState([
+    { id: 1, name: 'Dr. Lan Mandragoran', role: 'Lead Physician', email: 'lan.m@apexfamily.com', initials: 'LM' },
+    { id: 2, name: 'Dr. Moiraine Damodred', role: 'Chief of Staff', email: 'moiraine.d@apexfamily.com', initials: 'MD' },
+    { id: 3, name: 'Sarah Sedai', role: 'Clinic Manager', email: 'sarah.s@apexfamily.com', initials: 'SS' }
+  ]);
+  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('General Practitioner');
+  const [newStaffEmail, setNewStaffEmail] = useState('');
+
+  // Notifications state
+  const [notificationEscalation, setNotificationEscalation] = useState(true);
+  const [notificationRecall, setNotificationRecall] = useState(true);
+  const [notificationNoShow, setNotificationNoShow] = useState(true);
+  const [notificationSummary, setNotificationSummary] = useState(false);
 
   // Rotate the AI live activity feed ticker every 4 seconds
   useEffect(() => {
@@ -2318,6 +2349,428 @@ function App() {
     );
   };
 
+  // Render Settings Screen
+  const renderSettingsScreen = () => {
+    const isDirty =
+      settingsClinicName !== savedClinicName ||
+      settingsAddress !== savedAddress ||
+      settingsHours !== savedHours ||
+      settingsServices !== savedServices;
+
+    const handleSaveChanges = (e: React.FormEvent) => {
+      e.preventDefault();
+      setSavedClinicName(settingsClinicName);
+      setSavedAddress(settingsAddress);
+      setSavedHours(settingsHours);
+      setSavedServices(settingsServices);
+      alert("Clinic settings saved successfully!");
+    };
+
+    const handleAddStaff = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newStaffName.trim() || !newStaffEmail.trim()) {
+        alert("Please fill in Name and Email.");
+        return;
+      }
+      const nextId = staffList.length ? Math.max(...staffList.map(s => s.id)) + 1 : 1;
+      const initials = newStaffName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'ST';
+      setStaffList(prev => [
+        ...prev,
+        {
+          id: nextId,
+          name: newStaffName.trim(),
+          role: newStaffRole,
+          email: newStaffEmail.trim(),
+          initials
+        }
+      ]);
+      setNewStaffName('');
+      setNewStaffEmail('');
+      setIsAddStaffOpen(false);
+    };
+
+    const handleRemoveStaff = (id: number) => {
+      if (confirm("Are you sure you want to remove this staff member?")) {
+        setStaffList(prev => prev.filter(s => s.id !== id));
+      }
+    };
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 pb-16 animate-fade-in font-sans text-xs">
+        {/* PAGE HEADER */}
+        <div>
+          <h2 className="text-[24px] font-semibold text-text-primary leading-tight font-sans">Settings</h2>
+          <p className="text-[14px] text-text-secondary mt-1">
+            Manage your clinic's configuration, connections, and team
+          </p>
+        </div>
+
+        {/* SECTION 1: CLINIC INFO */}
+        <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
+          <div className="border-b border-surface-border/30 pb-4">
+            <h3 className="text-sm font-bold text-text-primary">Clinic Information</h3>
+            <p className="text-text-secondary mt-0.5">Basic details about your healthcare practice</p>
+          </div>
+
+          <form onSubmit={handleSaveChanges} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Name</label>
+                <input
+                  type="text"
+                  value={settingsClinicName}
+                  onChange={(e) => setSettingsClinicName(e.target.value)}
+                  required
+                  placeholder="e.g. Apex Family Clinic"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Services Offered (Comma Separated)</label>
+                <input
+                  type="text"
+                  value={settingsServices}
+                  onChange={(e) => setSettingsServices(e.target.value)}
+                  placeholder="e.g. Cardiology, Dermatology, Physiotherapy"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Address</label>
+                <input
+                  type="text"
+                  value={settingsAddress}
+                  onChange={(e) => setSettingsAddress(e.target.value)}
+                  required
+                  placeholder="e.g. 123 Eldene Way, Suite 400, Apex City"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Operating Hours</label>
+                <input
+                  type="text"
+                  value={settingsHours}
+                  onChange={(e) => setSettingsHours(e.target.value)}
+                  required
+                  placeholder="e.g. Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={!isDirty}
+                className={`px-5 py-2.5 font-bold rounded-xl text-xs transition duration-200 shadow-sm ${
+                  isDirty
+                    ? 'bg-brand-500 hover:bg-brand-600 text-white cursor-pointer'
+                    : 'bg-surface-subtle text-text-muted border border-surface-border/50 cursor-not-allowed'
+                }`}
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* SECTION 2: WHATSAPP CONNECTION */}
+        <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
+          <div className="border-b border-surface-border/30 pb-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary">WhatsApp Business Connection</h3>
+              <p className="text-text-secondary mt-0.5">Integrate your official WhatsApp business number</p>
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-status-warningBg text-status-warning border border-status-warning/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-warning animate-pulse"></span>
+              Pending Verification
+            </span>
+          </div>
+
+          <div className="bg-status-warningBg/30 border border-status-warning/10 rounded-xl p-4 space-y-3">
+            <p className="text-xs text-text-secondary leading-relaxed font-medium">
+              Your WhatsApp Business API connection is awaiting Meta verification. Once approved, Zero will connect directly to your clinic's WhatsApp number.
+            </p>
+
+            {/* Steps checklist */}
+            <div className="space-y-2 pt-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-status-successBg text-status-success border border-status-success/20 flex items-center justify-center text-[9px] font-bold">✓</span>
+                <span className="text-[11px] font-bold text-text-primary">Business details submitted</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-status-warningBg text-status-warning border border-status-warning/20 flex items-center justify-center text-[9px] font-bold">●</span>
+                <span className="text-[11px] font-bold text-text-primary">Meta verification review in progress</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-surface-subtle text-text-muted border border-surface-border flex items-center justify-center text-[9px] font-bold">3</span>
+                <span className="text-[11px] font-medium text-text-secondary">Number linking and configuration pending</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={() => alert("Verification status refreshed: Still reviewing. Meta verification typically takes 1-3 business days.")}
+              className="inline-flex items-center gap-1.5 px-4 py-2 border border-surface-border text-text-secondary hover:bg-surface-subtle font-bold rounded-xl text-xs transition duration-150"
+            >
+              <RefreshCw size={12} className="animate-spin" style={{ animationDuration: '4s' }} />
+              <span>Check Status</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SECTION 3: STAFF */}
+        <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
+          <div className="border-b border-surface-border/30 pb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary">Staff Management</h3>
+              <p className="text-text-secondary mt-0.5">Configure access roles for clinic practitioners and admins</p>
+            </div>
+
+            <button
+              onClick={() => setIsAddStaffOpen(!isAddStaffOpen)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 border border-brand-500 text-brand-500 hover:bg-brand-50 font-bold rounded-xl text-xs transition duration-150"
+            >
+              <Plus size={14} />
+              <span>Add Staff</span>
+            </button>
+          </div>
+
+          {/* Add Staff Inline Form */}
+          {isAddStaffOpen && (
+            <form onSubmit={handleAddStaff} className="bg-surface-subtle/50 border border-surface-border/20 rounded-xl p-4 space-y-3 animate-fade-in">
+              <h4 className="text-xs font-bold text-text-primary">New Staff Member</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  required
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <input
+                  type="email"
+                  placeholder="Email Address"
+                  required
+                  value={newStaffEmail}
+                  onChange={(e) => setNewStaffEmail(e.target.value)}
+                  className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <select
+                  value={newStaffRole}
+                  onChange={(e) => setNewStaffRole(e.target.value)}
+                  className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="Lead Physician">Lead Physician</option>
+                  <option value="Chief of Staff">Chief of Staff</option>
+                  <option value="General Practitioner">General Practitioner</option>
+                  <option value="Clinic Manager">Clinic Manager</option>
+                  <option value="Billing Admin">Billing Admin</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-150"
+                >
+                  Save Staff
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddStaffOpen(false)}
+                  className="px-4 py-2 border border-surface-border hover:bg-surface-subtle text-text-secondary font-bold rounded-xl text-xs transition duration-150"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Staff List Table */}
+          <div className="border border-surface-border/20 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">
+                  <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Staff Member</th>
+                  <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Role</th>
+                  <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Email Address</th>
+                  <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-border/10">
+                {staffList.map((staff) => (
+                  <tr key={staff.id} className="hover:bg-surface-subtle/30 transition duration-150">
+                    <td className="py-3 px-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                        {staff.initials}
+                      </div>
+                      <span className="font-bold text-text-primary text-xs">{staff.name}</span>
+                    </td>
+                    <td className="py-3 px-4 text-xs font-semibold text-text-secondary">
+                      {staff.role}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-medium text-text-secondary">
+                      {staff.email}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button
+                        onClick={() => handleRemoveStaff(staff.id)}
+                        className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-dangerBg/50 rounded-lg transition duration-150"
+                        title="Remove Staff"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SECTION 4: NOTIFICATIONS */}
+        <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
+          <div className="border-b border-surface-border/30 pb-4">
+            <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+            <p className="text-text-secondary mt-0.5">Control how and when your staff is notified about clinic events</p>
+          </div>
+
+          <div className="divide-y divide-surface-border/20">
+            {/* Escalation Alerts */}
+            <div className="py-4 flex items-center justify-between gap-6 first:pt-0">
+              <div>
+                <label className="text-xs font-bold text-text-primary block">Escalation alerts</label>
+                <span className="text-[11px] text-text-secondary mt-0.5 block">Notify staff immediately when Zero AI escalates a conversation</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationEscalation(!notificationEscalation)}
+                className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                  notificationEscalation ? 'bg-brand-500' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                  notificationEscalation ? 'translate-x-4' : 'translate-x-0'
+                }`}></span>
+              </button>
+            </div>
+
+            {/* Recall Reminders */}
+            <div className="py-4 flex items-center justify-between gap-6">
+              <div>
+                <label className="text-xs font-bold text-text-primary block">Recall reminders</label>
+                <span className="text-[11px] text-text-secondary mt-0.5 block">Daily summary of patient recalls due or overdue</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationRecall(!notificationRecall)}
+                className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                  notificationRecall ? 'bg-brand-500' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                  notificationRecall ? 'translate-x-4' : 'translate-x-0'
+                }`}></span>
+              </button>
+            </div>
+
+            {/* No-show Alerts */}
+            <div className="py-4 flex items-center justify-between gap-6">
+              <div>
+                <label className="text-xs font-bold text-text-primary block">No-show alerts</label>
+                <span className="text-[11px] text-text-secondary mt-0.5 block">Notify when a booked patient fails to check in on time</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationNoShow(!notificationNoShow)}
+                className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                  notificationNoShow ? 'bg-brand-500' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                  notificationNoShow ? 'translate-x-4' : 'translate-x-0'
+                }`}></span>
+              </button>
+            </div>
+
+            {/* Daily Summary Email */}
+            <div className="py-4 flex items-center justify-between gap-6 last:pb-0">
+              <div>
+                <label className="text-xs font-bold text-text-primary block">Daily summary email</label>
+                <span className="text-[11px] text-text-secondary mt-0.5 block">End-of-day report detailing clinic performance and AI stats</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificationSummary(!notificationSummary)}
+                className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
+                  notificationSummary ? 'bg-brand-500' : 'bg-gray-300'
+                }`}
+              >
+                <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                  notificationSummary ? 'translate-x-4' : 'translate-x-0'
+                }`}></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: BILLING */}
+        <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
+          <div className="border-b border-surface-border/30 pb-4">
+            <h3 className="text-sm font-bold text-text-primary">Subscription & Billing</h3>
+            <p className="text-text-secondary mt-0.5">Manage plan tiers and invoicing details</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Plan Info Card */}
+            <div className="bg-brand-50/50 border border-brand-100 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-brand-500 uppercase tracking-wider block mb-1">Active Plan</span>
+                <h4 className="text-sm font-extrabold text-brand-900">Navigator Plan — $299/mo</h4>
+                <p className="text-[11px] text-brand-700/80 mt-1 leading-relaxed font-semibold">
+                  Includes full AI automation on recall and pre-intake, up to 1,500 active patient interactions, and multi-doctor live queue capabilities.
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-brand-100/50 flex items-center justify-between text-[11px] font-semibold text-brand-800">
+                <span>Next Invoice Date:</span>
+                <span>July 15, 2026</span>
+              </div>
+            </div>
+
+            {/* Actions / Invoices list */}
+            <div className="border border-surface-border/25 rounded-xl p-4 flex flex-col justify-between">
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Billing Inquiries</span>
+                <p className="text-[11px] text-text-secondary leading-relaxed font-medium">
+                  Need to change your payout methods, download past invoices, or cancel/upgrade plans?
+                </p>
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                <button
+                  onClick={() => alert("Billing management dashboard link clicked (Stripe customer portal interface in mockup mode).")}
+                  className="px-4 py-2 border border-surface-border text-text-secondary hover:bg-surface-subtle font-bold rounded-xl text-xs transition duration-150"
+                >
+                  Manage Billing
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Render placeholder page for non-dashboard routes
   const renderPlaceholder = (routeName: string) => {
     return (
@@ -2557,6 +3010,8 @@ function App() {
             renderZeroChatScreen()
           ) : currentRoute === 'live-queue' ? (
             renderLiveQueueScreen()
+          ) : currentRoute === 'settings' ? (
+            renderSettingsScreen()
           ) : currentRoute !== 'dashboard' ? (
             renderPlaceholder(currentRoute)
           ) : (
