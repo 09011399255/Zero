@@ -805,9 +805,9 @@ function App() {
     setIsTransitioningStep(true);
     setTransitionStatusIndex(0);
     
-    const t1 = setTimeout(() => setTransitionStatusIndex(1), 1200);
-    const t2 = setTimeout(() => setTransitionStatusIndex(2), 2400);
-    const t3 = setTimeout(() => {
+    setTimeout(() => setTransitionStatusIndex(1), 1200);
+    setTimeout(() => setTransitionStatusIndex(2), 2400);
+    setTimeout(() => {
       setIsTransitioningStep(false);
       setOnboardingStep(5);
       
