@@ -3130,15 +3130,18 @@ function App() {
                   className="absolute right-0 mt-2 w-80 bg-surface-base rounded-2xl shadow-soft border border-surface-border/60 py-3 z-50 animate-fade-in text-xs"
                 >
                   <div className="px-4 pb-2 border-b border-surface-border/30 flex items-center justify-between">
-                    <span className="font-bold text-text-primary">Notifications</span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllAsRead}
-                        className="text-brand-500 hover:text-brand-600 font-bold transition duration-150 text-[10px]"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
+                    <span className="font-bold text-text-primary text-xs">Notifications</span>
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      disabled={unreadCount === 0}
+                      className={`font-bold transition duration-150 text-[11px] ${
+                        unreadCount > 0
+                          ? 'text-brand-500 hover:text-brand-600 cursor-pointer'
+                          : 'text-text-muted cursor-not-allowed'
+                      }`}
+                    >
+                      Mark all as read
+                    </button>
                   </div>
 
                   <div className="max-h-64 overflow-y-auto divide-y divide-surface-border/10">
