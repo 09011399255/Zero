@@ -3675,7 +3675,10 @@ function App() {
               <span>Support</span>
             </button>
             <button
-              onClick={() => alert('Logged out successfully.')}
+              onClick={() => {
+                setIsOnboarded(false);
+                setOnboardingStep(1);
+              }}
               className="flex items-center gap-3 w-full text-left px-2 py-1.5 rounded-lg text-xs text-brand-100/60 hover:text-white hover:bg-white/5 transition duration-150"
             >
               <LogOut size={14} />
