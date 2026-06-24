@@ -985,7 +985,6 @@ function App() {
                           date: new Date().toISOString().split('T')[0],
                           doctor: walkInDoctor,
                           reason: walkInReason || 'Walk-in Consultation',
-                          diagnosis: 'Pending clinical assessment',
                           notes: 'Checked in as a walk-in patient.'
                         }
                       ]
