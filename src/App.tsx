@@ -980,6 +980,8 @@ function App() {
                       lastVisit: 'Today',
                       nextAppointment: '—',
                       recallStatus: 'up_to_date',
+                      conversationsCount: 0,
+                      conversations: [],
                       history: [
                         {
                           date: new Date().toISOString().split('T')[0],
