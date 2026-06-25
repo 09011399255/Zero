@@ -12,6 +12,58 @@
   }
 }
 
+/* Onboarding Fine Dot Grid Background */
+.dot-grid-bg {
+  background-color: #FAF9FD;
+  background-image: radial-gradient(rgba(139, 92, 246, 0.07) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+/* Pulsing Orb and Rings Animations */
+@keyframes ringPulse1 {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes ringPulse2 {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes ringPulse3 {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+
+@keyframes orbGlow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px 8px rgba(139, 92, 246, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.45);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 45px 18px rgba(139, 92, 246, 0.65), inset 0 0 25px rgba(255, 255, 255, 0.7);
+  }
+}
+
 @keyframes orbPulse {
   0%, 100% {
     transform: scale(1);

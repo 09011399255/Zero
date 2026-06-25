@@ -528,7 +528,6 @@ const initialConversations: ChatConversation[] = [
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
-  const [tickerIndex, setTickerIndex] = useState(0);
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
@@ -872,15 +871,6 @@ function App() {
   const [notificationRecall, setNotificationRecall] = useState(true);
   const [notificationNoShow, setNotificationNoShow] = useState(true);
   const [notificationSummary, setNotificationSummary] = useState(false);
-
-  // Rotate the AI live activity feed ticker every 4 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTickerIndex((prevIndex) => (prevIndex + 1) % mockAIStats.liveActivityFeed.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
   // Close dropdown menu when clicking anywhere else
   useEffect(() => {
     const handleClickOutside = () => {
@@ -2680,7 +2670,13 @@ function App() {
             {/* Sign Up / Log In Toggle */}
             <div className="flex bg-surface-subtle p-1 rounded-xl">
               <button
-                onClick={() => setOnboardingAuthMode('signup')}
+                type="button"
+                onClick={() => {
+                  setOnboardingAuthMode('signup');
+                  setOnboardingAdminName('');
+                  setOnboardingEmail('');
+                  setOnboardingPassword('');
+                }}
                 className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
                   onboardingAuthMode === 'signup'
                     ? 'bg-surface-base text-brand-600 shadow-sm'
@@ -2690,7 +2686,13 @@ function App() {
                 Sign Up
               </button>
               <button
-                onClick={() => setOnboardingAuthMode('login')}
+                type="button"
+                onClick={() => {
+                  setOnboardingAuthMode('login');
+                  setOnboardingAdminName('');
+                  setOnboardingEmail('');
+                  setOnboardingPassword('');
+                }}
                 className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
                   onboardingAuthMode === 'login'
                     ? 'bg-surface-base text-brand-600 shadow-sm'
@@ -2701,17 +2703,19 @@ function App() {
               </button>
             </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setOnboardingStep(2);
-              }}
-              className="space-y-4"
-            >
-              {onboardingAuthMode === 'signup' && (
+            {onboardingAuthMode === 'signup' ? (
+              <form
+                key="signup-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setOnboardingStep(2);
+                }}
+                className="space-y-4"
+              >
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Admin Full Name</label>
                   <input
+                    key="signup-name"
                     type="text"
                     value={onboardingAdminName}
                     onChange={(e) => setOnboardingAdminName(e.target.value)}
@@ -2720,39 +2724,86 @@ function App() {
                     className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
-              )}
 
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email</label>
-                <input
-                  type="email"
-                  value={onboardingEmail}
-                  onChange={(e) => setOnboardingEmail(e.target.value)}
-                  required
-                  placeholder="e.g. admin@yourclinic.com"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                />
-              </div>
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email</label>
+                  <input
+                    key="signup-email"
+                    type="email"
+                    value={onboardingEmail}
+                    onChange={(e) => setOnboardingEmail(e.target.value)}
+                    required
+                    placeholder="e.g. admin@yourclinic.com"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
 
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
-                <input
-                  type="password"
-                  value={onboardingPassword}
-                  onChange={(e) => setOnboardingPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                />
-              </div>
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
+                  <input
+                    key="signup-password"
+                    type="password"
+                    value={onboardingPassword}
+                    onChange={(e) => setOnboardingPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+                >
+                  Create Account
+                </button>
+              </form>
+            ) : (
+              <form
+                key="login-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!onboardingAdminName.trim()) {
+                    setOnboardingAdminName('Apex Clinic Admin');
+                  }
+                  setIsOnboarded(true);
+                }}
+                className="space-y-4"
               >
-                {onboardingAuthMode === 'signup' ? 'Create Account' : 'Log In'}
-              </button>
-            </form>
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email</label>
+                  <input
+                    key="login-email"
+                    type="email"
+                    value={onboardingEmail}
+                    onChange={(e) => setOnboardingEmail(e.target.value)}
+                    required
+                    placeholder="e.g. admin@yourclinic.com"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
+                  <input
+                    key="login-password"
+                    type="password"
+                    value={onboardingPassword}
+                    onChange={(e) => setOnboardingPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+                >
+                  Log In
+                </button>
+              </form>
+            )}
 
             <div className="relative flex py-2 items-center">
               <div className="flex-grow border-t border-surface-border/40"></div>
@@ -2761,7 +2812,17 @@ function App() {
             </div>
 
             <button
-              onClick={() => setOnboardingStep(2)}
+              type="button"
+              onClick={() => {
+                if (onboardingAuthMode === 'login') {
+                  if (!onboardingAdminName.trim()) {
+                    setOnboardingAdminName('Apex Clinic Admin');
+                  }
+                  setIsOnboarded(true);
+                } else {
+                  setOnboardingStep(2);
+                }
+              }}
               className="w-full py-3 bg-surface-base hover:bg-surface-subtle border border-surface-border rounded-xl font-bold text-text-primary transition duration-150 text-xs flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -3840,70 +3901,49 @@ function App() {
               </div>
 
               {/* HERO: AI ACTIVITY CARD */}
-              <div className="bg-gradient-to-tr from-ai-50 via-ai-50/10 to-surface-base border-l-4 border-ai-500 rounded-2xl shadow-soft p-6 relative overflow-hidden flex flex-col md:flex-row items-stretch justify-between gap-6">
-                {/* Background Decorative Gradient Orbs */}
-                <div className="absolute right-0 top-0 w-80 h-80 bg-ai-100/20 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-
-                <div className="flex-1 flex flex-col justify-between min-h-[140px] space-y-4">
-                  <div>
-                    <span className="text-[12px] font-semibold text-ai-600 uppercase tracking-widest">
-                      Zero is Working
-                    </span>
-                    <h3 className="text-xl font-bold text-text-primary mt-1">
-                      AI Patient Care Operations
-                    </h3>
-                  </div>
-
-                  {/* AI KPI Stats Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-text-secondary font-medium">Conversations Handled Today</span>
-                      <span className="text-3xl font-bold text-ai-600 mt-1 flex items-baseline gap-2">
-                        {mockAIStats.handledConversations}
-                        <span className="text-xs font-semibold text-status-success bg-status-successBg px-2 py-0.5 rounded-full">
-                          100% Auto
-                        </span>
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-xs text-text-secondary font-medium">Escalated to Staff</span>
-                      <span className="text-3xl font-bold text-text-primary mt-1 flex items-center gap-2">
-                        {mockAIStats.escalatedConversations}
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-status-warning animate-pulse"></span>
-                      </span>
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="text-xs text-text-secondary font-medium">Avg Response Time</span>
-                      <span className="text-3xl font-bold text-text-primary mt-1">
-                        {mockAIStats.avgResponseTime}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Live Activity Feed Ticker */}
-                  <div className="bg-surface-base/80 border border-ai-100/50 rounded-xl px-4 py-2 flex items-center gap-2.5 text-xs text-text-secondary shadow-sm min-h-[36px]">
-                    <span className="w-2 h-2 rounded-full bg-ai-500 animate-pulse flex-shrink-0"></span>
-                    <span className="font-semibold text-ai-600 uppercase tracking-wider text-[10px]">LIVE FEED:</span>
-                    <span className="animate-fade-in text-text-primary transition-all duration-300">
-                      {mockAIStats.liveActivityFeed[tickerIndex]}
-                    </span>
+              <div className="bg-surface-base border border-surface-border/35 border-l-4 border-l-ai-500 rounded-2xl shadow-soft p-6 relative overflow-hidden flex flex-col gap-6">
+                {/* Top Row */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-text-secondary">
+                    Zero is working — AI patient care operations
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+                    <span className="text-[12px] font-semibold text-status-success">Active</span>
                   </div>
                 </div>
 
-                {/* Pulsing Orb Visual Block */}
-                <div className="w-full md:w-[220px] flex flex-col items-center justify-center bg-white/40 border border-ai-100/20 rounded-xl p-4 text-center relative overflow-hidden backdrop-blur-sm self-center">
-                  <div className="relative w-16 h-16 mb-3 flex items-center justify-center">
-                    {/* Glowing pulse background */}
-                    <div className="absolute inset-0 rounded-full bg-ai-500/25 animate-orb-pulse"></div>
-                    {/* Core brand indicator */}
-                    <div className="relative w-10 h-10 bg-ai-500 rounded-full flex items-center justify-center text-white shadow-md font-sans font-bold text-sm">
-                      Z
-                    </div>
+                {/* Stat Row */}
+                <div className="grid grid-cols-3 border-t border-surface-border/60 pt-6">
+                  {/* Conversations Handled Today */}
+                  <div className="flex flex-col items-center justify-center text-center py-1">
+                    <span className="text-[24px] font-semibold text-text-primary leading-none">
+                      {mockAIStats.handledConversations}
+                    </span>
+                    <span className="text-[12px] text-text-secondary mt-1.5">
+                      Conversations handled today
+                    </span>
                   </div>
-                  <span className="text-xs font-semibold text-ai-600 uppercase tracking-widest block">AI Active</span>
-                  <span className="text-[11px] text-text-secondary mt-1">Monitoring WhatsApp queue</span>
+
+                  {/* Escalated to Staff */}
+                  <div className="flex flex-col items-center justify-center text-center py-1 border-x border-surface-border/60">
+                    <span className="text-[24px] font-semibold text-text-primary leading-none">
+                      {mockAIStats.escalatedConversations}
+                    </span>
+                    <span className="text-[12px] text-text-secondary mt-1.5">
+                      Escalated to staff
+                    </span>
+                  </div>
+
+                  {/* Avg Response Time */}
+                  <div className="flex flex-col items-center justify-center text-center py-1">
+                    <span className="text-[24px] font-semibold text-text-primary leading-none">
+                      {mockAIStats.avgResponseTime === '8 seconds' ? '8s' : mockAIStats.avgResponseTime}
+                    </span>
+                    <span className="text-[12px] text-text-secondary mt-1.5">
+                      Avg response time
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -4493,13 +4533,13 @@ function App() {
                           <div className="bg-ai-50/10 border-l-2 border-ai-400 p-3.5 rounded-r-xl space-y-1">
                             <span className="text-[10px] font-bold text-ai-600 uppercase tracking-wide">Reported Symptoms</span>
                             <p className="text-xs text-text-primary leading-relaxed">
-                              "{selectedPatient.intakeNotes.symptoms}"
+                              "{selectedPatient.intakeNotes.symptoms || 'None'}"
                             </p>
                           </div>
 
                           <div className="space-y-2.5 pt-2">
                             <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block font-sans">Structured Answers</span>
-                            {selectedPatient.intakeNotes.structuredAnswers.map((item, idx) => (
+                            {selectedPatient.intakeNotes.structuredAnswers?.map((item, idx) => (
                               <div key={idx} className="bg-surface-subtle/50 rounded-xl p-3 border border-surface-border/10 text-xs">
                                 <div className="font-semibold text-text-secondary">{item.question}</div>
                                 <div className="font-bold text-text-primary mt-1">{item.answer}</div>

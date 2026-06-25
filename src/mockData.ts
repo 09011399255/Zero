@@ -512,8 +512,15 @@ export interface PatientHistoryItem {
 }
 
 export interface PatientIntakeNotes {
-  symptoms: string;
-  structuredAnswers: { question: string; answer: string }[];
+  symptoms?: string;
+  structuredAnswers?: { question: string; answer: string }[];
+  dob?: string;
+  gender?: string;
+  primaryDoctor?: string;
+  lastVisit?: string;
+  nextAppointment?: string;
+  reasonForVisit?: string;
+  services?: string[];
 }
 
 export interface PatientChatMessage {
