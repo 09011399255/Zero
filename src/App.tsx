@@ -526,6 +526,37 @@ const initialConversations: ChatConversation[] = [
   }
 ];
 
+const PRESET_SERVICES = [
+  'Cardiology',
+  'Dermatology',
+  'Pediatrics',
+  'Physiotherapy',
+  'Dental',
+  'Mental Health/Psychiatry',
+  'Nutrition',
+  'General Practice',
+  'Gynecology',
+  'Orthopedics',
+  'ENT',
+  'Ophthalmology',
+  'Urology',
+  'Oncology'
+];
+
+const PRESET_ROLES = [
+  'Lead Physician',
+  'General Practitioner',
+  'Cardiologist',
+  'Dermatologist',
+  'Pediatrician',
+  'Physiotherapist',
+  'Dentist',
+  'Psychiatrist',
+  'Gynecologist',
+  'Orthopedic Surgeon',
+  'Ophthalmologist'
+];
+
 function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
@@ -710,6 +741,56 @@ function App() {
   const [onboardingDoctorName, setOnboardingDoctorName] = useState('');
   const [onboardingDoctorEmail, setOnboardingDoctorEmail] = useState('');
   const [onboardingDoctorRole, setOnboardingDoctorRole] = useState('Lead Physician');
+
+  // Operating Hours states
+  const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
+  const [openTime, setOpenTime] = useState('9:00 AM');
+  const [closeTime, setCloseTime] = useState('5:00 PM');
+
+  // Services tag states
+  const [selectedServices, setSelectedServices] = useState<string[]>(['Cardiology', 'Dermatology', 'General Medicine']);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
+
+  // Doctor Role tag states
+  const [selectedDoctorRoles, setSelectedDoctorRoles] = useState<string[]>(['Lead Physician']);
+  const [doctorRoleSearch, setDoctorRoleSearch] = useState('');
+  const [isDoctorRoleDropdownOpen, setIsDoctorRoleDropdownOpen] = useState(false);
+
+  // Sync selectedDays, openTime, closeTime with onboardingHours
+  useEffect(() => {
+    const allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const sortedDays = [...selectedDays].sort((a, b) => allDays.indexOf(a) - allDays.indexOf(b));
+    
+    let dayRangeStr = '';
+    if (sortedDays.length === 7) {
+      dayRangeStr = 'Every day';
+    } else if (sortedDays.length === 5 && sortedDays.every(d => d !== 'Sat' && d !== 'Sun')) {
+      dayRangeStr = 'Mon - Fri';
+    } else if (sortedDays.length === 6 && sortedDays.every(d => d !== 'Sun')) {
+      dayRangeStr = 'Mon - Sat';
+    } else if (sortedDays.length === 0) {
+      dayRangeStr = 'Closed';
+    } else {
+      dayRangeStr = sortedDays.join(', ');
+    }
+    
+    if (dayRangeStr === 'Closed') {
+      setOnboardingHours('Closed');
+    } else {
+      setOnboardingHours(`${dayRangeStr}: ${openTime} - ${closeTime}`);
+    }
+  }, [selectedDays, openTime, closeTime]);
+
+  // Sync selectedServices with onboardingServices
+  useEffect(() => {
+    setOnboardingServices(selectedServices.join(', '));
+  }, [selectedServices]);
+
+  // Sync selectedDoctorRoles with onboardingDoctorRole
+  useEffect(() => {
+    setOnboardingDoctorRole(selectedDoctorRoles.join(', '));
+  }, [selectedDoctorRoles]);
 
   // Step 4 -> 5 Transition state
   const [isTransitioningStep, setIsTransitioningStep] = useState(false);
@@ -2613,23 +2694,28 @@ function App() {
         "Almost ready..."
       ];
       return (
-        <div className="flex flex-col items-center justify-center p-12 text-center max-w-md bg-surface-base rounded-2xl shadow-soft border border-surface-border/30 w-full animate-fade-in space-y-6">
-          <div className="relative flex h-20 w-20 items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ai-500 opacity-20"></span>
-            <div className="relative inline-flex rounded-full h-14 w-14 bg-gradient-to-tr from-ai-500 to-ai-600 shadow-lg items-center justify-center text-white text-base font-bold select-none">
+        <div className="flex flex-col items-center justify-center p-12 text-center max-w-[460px] bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 w-full animate-fade-in space-y-8">
+          <div className="relative flex h-32 w-32 items-center justify-center">
+            {/* Layered Pulsing Glow Rings */}
+            <span className="animate-ring-1 absolute inline-flex h-full w-full rounded-full bg-ai-500/10"></span>
+            <span className="animate-ring-2 absolute inline-flex h-full w-full rounded-full bg-ai-500/10" style={{ animationDelay: '1.1s' }}></span>
+            <span className="animate-ring-3 absolute inline-flex h-full w-full rounded-full bg-ai-500/10" style={{ animationDelay: '2.2s' }}></span>
+            
+            {/* Pulsing Orb Center */}
+            <div className="animate-orb-glow relative inline-flex rounded-full h-20 w-20 bg-gradient-to-tr from-ai-500 to-ai-600 shadow-xl items-center justify-center text-white text-lg font-bold select-none z-10">
               Zero
             </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold text-text-primary">Configuring Clinic Assistant</h3>
-            <p className="text-xs text-text-muted animate-pulse">{statusTexts[transitionStatusIndex]}</p>
+          <div className="space-y-3">
+            <h3 className="text-base font-bold text-text-primary">Configuring Clinic Assistant</h3>
+            <p className="text-xs text-text-muted animate-pulse font-medium">{statusTexts[transitionStatusIndex]}</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="max-w-xl w-full mx-auto pb-16 pt-8 animate-fade-in font-sans text-xs relative">
+      <div className="max-w-[460px] w-full mx-auto pb-16 pt-8 animate-fade-in font-sans text-xs relative">
         {/* Back Button (except Step 1 and 5) */}
         {onboardingStep > 1 && onboardingStep < 5 && (
           <button
@@ -2658,7 +2744,7 @@ function App() {
 
         {/* STEP 1: ACCOUNT SETUP */}
         {onboardingStep === 1 && (
-          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+          <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
             <div className="text-center space-y-2">
               <div className="inline-flex w-10 h-10 bg-brand-50 rounded-xl items-center justify-center border border-brand-100 mb-2">
                 <span className="text-lg font-bold text-brand-600">Z</span>
@@ -2835,7 +2921,7 @@ function App() {
 
         {/* STEP 2: CLINIC INFO */}
         {onboardingStep === 2 && (
-          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+          <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold text-text-primary">Clinic Details</h2>
               <p className="text-text-secondary">Provide details to train your AI operator on your services and hours.</p>
@@ -2848,7 +2934,7 @@ function App() {
               }}
               className="space-y-4"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Name</label>
                   <input
@@ -2857,24 +2943,103 @@ function App() {
                     onChange={(e) => setOnboardingClinicName(e.target.value)}
                     required
                     placeholder="e.g. Apex Family Clinic"
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
                   />
                 </div>
 
-                <div className="space-y-1.5 flex flex-col">
-                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Services Offered (Comma Separated)</label>
-                  <input
-                    type="text"
-                    value={onboardingServices}
-                    onChange={(e) => setOnboardingServices(e.target.value)}
-                    required
-                    placeholder="e.g. Cardiology, Dermatology, General Medicine"
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  />
-                </div>
-              </div>
+                {/* Services Offered Searchable Tag Selector */}
+                <div className="space-y-1.5 flex flex-col relative">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Services Offered</label>
+                  
+                  {/* Selected Tags Display */}
+                  {selectedServices.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      {selectedServices.map(service => (
+                        <span
+                          key={service}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-brand-50 text-brand-700 border border-brand-100"
+                        >
+                          {service}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedServices(prev => prev.filter(s => s !== service))}
+                            className="text-brand-500 hover:text-brand-700 focus:outline-none"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Input Field */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={serviceSearch}
+                      onChange={(e) => {
+                        setServiceSearch(e.target.value);
+                        setIsServiceDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsServiceDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsServiceDropdownOpen(false), 200)}
+                      placeholder={selectedServices.length === 0 ? "Search or type services..." : "Add another service..."}
+                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                    />
+                    
+                    {/* Dropdown Menu */}
+                    {isServiceDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-surface-base border border-surface-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {(() => {
+                          const filtered = PRESET_SERVICES.filter(
+                            s => s.toLowerCase().includes(serviceSearch.toLowerCase()) && !selectedServices.includes(s)
+                          );
+                          
+                          return (
+                            <div className="py-1">
+                              {filtered.map(service => (
+                                <button
+                                  key={service}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedServices(prev => [...prev, service]);
+                                    setServiceSearch('');
+                                    setIsServiceDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs text-text-primary hover:bg-surface-subtle font-medium transition duration-150"
+                                >
+                                  {service}
+                                </button>
+                              ))}
+                              
+                              {/* Custom option */}
+                              {serviceSearch.trim() && !PRESET_SERVICES.some(s => s.toLowerCase() === serviceSearch.trim().toLowerCase()) && !selectedServices.some(s => s.toLowerCase() === serviceSearch.trim().toLowerCase()) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedServices(prev => [...prev, serviceSearch.trim()]);
+                                    setServiceSearch('');
+                                    setIsServiceDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs text-brand-600 hover:bg-brand-50/50 font-semibold border-t border-surface-border/40 transition duration-150"
+                                >
+                                  Add "{serviceSearch.trim()}" as a custom service
+                                </button>
+                              )}
+                              
+                              {filtered.length === 0 && !serviceSearch.trim() && (
+                                <div className="px-3.5 py-2 text-xs text-text-muted text-center font-medium">
+                                  All preset services selected
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-1.5 flex flex-col">
                   <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Clinic Address</label>
                   <input
@@ -2883,20 +3048,71 @@ function App() {
                     onChange={(e) => setOnboardingAddress(e.target.value)}
                     required
                     placeholder="e.g. 123 Eldene Way, Suite 400, Apex City"
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
                   />
                 </div>
 
-                <div className="space-y-1.5 flex flex-col">
-                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Operating Hours</label>
-                  <input
-                    type="text"
-                    value={onboardingHours}
-                    onChange={(e) => setOnboardingHours(e.target.value)}
-                    required
-                    placeholder="e.g. Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM"
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  />
+                {/* Structured Operating Hours Picker */}
+                <div className="space-y-2 flex flex-col border border-surface-border/30 bg-surface-subtle/50 p-4 rounded-2xl">
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={13} className="text-brand-500" />
+                    <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">Operating Hours</span>
+                  </div>
+
+                  {/* Day range chips */}
+                  <div className="flex gap-1.5 flex-wrap mt-1">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
+                      const isSelected = selectedDays.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedDays(prev => prev.filter(d => d !== day));
+                            } else {
+                              setSelectedDays(prev => [...prev, day]);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition duration-150 ${
+                            isSelected
+                              ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                              : 'bg-surface-base border-surface-border text-text-secondary hover:text-text-primary'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Time range selectors */}
+                  <div className="grid grid-cols-2 gap-3 mt-1.5">
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Opens At</span>
+                      <select
+                        value={openTime}
+                        onChange={(e) => setOpenTime(e.target.value)}
+                        className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      >
+                        {['7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '11:00 AM'].map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-[9px] font-bold text-text-muted uppercase tracking-wider">Closes At</span>
+                      <select
+                        value={closeTime}
+                        onChange={(e) => setCloseTime(e.target.value)}
+                        className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      >
+                        {['3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM', '8:00 PM'].map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2912,7 +3128,7 @@ function App() {
 
         {/* STEP 3: CONNECT WHATSAPP */}
         {onboardingStep === 3 && (
-          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+          <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold text-text-primary">Connect WhatsApp Business API</h2>
               <p className="text-text-secondary">Deploy Zero directly onto your official business number.</p>
@@ -2972,7 +3188,7 @@ function App() {
 
         {/* STEP 4: ADD STAFF / DOCTORS */}
         {onboardingStep === 4 && (
-          <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-8 space-y-6">
+          <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold text-text-primary">Practitioner Profiles</h2>
               <p className="text-text-secondary">Add at least one doctor to help Zero schedule appointments correctly.</p>
@@ -2985,32 +3201,110 @@ function App() {
               }}
               className="space-y-4"
             >
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor Name</label>
-                <input
-                  type="text"
-                  value={onboardingDoctorName}
-                  onChange={(e) => setOnboardingDoctorName(e.target.value)}
-                  required
-                  placeholder="e.g. Dr. Lan Mandragoran"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-1.5 flex flex-col">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor Name</label>
+                  <input
+                    type="text"
+                    value={onboardingDoctorName}
+                    onChange={(e) => setOnboardingDoctorName(e.target.value)}
+                    required
+                    placeholder="e.g. Dr. Lan Mandragoran"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                  />
+                </div>
+
+                {/* Doctor Roles Searchable Tag Selector */}
+                <div className="space-y-1.5 flex flex-col relative">
                   <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Role / Specialization</label>
-                  <select
-                    value={onboardingDoctorRole}
-                    onChange={(e) => setOnboardingDoctorRole(e.target.value)}
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                  >
-                    <option value="Lead Physician">Lead Physician</option>
-                    <option value="General Practitioner">General Practitioner</option>
-                    <option value="Cardiologist">Cardiologist</option>
-                    <option value="Dermatologist">Dermatologist</option>
-                    <option value="Physiotherapist">Physiotherapist</option>
-                  </select>
+                  
+                  {/* Selected Tags Display */}
+                  {selectedDoctorRoles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      {selectedDoctorRoles.map(role => (
+                        <span
+                          key={role}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-100"
+                        >
+                          {role}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDoctorRoles(prev => prev.filter(r => r !== role))}
+                            className="text-brand-500 hover:text-brand-700 focus:outline-none"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Input Field */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={doctorRoleSearch}
+                      onChange={(e) => {
+                        setDoctorRoleSearch(e.target.value);
+                        setIsDoctorRoleDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsDoctorRoleDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setIsDoctorRoleDropdownOpen(false), 200)}
+                      placeholder={selectedDoctorRoles.length === 0 ? "Search or type specialization..." : "Add another..."}
+                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                    />
+                    
+                    {/* Dropdown Menu */}
+                    {isDoctorRoleDropdownOpen && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-surface-base border border-surface-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {(() => {
+                          const filtered = PRESET_ROLES.filter(
+                            r => r.toLowerCase().includes(doctorRoleSearch.toLowerCase()) && !selectedDoctorRoles.includes(r)
+                          );
+                          
+                          return (
+                            <div className="py-1">
+                              {filtered.map(role => (
+                                <button
+                                  key={role}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDoctorRoles(prev => [...prev, role]);
+                                    setDoctorRoleSearch('');
+                                    setIsDoctorRoleDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs text-text-primary hover:bg-surface-subtle font-medium transition duration-150"
+                                >
+                                  {role}
+                                </button>
+                              ))}
+                              
+                              {/* Custom option */}
+                              {doctorRoleSearch.trim() && !PRESET_ROLES.some(r => r.toLowerCase() === doctorRoleSearch.trim().toLowerCase()) && !selectedDoctorRoles.some(r => r.toLowerCase() === doctorRoleSearch.trim().toLowerCase()) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDoctorRoles(prev => [...prev, doctorRoleSearch.trim()]);
+                                    setDoctorRoleSearch('');
+                                    setIsDoctorRoleDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2 text-xs text-brand-600 hover:bg-brand-50/50 font-semibold border-t border-surface-border/40 transition duration-150"
+                                >
+                                  Add "{doctorRoleSearch.trim()}" as a custom role
+                                </button>
+                              )}
+                              
+                              {filtered.length === 0 && !doctorRoleSearch.trim() && (
+                                <div className="px-3.5 py-2 text-xs text-text-muted text-center font-medium">
+                                  All preset roles selected
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 flex flex-col">
@@ -3021,7 +3315,7 @@ function App() {
                     onChange={(e) => setOnboardingDoctorEmail(e.target.value)}
                     required
                     placeholder="e.g. lan.m@apexfamily.com"
-                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
                   />
                 </div>
               </div>
@@ -3045,7 +3339,7 @@ function App() {
             </div>
 
             {/* Chat preview card (Ask Super AI Card-shaped representation) */}
-            <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/30 p-6 space-y-4 max-w-md mx-auto relative overflow-hidden">
+            <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-6 space-y-4 w-full relative overflow-hidden">
               {/* Simple Agent Header (Christian/Agent Header-shaped representation) */}
               <div className="flex items-center gap-3 pb-3 border-b border-surface-border/40">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-ai-500 to-ai-600 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
@@ -3561,7 +3855,7 @@ function App() {
 
   if (!isOnboarded) {
     return (
-      <div className="flex min-h-screen bg-surface-subtle justify-center items-center p-6 w-full relative">
+      <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
         {renderOnboardingWizard()}
       </div>
     );

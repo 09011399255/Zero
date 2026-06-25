@@ -64,6 +64,19 @@
   }
 }
 
+.animate-ring-1 {
+  animation: ringPulse1 3.5s cubic-bezier(0.25, 0, 0, 1) infinite;
+}
+.animate-ring-2 {
+  animation: ringPulse2 3.5s cubic-bezier(0.25, 0, 0, 1) infinite;
+}
+.animate-ring-3 {
+  animation: ringPulse3 3.5s cubic-bezier(0.25, 0, 0, 1) infinite;
+}
+.animate-orb-glow {
+  animation: orbGlow 3.5s ease-in-out infinite;
+}
+
 @keyframes orbPulse {
   0%, 100% {
     transform: scale(1);
