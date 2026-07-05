@@ -57,7 +57,7 @@ interface ChatMessage {
 }
 
 interface ChatConversation {
-  id: number;
+  id: string;
   patientName: string;
   patientInitials: string;
   patientPhone: string;
@@ -78,14 +78,14 @@ interface NotificationItem {
   read: boolean;
   linkData: {
     route: string;
-    patientId?: number;
+    patientId?: string;
     tab?: string;
   };
 }
 
 interface QueueEntry {
-  id: number;
-  patientId?: number | null;
+  id: string;
+  patientId?: string | null;
   name: string;
   initials: string;
   phone: string;
@@ -99,8 +99,8 @@ interface QueueEntry {
 
 const initialQueue: QueueEntry[] = [
   {
-    id: 1,
-    patientId: 9,
+    id: "bf3a302a-50e5-5914-e2a2-da9287b3ca61",
+    patientId: "e58d0777-a222-3615-ef17-9d0b0040e9bd",
     name: "Min Farshaw",
     initials: "MF",
     phone: "+1 (555) 022-7766",
@@ -112,8 +112,8 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 2,
-    patientId: 3,
+    id: "281e9b0c-43a9-d256-3a44-5b630b1c56d0",
+    patientId: "9741499a-aa80-5af7-3c51-ad75dd3b8094",
     name: "Matrim Cauthon",
     initials: "MC",
     phone: "+1 (555) 018-4321",
@@ -125,8 +125,8 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 3,
-    patientId: 4,
+    id: "d0e4ff40-6728-616d-278e-e55cd537a864",
+    patientId: "740556e2-7ef9-2020-8fc2-e783b6ea888a",
     name: "Perrin Aybara",
     initials: "PA",
     phone: "+1 (555) 017-9876",
@@ -138,8 +138,8 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 4,
-    patientId: 10,
+    id: "f22de231-a3e8-39a0-d4ab-985809feeee0",
+    patientId: "2e7b1d36-5288-286a-4c63-a70c0c4e529c",
     name: "Aviendha",
     initials: "AV",
     phone: "+1 (555) 023-5544",
@@ -151,7 +151,7 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 5,
+    id: "78c546e7-3c93-3c9a-7ff9-e681852db45d",
     patientId: null,
     name: "Loial Son of Arent",
     initials: "LS",
@@ -164,8 +164,8 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 6,
-    patientId: 1,
+    id: "13d66642-f344-766e-33f6-f4b281667471",
+    patientId: "cb1ac7ae-fbcb-d748-82a4-d5f4f99da0a6",
     name: "Nynaeve al'Meara",
     initials: "NM",
     phone: "+1 (555) 019-2834",
@@ -177,8 +177,8 @@ const initialQueue: QueueEntry[] = [
     status: "waiting"
   },
   {
-    id: 7,
-    patientId: 2,
+    id: "dd099091-4090-4ed3-07a4-d817834d0ec3",
+    patientId: "9822c35c-fe20-d5a8-1afb-ec00664b51c9",
     name: "Rand al'Thor",
     initials: "RT",
     phone: "+1 (555) 012-3456",
@@ -190,8 +190,8 @@ const initialQueue: QueueEntry[] = [
     status: "with_doctor"
   },
   {
-    id: 8,
-    patientId: 5,
+    id: "0091ecc4-cb31-1659-fb4b-3515bcc26b53",
+    patientId: "bb852bc4-3370-4eac-d311-3a8329dd905c",
     name: "Egwene al'Vere",
     initials: "EA",
     phone: "+1 (555) 015-6789",
@@ -203,8 +203,8 @@ const initialQueue: QueueEntry[] = [
     status: "with_doctor"
   },
   {
-    id: 9,
-    patientId: 6,
+    id: "42c22aef-1c75-559c-3d43-9f80e0e32462",
+    patientId: "44437c83-f938-d569-4afb-28b8df23bf97",
     name: "Elayne Trakand",
     initials: "ET",
     phone: "+1 (555) 021-9988",
@@ -216,8 +216,8 @@ const initialQueue: QueueEntry[] = [
     status: "completed"
   },
   {
-    id: 10,
-    patientId: 11,
+    id: "28c8c38b-bb5e-87b3-6cb6-40d1936d8df6",
+    patientId: "adc302cc-323b-428f-e108-6a7852208f98",
     name: "Thom Merrilin",
     initials: "TM",
     phone: "+1 (555) 024-8899",
@@ -229,8 +229,8 @@ const initialQueue: QueueEntry[] = [
     status: "completed"
   },
   {
-    id: 11,
-    patientId: 12,
+    id: "a0dd6f90-56d6-de61-2b25-0a801c5ea504",
+    patientId: "3d355419-986a-0109-6669-c6f315fed274",
     name: "Birgitte Silverbow",
     initials: "BS",
     phone: "+1 (555) 025-1122",
@@ -242,8 +242,8 @@ const initialQueue: QueueEntry[] = [
     status: "completed"
   },
   {
-    id: 12,
-    patientId: 13,
+    id: "6dea5e39-8b82-81b6-d815-2ae5441afd91",
+    patientId: "6b120d55-6f79-a375-d410-153583664610",
     name: "Siuan Sanche",
     initials: "SS",
     phone: "+1 (555) 026-3344",
@@ -255,8 +255,8 @@ const initialQueue: QueueEntry[] = [
     status: "completed"
   },
   {
-    id: 13,
-    patientId: 14,
+    id: "53cfb6c8-9850-0192-b832-81831d386aa2",
+    patientId: "3ca18d22-e754-620a-6318-8c86281831dc",
     name: "Gareth Bryne",
     initials: "GB",
     phone: "+1 (555) 027-5566",
@@ -268,8 +268,8 @@ const initialQueue: QueueEntry[] = [
     status: "completed"
   },
   {
-    id: 14,
-    patientId: 15,
+    id: "8abbd8a2-8fbd-ce27-446f-c84ce580f13b",
+    patientId: "2bfffa51-1780-6086-af02-d39518b7300e",
     name: "Galad Damodred",
     initials: "GD",
     phone: "+1 (555) 028-7788",
@@ -281,8 +281,8 @@ const initialQueue: QueueEntry[] = [
     status: "no_show"
   },
   {
-    id: 15,
-    patientId: 16,
+    id: "05cf9f8c-d6c2-53d5-8b70-ac10ef4d7358",
+    patientId: "71e3e0fa-100c-4482-5796-5ccb9f5be3af",
     name: "Gawyn Trakand",
     initials: "GT",
     phone: "+1 (555) 029-9900",
@@ -297,7 +297,7 @@ const initialQueue: QueueEntry[] = [
 
 const initialConversations: ChatConversation[] = [
   {
-    id: 1,
+    id: "413055e0-cb3a-7c6d-79b6-b446a98e0ad1",
     patientName: "Nynaeve al'Meara",
     patientInitials: "NM",
     patientPhone: "+1 (555) 019-2834",
@@ -311,7 +311,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 3,
+    id: "e4697434-7214-5ec8-d229-a4800e06fcbd",
     patientName: "Egwene al'Vere",
     patientInitials: "EA",
     patientPhone: "+1 (555) 015-6789",
@@ -325,7 +325,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 8,
+    id: "beff33e6-b741-251f-f5fd-55f5a19baf55",
     patientName: "Aviendha",
     patientInitials: "AV",
     patientPhone: "+1 (555) 023-5544",
@@ -339,7 +339,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 2,
+    id: "016710bb-f342-71a6-fbe8-f2c61649abee",
     patientName: "Rand al'Thor",
     patientInitials: "RT",
     patientPhone: "+1 (555) 012-3456",
@@ -353,7 +353,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 4,
+    id: "9bcda724-1aa3-d9ee-8dbd-59ef72864e4a",
     patientName: "Perrin Aybara",
     patientInitials: "PA",
     patientPhone: "+1 (555) 017-9876",
@@ -366,7 +366,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 5,
+    id: "dfb001c4-5aff-badd-14a7-1a2e6ee6b6fe",
     patientName: "Matrim Cauthon",
     patientInitials: "MC",
     patientPhone: "+1 (555) 018-4321",
@@ -378,7 +378,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 6,
+    id: "b5b9c118-8fc8-9e77-eaf1-3fa252eb6eb2",
     patientName: "Elayne Trakand",
     patientInitials: "ET",
     patientPhone: "+1 (555) 021-9988",
@@ -391,7 +391,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 7,
+    id: "f121b269-a0e3-2a69-d904-b9c183bce237",
     patientName: "Min Farshaw",
     patientInitials: "MF",
     patientPhone: "+1 (555) 022-7766",
@@ -404,7 +404,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 9,
+    id: "978a59b6-d75a-db99-bc5a-728485440185",
     patientName: "Moiraine Damodred",
     patientInitials: "MD",
     patientPhone: "+1 (555) 024-3322",
@@ -413,7 +413,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 10,
+    id: "c5451e97-58f6-3184-2d99-44201a134727",
     patientName: "Lan Mandragoran",
     patientInitials: "LM",
     patientPhone: "+1 (555) 025-1100",
@@ -422,7 +422,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 11,
+    id: "ba81ab2a-7668-d875-d60f-c03d382f838f",
     patientName: "Thom Merrilin",
     patientInitials: "TM",
     patientPhone: "+1 (555) 026-8877",
@@ -439,7 +439,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 12,
+    id: "3abfd7af-0c4e-e06d-b90b-497a84ebd4c1",
     patientName: "Loial",
     patientInitials: "LO",
     patientPhone: "+1 (555) 027-6655",
@@ -453,7 +453,7 @@ const initialConversations: ChatConversation[] = [
     ]
   },
   {
-    id: 13,
+    id: "d72add3c-0cf7-41f3-b9af-a31b22d5ddd2",
     patientName: "Siuan Sanche",
     patientInitials: "SS",
     patientPhone: "+1 (555) 028-4433",
@@ -462,7 +462,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 14,
+    id: "07c22c7c-d551-5c2f-27f5-ce4f91f1ee06",
     patientName: "Logain Ablar",
     patientInitials: "LA",
     patientPhone: "+1 (555) 029-2211",
@@ -471,7 +471,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 15,
+    id: "99b77834-593a-2321-2951-4ef584784d00",
     patientName: "Verin Mathwin",
     patientInitials: "VM",
     patientPhone: "+1 (555) 030-9988",
@@ -480,7 +480,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 16,
+    id: "a49d168c-17fc-f047-598a-ca41838b489e",
     patientName: "Cadsuane Melaidhrin",
     patientInitials: "CM",
     patientPhone: "+1 (555) 031-7766",
@@ -489,7 +489,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 17,
+    id: "5fa0c616-4dd2-1f17-d010-569c3c27522c",
     patientName: "Alivia",
     patientInitials: "AL",
     patientPhone: "+1 (555) 032-5544",
@@ -498,7 +498,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 18,
+    id: "13f5a253-f4f2-48fe-e495-07fc4759a0fb",
     patientName: "Tuon",
     patientInitials: "TU",
     patientPhone: "+1 (555) 033-3322",
@@ -507,7 +507,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 19,
+    id: "b6aaac94-ce4b-651e-262b-df878a00e6d9",
     patientName: "Birgitte Silverbow",
     patientInitials: "BS",
     patientPhone: "+1 (555) 034-1100",
@@ -516,7 +516,7 @@ const initialConversations: ChatConversation[] = [
     messages: []
   },
   {
-    id: 20,
+    id: "095752cd-8c49-2a61-a86e-cf0109f9d877",
     patientName: "Gaul",
     patientInitials: "GL",
     patientPhone: "+1 (555) 035-8877",
@@ -561,7 +561,7 @@ function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Notifications State & Logic
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -574,7 +574,7 @@ function App() {
       read: false,
       linkData: {
         route: 'zero-chat',
-        patientId: 1
+        patientId: "cb1ac7ae-fbcb-d748-82a4-d5f4f99da0a6"
       }
     },
     {
@@ -586,7 +586,7 @@ function App() {
       read: false,
       linkData: {
         route: 'patients',
-        patientId: 6,
+        patientId: "44437c83-f938-d569-4afb-28b8df23bf97",
         tab: 'recalls'
       }
     },
@@ -611,7 +611,7 @@ function App() {
       read: true,
       linkData: {
         route: 'zero-chat',
-        patientId: 3
+        patientId: "9741499a-aa80-5af7-3c51-ad75dd3b8094"
       }
     }
   ]);
@@ -665,11 +665,11 @@ function App() {
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
   const [patientsTab, setPatientsTab] = useState<'all' | 'recall'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [drawerTab, setDrawerTab] = useState<'history' | 'intake' | 'conversations'>('history');
   const [currentPage, setCurrentPage] = useState(1);
-  const [expandedOutreachId, setExpandedOutreachId] = useState<number | null>(null);
-  const [editOutreachId, setEditOutreachId] = useState<number | null>(null);
+  const [expandedOutreachId, setExpandedOutreachId] = useState<string | null>(null);
+  const [editOutreachId, setEditOutreachId] = useState<string | null>(null);
   const [draftMessageText, setDraftMessageText] = useState('');
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId) || null;
@@ -677,7 +677,7 @@ function App() {
   // Appointments screen states
   const [apptViewMode, setApptViewMode] = useState<'calendar' | 'list'>('calendar');
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date('2026-06-22'));
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isNewApptDrawerOpen, setIsNewApptDrawerOpen] = useState(false);
 
   // Filters state
@@ -688,7 +688,7 @@ function App() {
   const [apptCurrentPage, setApptCurrentPage] = useState(1);
 
   // New Appointment Form state
-  const [formPatientId, setFormPatientId] = useState<number | null>(null);
+  const [formPatientId, setFormPatientId] = useState<string | null>(null);
   const [formDate, setFormDate] = useState('');
   const [formTime, setFormTime] = useState('09:00 AM');
   const [formDoctor, setFormDoctor] = useState('Dr. Lan Mandragoran');
@@ -705,14 +705,14 @@ function App() {
   const [queueTab, setQueueTab] = useState<'waiting' | 'with_doctor' | 'completed' | 'no_show'>('waiting');
   const [isNewWalkInDrawerOpen, setIsNewWalkInDrawerOpen] = useState(false);
   const [walkInType, setWalkInType] = useState<'registered' | 'new'>('registered');
-  const [walkInPatientId, setWalkInPatientId] = useState<number | null>(null);
+  const [walkInPatientId, setWalkInPatientId] = useState<string | null>(null);
   const [walkInNewPatientName, setWalkInNewPatientName] = useState('');
   const [walkInReason, setWalkInReason] = useState('');
   const [walkInDoctor, setWalkInDoctor] = useState('Dr. Lan Mandragoran');
 
   // ZeroChat screen states
   const [chatConversations, setChatConversations] = useState<ChatConversation[]>(initialConversations);
-  const [selectedChatId, setSelectedChatId] = useState<number>(1);
+  const [selectedChatId, setSelectedChatId] = useState<string>("413055e0-cb3a-7c6d-79b6-b446a98e0ad1");
   const [chatInputText, setChatInputText] = useState('');
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState({
@@ -908,7 +908,7 @@ function App() {
           if (prev.some(s => s.email.toLowerCase() === (onboardingDoctorEmail.trim() || 'doctor@clinic.com').toLowerCase())) {
             return prev;
           }
-          const nextId = prev.length ? Math.max(...prev.map(s => s.id)) + 1 : 1;
+          const nextId = crypto.randomUUID();
           return [
             ...prev,
             {
@@ -938,9 +938,9 @@ function App() {
 
   // Staff list state
   const [staffList, setStaffList] = useState([
-    { id: 1, name: 'Dr. Lan Mandragoran', role: 'Lead Physician', email: 'lan.m@apexfamily.com', initials: 'LM' },
-    { id: 2, name: 'Dr. Moiraine Damodred', role: 'Chief of Staff', email: 'moiraine.d@apexfamily.com', initials: 'MD' },
-    { id: 3, name: 'Sarah Sedai', role: 'Clinic Manager', email: 'sarah.s@apexfamily.com', initials: 'SS' }
+    { id: "f7e742af-ab57-a0fb-37aa-dba915bce01e", name: 'Dr. Lan Mandragoran', role: 'Lead Physician', email: 'lan.m@apexfamily.com', initials: 'LM' },
+    { id: "c95c6b3c-555b-9d66-dd77-9a1d3215c7bf", name: 'Dr. Moiraine Damodred', role: 'Chief of Staff', email: 'moiraine.d@apexfamily.com', initials: 'MD' },
+    { id: "835e8e96-6a2d-aa7f-9f22-a3798b8f4bb7", name: 'Sarah Sedai', role: 'Clinic Manager', email: 'sarah.s@apexfamily.com', initials: 'SS' }
   ]);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
@@ -967,11 +967,11 @@ function App() {
     setAttentionItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleStatusChange = (id: number, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
+  const handleStatusChange = (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
     setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt));
   };
 
-  const handleApproveOutreach = (patientId: number) => {
+  const handleApproveOutreach = (patientId: string) => {
     alert("Recall outreach approved & sent via WhatsApp!");
     setPatients(prev => prev.map(p => {
       if (p.id === patientId) {
@@ -985,7 +985,7 @@ function App() {
     setExpandedOutreachId(null);
   };
 
-  const handleSaveOutreach = (patientId: number, text: string) => {
+  const handleSaveOutreach = (patientId: string, text: string) => {
     setPatients(prev => prev.map(p => {
       if (p.id === patientId) {
         return { ...p, aiOutreachDraft: text };
@@ -1004,7 +1004,7 @@ function App() {
 
     const filteredQueue = queue.filter(q => q.status === queueTab);
 
-    const handleCallIn = (id: number) => {
+    const handleCallIn = (id: string) => {
       setQueue(prev => prev.map(item => {
         if (item.id === id) {
           return {
@@ -1017,7 +1017,7 @@ function App() {
       }));
     };
 
-    const handleComplete = (id: number) => {
+    const handleComplete = (id: string) => {
       setQueue(prev => prev.map(item => {
         if (item.id === id) {
           return {
@@ -1030,7 +1030,7 @@ function App() {
       }));
     };
 
-    const handleMarkArrived = (id: number) => {
+    const handleMarkArrived = (id: string) => {
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setQueue(prev => prev.map(item => {
         if (item.id === id) {
@@ -1315,7 +1315,7 @@ function App() {
                   let patientName = '';
                   let patientInitials = '';
                   let patientPhone = '';
-                  let patientIdToUse: number | null = null;
+                  let patientIdToUse: string | null = null;
 
                   if (walkInType === 'registered') {
                     if (!walkInPatientId) {
@@ -1338,7 +1338,7 @@ function App() {
                     patientPhone = `+1 (555) 036-${Math.floor(1000 + Math.random() * 9000)}`;
                     
                     // Create a new Patient object and add it to patients list
-                    const nextPatientId = Math.max(...patients.map(p => p.id)) + 1;
+                    const nextPatientId = crypto.randomUUID();
                     const newPatient: Patient = {
                       id: nextPatientId,
                       name: patientName,
@@ -1362,7 +1362,7 @@ function App() {
                     patientIdToUse = nextPatientId;
                   }
 
-                  const nextQueueId = Math.max(...queue.map(q => q.id)) + 1;
+                  const nextQueueId = crypto.randomUUID();
                   const newQueueEntry: QueueEntry = {
                     id: nextQueueId,
                     patientId: patientIdToUse,
@@ -1415,7 +1415,7 @@ function App() {
                     <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Select Patient</label>
                     <select
                       value={walkInPatientId || ''}
-                      onChange={(e) => setWalkInPatientId(Number(e.target.value))}
+                      onChange={(e) => setWalkInPatientId(e.target.value)}
                       required
                       className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
                     >
@@ -2263,7 +2263,7 @@ function App() {
     );
   };
 
-  const handleTakeOver = (convId: number) => {
+  const handleTakeOver = (convId: string) => {
     setChatConversations(prev => prev.map(c => {
       if (c.id === convId) {
         return {
@@ -2279,7 +2279,7 @@ function App() {
     }));
   };
 
-  const handleResolve = (convId: number) => {
+  const handleResolve = (convId: string) => {
     setChatConversations(prev => prev.map(c => {
       if (c.id === convId) {
         return {
@@ -2295,7 +2295,7 @@ function App() {
     }));
   };
 
-  const handleReopen = (convId: number) => {
+  const handleReopen = (convId: string) => {
     setChatConversations(prev => prev.map(c => {
       if (c.id === convId) {
         return {
@@ -3433,7 +3433,7 @@ function App() {
         alert("Please fill in Name and Email.");
         return;
       }
-      const nextId = staffList.length ? Math.max(...staffList.map(s => s.id)) + 1 : 1;
+      const nextId = crypto.randomUUID();
       const initials = newStaffName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'ST';
       setStaffList(prev => [
         ...prev,
@@ -3450,7 +3450,7 @@ function App() {
       setIsAddStaffOpen(false);
     };
 
-    const handleRemoveStaff = (id: number) => {
+    const handleRemoveStaff = (id: string) => {
       if (confirm("Are you sure you want to remove this staff member?")) {
         setStaffList(prev => prev.filter(s => s.id !== id));
       }
@@ -5189,7 +5189,7 @@ function App() {
                     const patient = patients.find(p => p.id === formPatientId);
                     if (!patient) return;
 
-                    const nextId = Math.max(...appointments.map(a => a.id)) + 1;
+                    const nextId = crypto.randomUUID();
                     const newAppt: Appointment = {
                       id: nextId,
                       name: patient.name,
@@ -5214,7 +5214,7 @@ function App() {
                     <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient</label>
                     <select
                       value={formPatientId || ''}
-                      onChange={(e) => setFormPatientId(Number(e.target.value))}
+                      onChange={(e) => setFormPatientId(e.target.value)}
                       required
                       className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
                     >

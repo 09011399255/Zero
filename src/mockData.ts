@@ -20,7 +20,8 @@ export interface StatCardData {
 }
 
 export interface Appointment {
-  id: number;
+  id: string;
+  patientId?: string;
   name: string;
   initials: string;
   phone: string;
@@ -76,7 +77,7 @@ export const mockStatCards: StatCardData[] = [
 
 export const mockAppointments: Appointment[] = [
   {
-    id: 1,
+    id: "e600ff7a-eb0d-48e8-db56-e4b5c431f4ab",
     name: "Rand al'Thor",
     initials: "RT",
     phone: "+1 (555) 012-3456",
@@ -89,7 +90,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Migraine follow-up check-in."
   },
   {
-    id: 2,
+    id: "c9a738cf-c5d7-b47d-1720-c9b1718f8ed8",
     name: "Egwene al'Vere",
     initials: "EA",
     phone: "+1 (555) 015-6789",
@@ -102,7 +103,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Routine blood panel review."
   },
   {
-    id: 3,
+    id: "ef1228f7-241c-9c89-cd0a-103c34c66276",
     name: "Matrim Cauthon",
     initials: "MC",
     phone: "+1 (555) 018-4321",
@@ -115,7 +116,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Check heart rate variability."
   },
   {
-    id: 4,
+    id: "38dfcba9-66e4-40f8-d748-3d67284f92bd",
     name: "Perrin Aybara",
     initials: "PA",
     phone: "+1 (555) 017-9876",
@@ -128,7 +129,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Diabetic foot exam - cancelled by patient."
   },
   {
-    id: 5,
+    id: "09cb396b-f751-debd-3e02-0a004c0af2c0",
     name: "Nynaeve al'Meara",
     initials: "NM",
     phone: "+1 (555) 019-2834",
@@ -141,7 +142,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Hypertension follow-up recall slot."
   },
   {
-    id: 6,
+    id: "97698ada-e873-a2ec-7f35-bad92d9fd063",
     name: "Elayne Trakand",
     initials: "ET",
     phone: "+1 (555) 021-9988",
@@ -154,7 +155,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Routine prenatal exam."
   },
   {
-    id: 7,
+    id: "e19d6ea1-376e-5b84-2aa0-c54debe2daec",
     name: "Min Farshaw",
     initials: "MF",
     phone: "+1 (555) 022-7766",
@@ -167,7 +168,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Follow-up on previous lab results."
   },
   {
-    id: 8,
+    id: "02a34748-3970-8c83-5a0d-40fb4f05529b",
     name: "Aviendha",
     initials: "AV",
     phone: "+1 (555) 023-5544",
@@ -180,7 +181,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Asthma action plan review."
   },
   {
-    id: 9,
+    id: "68554475-4118-35d2-d85e-14adc853726c",
     name: "Siuan Sanche",
     initials: "SS",
     phone: "+1 (555) 028-4433",
@@ -193,7 +194,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Glaucoma screening."
   },
   {
-    id: 10,
+    id: "ddad8d69-53ae-a67b-a8c8-bf38a07e943c",
     name: "Thom Merrilin",
     initials: "TM",
     phone: "+1 (555) 026-8877",
@@ -206,7 +207,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Hearing checkup."
   },
   {
-    id: 11,
+    id: "4320ec0b-7cb2-21aa-8eeb-835858a8bb3c",
     name: "Loial",
     initials: "LO",
     phone: "+1 (555) 027-6655",
@@ -219,7 +220,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Scheduled checkup."
   },
   {
-    id: 12,
+    id: "1aa5ad48-4042-effc-06c5-41ca03332118",
     name: "Logain Ablar",
     initials: "LA",
     phone: "+1 (555) 029-2211",
@@ -232,7 +233,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Initial neurological assessment."
   },
   {
-    id: 13,
+    id: "cdbca0e7-a6bd-1f8a-1b87-8c911cc72bbd",
     name: "Verin Mathwin",
     initials: "VM",
     phone: "+1 (555) 030-9988",
@@ -245,7 +246,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Routine prescription refill assessment."
   },
   {
-    id: 14,
+    id: "7bbf97d5-ef4a-ad48-07e7-e7716ceb19f7",
     name: "Cadsuane Melaidhrin",
     initials: "CM",
     phone: "+1 (555) 031-7766",
@@ -258,7 +259,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Routine cardiology assessment."
   },
   {
-    id: 15,
+    id: "94800060-151d-c40b-705f-01e80efe1713",
     name: "Alivia",
     initials: "AL",
     phone: "+1 (555) 032-5544",
@@ -271,7 +272,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Skin assessment exam."
   },
   {
-    id: 16,
+    id: "41f9de86-ebd4-3a6c-33cd-64aa113af604",
     name: "Tuon",
     initials: "TU",
     phone: "+1 (555) 033-3322",
@@ -284,7 +285,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Routine blood panel review."
   },
   {
-    id: 17,
+    id: "3042ce44-b6cd-64e2-243f-d64d79b1f3af",
     name: "Birgitte Silverbow",
     initials: "BS",
     phone: "+1 (555) 034-1100",
@@ -297,7 +298,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Shoulder strain follow-up physical review."
   },
   {
-    id: 18,
+    id: "aaccd317-8019-3441-49c9-65e3c209150a",
     name: "Gaul",
     initials: "GL",
     phone: "+1 (555) 035-8877",
@@ -310,7 +311,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Annual physical exam."
   },
   {
-    id: 19,
+    id: "6a137978-2657-8e5a-3591-b9756740f1d5",
     name: "Siuan Sanche",
     initials: "SS",
     phone: "+1 (555) 028-4433",
@@ -323,7 +324,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Previous glaucoma follow-up review."
   },
   {
-    id: 20,
+    id: "209f695f-2683-1c50-b151-93d9ba45b499",
     name: "Rand al'Thor",
     initials: "RT",
     phone: "+1 (555) 012-3456",
@@ -336,7 +337,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Previous migraine follow-up exam."
   },
   {
-    id: 21,
+    id: "04cbf7de-f845-ad16-c342-f252577a76fe",
     name: "Egwene al'Vere",
     initials: "EA",
     phone: "+1 (555) 015-6789",
@@ -349,7 +350,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Next month routine checkup."
   },
   {
-    id: 22,
+    id: "c9297fea-4f6c-10a4-0e39-aa471b1d2ea6",
     name: "Perrin Aybara",
     initials: "PA",
     phone: "+1 (555) 017-9876",
@@ -362,7 +363,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Rescheduled diabetic foot check."
   },
   {
-    id: 23,
+    id: "d9ece118-0b28-6353-7a6f-67524d28d804",
     name: "Matrim Cauthon",
     initials: "MC",
     phone: "+1 (555) 018-4321",
@@ -375,7 +376,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Review of occasional palpitations."
   },
   {
-    id: 24,
+    id: "91c00172-e633-193d-7d20-da5c91ed8468",
     name: "Nynaeve al'Meara",
     initials: "NM",
     phone: "+1 (555) 019-2834",
@@ -388,7 +389,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Recall slot booked automatically via Zero."
   },
   {
-    id: 25,
+    id: "faee2835-db56-e1ee-cd66-05d84f33021b",
     name: "Elayne Trakand",
     initials: "ET",
     phone: "+1 (555) 021-9988",
@@ -401,7 +402,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Second prenatal wellness review check."
   },
   {
-    id: 26,
+    id: "f3684999-36ba-9c48-91f4-855ab7783010",
     name: "Loial",
     initials: "LO",
     phone: "+1 (555) 027-6655",
@@ -414,7 +415,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Weekend wellness check."
   },
   {
-    id: 27,
+    id: "44c1ecec-019b-d832-003a-0201469d74a4",
     name: "Gaul",
     initials: "GL",
     phone: "+1 (555) 035-8877",
@@ -427,7 +428,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Follow-up test review."
   },
   {
-    id: 28,
+    id: "2c43175b-ad0d-39e4-1296-ec51a825658e",
     name: "Cadsuane Melaidhrin",
     initials: "CM",
     phone: "+1 (555) 031-7766",
@@ -440,7 +441,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Hypertension/BP spike review."
   },
   {
-    id: 29,
+    id: "d28f5a16-2dbf-5fdc-471d-0c82ddbe1b4b",
     name: "Verin Mathwin",
     initials: "VM",
     phone: "+1 (555) 030-9988",
@@ -453,7 +454,7 @@ export const mockAppointments: Appointment[] = [
     notes: "Refill assessment."
   },
   {
-    id: 30,
+    id: "4bfab6fe-3026-1579-9471-a63ffc22ce71",
     name: "Birgitte Silverbow",
     initials: "BS",
     phone: "+1 (555) 034-1100",
@@ -530,7 +531,7 @@ export interface PatientChatMessage {
 }
 
 export interface Patient {
-  id: number;
+  id: string;
   name: string;
   initials: string;
   phone: string;
@@ -547,7 +548,7 @@ export interface Patient {
 
 export const mockPatients: Patient[] = [
   {
-    id: 1,
+    id: "cb1ac7ae-fbcb-d748-82a4-d5f4f99da0a6",
     name: "Nynaeve al'Meara",
     initials: "NM",
     phone: "+1 (555) 019-2834",
@@ -576,7 +577,7 @@ export const mockPatients: Patient[] = [
     ]
   },
   {
-    id: 2,
+    id: "9822c35c-fe20-d5a8-1afb-ec00664b51c9",
     name: "Rand al'Thor",
     initials: "RT",
     phone: "+1 (555) 012-3456",
@@ -601,7 +602,7 @@ export const mockPatients: Patient[] = [
     ]
   },
   {
-    id: 3,
+    id: "9741499a-aa80-5af7-3c51-ad75dd3b8094",
     name: "Egwene al'Vere",
     initials: "EA",
     phone: "+1 (555) 015-6789",
@@ -627,7 +628,7 @@ export const mockPatients: Patient[] = [
     ]
   },
   {
-    id: 4,
+    id: "740556e2-7ef9-2020-8fc2-e783b6ea888a",
     name: "Perrin Aybara",
     initials: "PA",
     phone: "+1 (555) 017-9876",
@@ -652,7 +653,7 @@ export const mockPatients: Patient[] = [
     ]
   },
   {
-    id: 5,
+    id: "bb852bc4-3370-4eac-d311-3a8329dd905c",
     name: "Matrim Cauthon",
     initials: "MC",
     phone: "+1 (555) 018-4321",
@@ -664,7 +665,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 6,
+    id: "44437c83-f938-d569-4afb-28b8df23bf97",
     name: "Elayne Trakand",
     initials: "ET",
     phone: "+1 (555) 021-9988",
@@ -678,7 +679,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 7,
+    id: "5eb7c665-85c4-4dff-748f-a06000ba6aec",
     name: "Min Farshaw",
     initials: "MF",
     phone: "+1 (555) 022-7766",
@@ -690,7 +691,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 8,
+    id: "fba511dc-293f-508e-4709-836dad310337",
     name: "Aviendha",
     initials: "AV",
     phone: "+1 (555) 023-5544",
@@ -704,7 +705,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 9,
+    id: "e58d0777-a222-3615-ef17-9d0b0040e9bd",
     name: "Moiraine Damodred",
     initials: "MD",
     phone: "+1 (555) 024-3322",
@@ -716,7 +717,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 10,
+    id: "2e7b1d36-5288-286a-4c63-a70c0c4e529c",
     name: "Lan Mandragoran",
     initials: "LM",
     phone: "+1 (555) 025-1100",
@@ -728,7 +729,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 11,
+    id: "adc302cc-323b-428f-e108-6a7852208f98",
     name: "Thom Merrilin",
     initials: "TM",
     phone: "+1 (555) 026-8877",
@@ -742,7 +743,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 12,
+    id: "3d355419-986a-0109-6669-c6f315fed274",
     name: "Loial",
     initials: "LO",
     phone: "+1 (555) 027-6655",
@@ -754,7 +755,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 13,
+    id: "6b120d55-6f79-a375-d410-153583664610",
     name: "Siuan Sanche",
     initials: "SS",
     phone: "+1 (555) 028-4433",
@@ -768,7 +769,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 14,
+    id: "3ca18d22-e754-620a-6318-8c86281831dc",
     name: "Logain Ablar",
     initials: "LA",
     phone: "+1 (555) 029-2211",
@@ -780,7 +781,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 15,
+    id: "2bfffa51-1780-6086-af02-d39518b7300e",
     name: "Verin Mathwin",
     initials: "VM",
     phone: "+1 (555) 030-9988",
@@ -792,7 +793,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 16,
+    id: "71e3e0fa-100c-4482-5796-5ccb9f5be3af",
     name: "Cadsuane Melaidhrin",
     initials: "CM",
     phone: "+1 (555) 031-7766",
@@ -806,7 +807,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 17,
+    id: "39800530-3c7f-19f5-cc6c-2f17729468b6",
     name: "Alivia",
     initials: "AL",
     phone: "+1 (555) 032-5544",
@@ -818,7 +819,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 18,
+    id: "6f871d71-cb3f-3da8-841c-54d5af269ba6",
     name: "Tuon",
     initials: "TU",
     phone: "+1 (555) 033-3322",
@@ -832,7 +833,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 19,
+    id: "7d47eed6-3067-7531-6093-87a0d0e2bdca",
     name: "Birgitte Silverbow",
     initials: "BS",
     phone: "+1 (555) 034-1100",
@@ -844,7 +845,7 @@ export const mockPatients: Patient[] = [
     conversations: []
   },
   {
-    id: 20,
+    id: "e713ebae-a269-710d-a488-f430bc6d75e3",
     name: "Gaul",
     initials: "GL",
     phone: "+1 (555) 035-8877",
