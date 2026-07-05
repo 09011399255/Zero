@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from './api';
 import { jwtDecode } from 'jwt-decode';
+import { io, Socket } from 'socket.io-client';
 import {
   LayoutGrid,
   Timer,
@@ -96,7 +97,7 @@ interface QueueEntry {
   reason: string;
   waitTime: string;
   source: 'zero' | 'walk-in' | 'manual';
-  status: 'waiting' | 'with_doctor' | 'completed' | 'no_show';
+  status: string;
 }
 
 const initialQueue: QueueEntry[] = [
@@ -570,6 +571,9 @@ function App() {
   const [signUpError, setSignUpError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [clinicId, setClinicId] = useState<string | null>(localStorage.getItem("zero_clinic_id"));
+  const [queueLoading, setQueueLoading] = useState(false);
+  const [walkInLoading, setWalkInLoading] = useState(false);
 
   // Session Check on App Load
   useEffect(() => {
@@ -583,11 +587,17 @@ function App() {
       const isExpired = decoded.exp * 1000 < Date.now();
       if (isExpired) {
         localStorage.removeItem("zero_token");
+        localStorage.removeItem("zero_clinic_id");
+        setClinicId(null);
         setSessionChecked(true);
         return;
       }
       api.clinic.get()
-        .then(() => {
+        .then((clinic: any) => {
+          if (clinic?.id) {
+            localStorage.setItem("zero_clinic_id", clinic.id);
+            setClinicId(clinic.id);
+          }
           setIsOnboarded(true);
           setCurrentRoute("dashboard");
           setSessionChecked(true);
@@ -595,14 +605,83 @@ function App() {
         .catch((err: any) => {
           if (err.status === 401) {
             localStorage.removeItem("zero_token");
+            localStorage.removeItem("zero_clinic_id");
+            setClinicId(null);
           }
           setSessionChecked(true);
         });
     } catch {
       localStorage.removeItem("zero_token");
+      localStorage.removeItem("zero_clinic_id");
+      setClinicId(null);
       setSessionChecked(true);
     }
   }, []);
+
+  // Socket.io Connection & Listeners
+  const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    if (!clinicId) {
+      if (socketRef.current) {
+        const oldClinicId = localStorage.getItem("zero_clinic_id") || "";
+        socketRef.current.emit("leave:clinic", oldClinicId);
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
+
+    const socket = io("https://zero-ai-production-5544.up.railway.app");
+    socketRef.current = socket;
+
+    socket.emit("join:clinic", clinicId);
+
+    socket.on("queue:updated", (payload: { patientId: string; status: string }) => {
+      setQueue(prev =>
+        prev.map(entry =>
+          entry.patientId === payload.patientId
+            ? { ...entry, status: payload.status }
+            : entry
+        )
+      );
+    });
+
+    socket.on("queue:patient-added", (payload: { patient: QueueEntry }) => {
+      setQueue(prev => [...prev, payload.patient]);
+    });
+
+    return () => {
+      socket.emit("leave:clinic", clinicId);
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [clinicId]);
+
+  // Load Queue from Backend
+  const loadQueue = async () => {
+    try {
+      setQueueLoading(true);
+      const data = await api.queue.get();
+      const allEntries = [
+        ...data.waiting,
+        ...data.with_doctor,
+        ...data.completed,
+        ...data.no_show,
+      ];
+      setQueue(allEntries);
+    } catch (err) {
+      console.error("Failed to load queue:", err);
+    } finally {
+      setQueueLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRoute === 'live-queue' && clinicId) {
+      loadQueue();
+    }
+  }, [currentRoute, clinicId]);
 
   // Notifications State & Logic
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -1038,52 +1117,69 @@ function App() {
 
   // Render Live Queue Screen
   const renderLiveQueueScreen = () => {
-    const waitingCount = queue.filter(q => q.status === 'waiting').length;
-    const withDoctorCount = queue.filter(q => q.status === 'with_doctor').length;
-    const completedCount = queue.filter(q => q.status === 'completed').length;
-    const noShowCount = queue.filter(q => q.status === 'no_show').length;
-
-    const filteredQueue = queue.filter(q => q.status === queueTab);
-
-    const handleCallIn = (id: string) => {
-      setQueue(prev => prev.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            status: 'with_doctor',
-            waitTime: '—'
-          };
-        }
-        return item;
-      }));
+    const statusLabels: Record<string, string> = {
+      WAITING: "Waiting",
+      waiting: "Waiting",
+      WITH_DOCTOR: "With Doctor",
+      with_doctor: "With Doctor",
+      COMPLETED: "Completed",
+      completed: "Completed",
+      NO_SHOW: "No Show",
+      no_show: "No Show",
     };
 
-    const handleComplete = (id: string) => {
-      setQueue(prev => prev.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            status: 'completed',
-            waitTime: '—'
-          };
-        }
-        return item;
-      }));
+    const statusToTab: Record<string, string> = {
+      WAITING: "waiting",
+      waiting: "waiting",
+      WITH_DOCTOR: "with_doctor",
+      with_doctor: "with_doctor",
+      COMPLETED: "completed",
+      completed: "completed",
+      NO_SHOW: "no_show",
+      no_show: "no_show",
     };
 
-    const handleMarkArrived = (id: string) => {
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setQueue(prev => prev.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            status: 'waiting',
-            arrivalTime: timeStr,
-            waitTime: '~0 min'
-          };
-        }
-        return item;
-      }));
+    const waitingCount = queue.filter(q => statusToTab[q.status] === 'waiting').length;
+    const withDoctorCount = queue.filter(q => statusToTab[q.status] === 'with_doctor').length;
+    const completedCount = queue.filter(q => statusToTab[q.status] === 'completed').length;
+    const noShowCount = queue.filter(q => statusToTab[q.status] === 'no_show').length;
+
+    const filteredQueue = queue.filter(q => statusToTab[q.status] === queueTab);
+
+    const handleCallIn = async (id: string) => {
+      const entry = queue.find(q => q.id === id);
+      const patientId = entry?.patientId;
+      if (!patientId) return;
+      try {
+        await api.queue.updateStatus(patientId, "WITH_DOCTOR");
+        await loadQueue();
+      } catch (err) {
+        console.error("Failed to update status:", err);
+      }
+    };
+
+    const handleComplete = async (id: string) => {
+      const entry = queue.find(q => q.id === id);
+      const patientId = entry?.patientId;
+      if (!patientId) return;
+      try {
+        await api.queue.updateStatus(patientId, "COMPLETED");
+        await loadQueue();
+      } catch (err) {
+        console.error("Failed to update status:", err);
+      }
+    };
+
+    const handleMarkArrived = async (id: string) => {
+      const entry = queue.find(q => q.id === id);
+      const patientId = entry?.patientId;
+      if (!patientId) return;
+      try {
+        await api.queue.updateStatus(patientId, "WAITING");
+        await loadQueue();
+      } catch (err) {
+        console.error("Failed to update status:", err);
+      }
     };
 
     return (
@@ -1187,7 +1283,12 @@ function App() {
         {/* QUEUE TABLE */}
         <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 overflow-hidden flex flex-col justify-between min-h-[500px]">
           <div className="overflow-x-auto">
-            {filteredQueue.length === 0 ? (
+            {queueLoading ? (
+              <div className="flex flex-col items-center justify-center py-40 text-center">
+                <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
+                <p className="text-sm font-semibold text-text-primary">Loading live queue...</p>
+              </div>
+            ) : filteredQueue.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">
                   <Search size={22} />
@@ -1266,28 +1367,28 @@ function App() {
                         </td>
                         <td className="py-3.5 px-6">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                            item.status === 'waiting'
+                            statusToTab[item.status] === 'waiting'
                               ? 'bg-status-warningBg text-status-warning'
-                              : item.status === 'with_doctor'
+                              : statusToTab[item.status] === 'with_doctor'
                               ? 'bg-brand-50 text-brand-500'
-                              : item.status === 'completed'
+                              : statusToTab[item.status] === 'completed'
                               ? 'bg-status-successBg text-status-success'
                               : 'bg-status-dangerBg text-status-danger'
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
-                              item.status === 'waiting'
+                              statusToTab[item.status] === 'waiting'
                                 ? 'bg-status-warning'
-                                : item.status === 'with_doctor'
+                                : statusToTab[item.status] === 'with_doctor'
                                 ? 'bg-brand-500'
-                                : item.status === 'completed'
+                                : statusToTab[item.status] === 'completed'
                                 ? 'bg-status-success'
                                 : 'bg-status-danger'
                             }`}></span>
-                            {item.status.replace('_', ' ')}
+                            {statusLabels[item.status] || item.status}
                           </span>
                         </td>
                         <td className="py-3.5 px-6 text-right" onClick={(e) => e.stopPropagation()}>
-                          {item.status === 'waiting' && (
+                          {statusToTab[item.status] === 'waiting' && (
                             <button
                               onClick={() => handleCallIn(item.id)}
                               className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150"
@@ -1295,7 +1396,7 @@ function App() {
                               Call In
                             </button>
                           )}
-                          {item.status === 'with_doctor' && (
+                          {statusToTab[item.status] === 'with_doctor' && (
                             <button
                               onClick={() => handleComplete(item.id)}
                               className="px-3 py-1.5 bg-status-success hover:bg-status-success/90 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150"
@@ -1303,7 +1404,7 @@ function App() {
                               Complete
                             </button>
                           )}
-                          {item.status === 'completed' && item.patientId && (
+                          {statusToTab[item.status] === 'completed' && item.patientId && (
                             <button
                               onClick={() => setSelectedPatientId(item.patientId!)}
                               className="text-brand-500 hover:text-brand-600 hover:underline font-bold text-xs transition duration-150"
@@ -1311,7 +1412,7 @@ function App() {
                               View
                             </button>
                           )}
-                          {item.status === 'no_show' && (
+                          {statusToTab[item.status] === 'no_show' && (
                             <button
                               onClick={() => handleMarkArrived(item.id)}
                               className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150"
@@ -1351,12 +1452,9 @@ function App() {
 
               {/* Form Body */}
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   let patientName = '';
-                  let patientInitials = '';
-                  let patientPhone = '';
-                  let patientIdToUse: string | null = null;
 
                   if (walkInType === 'registered') {
                     if (!walkInPatientId) {
@@ -1366,60 +1464,29 @@ function App() {
                     const patient = patients.find(p => p.id === walkInPatientId);
                     if (!patient) return;
                     patientName = patient.name;
-                    patientInitials = patient.initials;
-                    patientPhone = patient.phone;
-                    patientIdToUse = patient.id;
                   } else {
                     if (!walkInNewPatientName.trim()) {
                       alert("Please enter patient name.");
                       return;
                     }
                     patientName = walkInNewPatientName.trim();
-                    patientInitials = patientName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT';
-                    patientPhone = `+1 (555) 036-${Math.floor(1000 + Math.random() * 9000)}`;
-                    
-                    // Create a new Patient object and add it to patients list
-                    const nextPatientId = crypto.randomUUID();
-                    const newPatient: Patient = {
-                      id: nextPatientId,
-                      name: patientName,
-                      initials: patientInitials,
-                      phone: patientPhone,
-                      lastVisit: 'Today',
-                      nextAppointment: '—',
-                      recallStatus: 'up_to_date',
-                      conversationsCount: 0,
-                      conversations: [],
-                      history: [
-                        {
-                          date: new Date().toISOString().split('T')[0],
-                          doctor: walkInDoctor,
-                          reason: walkInReason || 'Walk-in Consultation',
-                          notes: 'Checked in as a walk-in patient.'
-                        }
-                      ]
-                    };
-                    setPatients(prev => [...prev, newPatient]);
-                    patientIdToUse = nextPatientId;
                   }
 
-                  const nextQueueId = crypto.randomUUID();
-                  const newQueueEntry: QueueEntry = {
-                    id: nextQueueId,
-                    patientId: patientIdToUse,
-                    name: patientName,
-                    initials: patientInitials,
-                    phone: patientPhone,
-                    arrivalTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    doctor: walkInDoctor,
-                    reason: walkInReason || "General consultation",
-                    waitTime: "~0 min",
-                    source: 'walk-in',
-                    status: 'waiting'
-                  };
-
-                  setQueue(prev => [...prev, newQueueEntry]);
-                  setIsNewWalkInDrawerOpen(false);
+                  try {
+                    setWalkInLoading(true);
+                    await api.queue.addWalkIn({
+                      patientName,
+                      reason: walkInReason || "General consultation",
+                      doctor: walkInDoctor,
+                      source: "walk-in",
+                    });
+                    setIsNewWalkInDrawerOpen(false);
+                    await loadQueue();
+                  } catch (err) {
+                    console.error("Failed to add walk-in:", err);
+                  } finally {
+                    setWalkInLoading(false);
+                  }
                 }}
                 className="p-6 space-y-5 flex-1 overflow-y-auto"
               >
@@ -1510,9 +1577,17 @@ function App() {
                 <div className="pt-4 flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
+                    disabled={walkInLoading}
+                    className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200 flex items-center justify-center gap-2"
                   >
-                    Add to Queue
+                    {walkInLoading ? (
+                      <>
+                        <RefreshCw className="animate-spin" size={14} />
+                        <span>Adding...</span>
+                      </>
+                    ) : (
+                      <span>Add to Queue</span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -2845,6 +2920,11 @@ function App() {
                       clinicName: "",
                     });
                     localStorage.setItem("zero_token", res.token);
+                    const cId = res.clinic?.id || res.staff?.clinicId;
+                    if (cId) {
+                      localStorage.setItem("zero_clinic_id", cId);
+                      setClinicId(cId);
+                    }
                     setOnboardingStep(2);
                   } catch (err: any) {
                     setSignUpError(err.message || "Registration failed. Please try again.");
@@ -2928,6 +3008,11 @@ function App() {
                       password: onboardingPassword,
                     });
                     localStorage.setItem("zero_token", res.token);
+                    const cId = res.clinic?.id || res.staff?.clinicId;
+                    if (cId) {
+                      localStorage.setItem("zero_clinic_id", cId);
+                      setClinicId(cId);
+                    }
                     
                     try {
                       const decoded = jwtDecode<{ name?: string }>(res.token);
@@ -4155,6 +4240,8 @@ function App() {
             <button
               onClick={() => {
                 localStorage.removeItem("zero_token");
+                localStorage.removeItem("zero_clinic_id");
+                setClinicId(null);
                 setIsOnboarded(false);
                 setOnboardingStep(1);
               }}

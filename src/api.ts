@@ -29,6 +29,15 @@ async function request<T>(
   return res.json();
 }
 
+export type QueueStatus = "WAITING" | "WITH_DOCTOR" | "COMPLETED" | "NO_SHOW";
+
+export interface QueueResponse {
+  waiting: any[];
+  with_doctor: any[];
+  completed: any[];
+  no_show: any[];
+}
+
 export const api = {
   auth: {
     register: (body: {
@@ -36,14 +45,14 @@ export const api = {
       email: string;
       password: string;
       clinicName: string;
-    }) => request<{ token: string; staff: object; clinic: object }>(
+    }) => request<{ token: string; staff: { clinicId?: string }; clinic: { id?: string } }>(
       "POST", "/api/auth/register", body, false
     ),
     login: (body: { email: string; password: string }) =>
       request<{
         token: string;
-        staff: object;
-        clinic: object;
+        staff: { clinicId?: string };
+        clinic: { id?: string };
         onboardingComplete: boolean;
       }>("POST", "/api/auth/login", body, false),
   },
@@ -70,6 +79,18 @@ export const api = {
       request<any>("PATCH", `/api/appointments/${id}`, { status }),
   },
   queue: {
-    get: () => request<{ waiting: any[]; withDoctor: any[]; completed: any[]; noShow: any[]; total: number }>("GET", "/api/queue"),
+    get: () => request<QueueResponse>("GET", "/api/queue"),
+    addWalkIn: (body: {
+      patientName: string;
+      reason: string;
+      doctor: string;
+      source: "walk-in";
+    }) => request<any>("POST", "/api/queue/walk-in", body),
+    updateStatus: (patientId: string, status: QueueStatus) =>
+      request<any>(
+        "PATCH",
+        `/api/queue/patients/${patientId}/status`,
+        { status }
+      ),
   }
 };
