@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { api } from './api';
+import { jwtDecode } from 'jwt-decode';
 import {
   LayoutGrid,
   Timer,
@@ -562,6 +564,45 @@ function App() {
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Auth & Session States
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [signUpError, setSignUpError] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Session Check on App Load
+  useEffect(() => {
+    const token = localStorage.getItem("zero_token");
+    if (!token) {
+      setSessionChecked(true);
+      return;
+    }
+    try {
+      const decoded = jwtDecode<{ exp: number }>(token);
+      const isExpired = decoded.exp * 1000 < Date.now();
+      if (isExpired) {
+        localStorage.removeItem("zero_token");
+        setSessionChecked(true);
+        return;
+      }
+      api.clinic.get()
+        .then(() => {
+          setIsOnboarded(true);
+          setCurrentRoute("dashboard");
+          setSessionChecked(true);
+        })
+        .catch((err: any) => {
+          if (err.status === 401) {
+            localStorage.removeItem("zero_token");
+          }
+          setSessionChecked(true);
+        });
+    } catch {
+      localStorage.removeItem("zero_token");
+      setSessionChecked(true);
+    }
+  }, []);
 
   // Notifications State & Logic
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -2792,9 +2833,24 @@ function App() {
             {onboardingAuthMode === 'signup' ? (
               <form
                 key="signup-form"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  setOnboardingStep(2);
+                  try {
+                    setIsLoading(true);
+                    setSignUpError(null);
+                    const res = await api.auth.register({
+                      fullName: onboardingAdminName,
+                      email: onboardingEmail,
+                      password: onboardingPassword,
+                      clinicName: "",
+                    });
+                    localStorage.setItem("zero_token", res.token);
+                    setOnboardingStep(2);
+                  } catch (err: any) {
+                    setSignUpError(err.message || "Registration failed. Please try again.");
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
                 className="space-y-4"
               >
@@ -2837,22 +2893,63 @@ function App() {
                   />
                 </div>
 
+                {signUpError && (
+                  <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-center gap-2">
+                    <AlertTriangle size={14} className="flex-shrink-0" />
+                    <span>{signUpError}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
                 >
-                  Create Account
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={14} />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <span>Create Account</span>
+                  )}
                 </button>
               </form>
             ) : (
               <form
                 key="login-form"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!onboardingAdminName.trim()) {
-                    setOnboardingAdminName('Apex Clinic Admin');
+                  try {
+                    setIsLoading(true);
+                    setLoginError(null);
+                    const res = await api.auth.login({
+                      email: onboardingEmail,
+                      password: onboardingPassword,
+                    });
+                    localStorage.setItem("zero_token", res.token);
+                    
+                    try {
+                      const decoded = jwtDecode<{ name?: string }>(res.token);
+                      if (decoded.name) {
+                        setOnboardingAdminName(decoded.name);
+                      }
+                    } catch (e) {
+                      // ignore
+                    }
+
+                    if (res.onboardingComplete) {
+                      setIsOnboarded(true);
+                      setCurrentRoute("dashboard");
+                    } else {
+                      setOnboardingStep(2);
+                      setIsOnboarded(false);
+                    }
+                  } catch (err: any) {
+                    setLoginError(err.message || "Invalid email or password.");
+                  } finally {
+                    setIsLoading(false);
                   }
-                  setIsOnboarded(true);
                 }}
                 className="space-y-4"
               >
@@ -2882,11 +2979,26 @@ function App() {
                   />
                 </div>
 
+                {loginError && (
+                  <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-center gap-2">
+                    <AlertTriangle size={14} className="flex-shrink-0" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
                 >
-                  Log In
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={14} />
+                      <span>Logging In...</span>
+                    </>
+                  ) : (
+                    <span>Log In</span>
+                  )}
                 </button>
               </form>
             )}
@@ -3853,6 +3965,17 @@ function App() {
     );
   };
 
+  if (!sessionChecked) {
+    return (
+      <div className="flex min-h-screen bg-surface-subtle items-center justify-center">
+        <div className="text-text-secondary text-sm font-semibold flex items-center gap-2">
+          <RefreshCw className="animate-spin text-brand-500" size={16} />
+          <span>Loading Zero Clinic OS...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!isOnboarded) {
     return (
       <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
@@ -4031,6 +4154,7 @@ function App() {
             </button>
             <button
               onClick={() => {
+                localStorage.removeItem("zero_token");
                 setIsOnboarded(false);
                 setOnboardingStep(1);
               }}
