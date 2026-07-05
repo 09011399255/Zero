@@ -2917,7 +2917,7 @@ function App() {
                       fullName: onboardingAdminName,
                       email: onboardingEmail,
                       password: onboardingPassword,
-                      clinicName: "",
+                      clinicName: onboardingClinicName.trim() || "New Clinic",
                     });
                     localStorage.setItem("zero_token", res.token);
                     const cId = res.clinic?.id || res.staff?.clinicId;
