@@ -38,6 +38,28 @@ export interface QueueResponse {
   no_show: any[];
 }
 
+export type AppointmentStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW";
+
+export interface Appointment {
+  id: string;
+  patientId?: string;
+  name: string;
+  initials: string;
+  phone: string;
+  date: string; // YYYY-MM-DD
+  time: string; // e.g. "09:00 AM"
+  doctor: string;
+  department: string;
+  status: AppointmentStatus;
+  bookedVia: 'zero' | 'manual';
+  notes?: string;
+}
+
 export const api = {
   auth: {
     register: (body: {
@@ -84,11 +106,30 @@ export const api = {
     }) => request<any>("POST", "/api/patients", body),
   },
   appointments: {
-    list: () => request<any[]>("GET", "/api/appointments"),
-    create: (body: { patientId: string; patientName: string; patientPhone: string; doctorName?: string; scheduledAt: string }) => 
-      request<any>("POST", "/api/appointments", body),
-    updateStatus: (id: string, status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW') => 
-      request<any>("PATCH", `/api/appointments/${id}`, { status }),
+    list: (params?: { from?: string; to?: string; status?: string; doctor?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.from) query.append("from", params.from);
+      if (params?.to) query.append("to", params.to);
+      if (params?.status) query.append("status", params.status);
+      if (params?.doctor) query.append("doctor", params.doctor);
+      const qs = query.toString();
+      return request<Appointment[]>("GET", `/api/appointments${qs ? `?${qs}` : ""}`);
+    },
+    create: (body: {
+      patientId?: string;
+      patientName: string;
+      doctor: string;
+      date: string;         // "YYYY-MM-DD"
+      time: string;         // "HH:MM"
+      visitType: string;
+      bookedVia: "manual";  // always "manual" when created from dashboard
+    }) => request<Appointment>("POST", "/api/appointments", body),
+    update: (id: string, body: Partial<{
+      status: AppointmentStatus;
+      date: string;
+      time: string;
+      doctor: string;
+    }>) => request<Appointment>("PATCH", `/api/appointments/${id}`, body),
   },
   queue: {
     get: () => request<QueueResponse>("GET", "/api/queue"),

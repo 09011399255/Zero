@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { api } from './api';
+import { api, AppointmentStatus } from './api';
 import { jwtDecode } from 'jwt-decode';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -566,6 +566,22 @@ const recallStatusLabels: Record<string, string> = {
   OVERDUE: "Overdue",
 };
 
+const appointmentStatusLabels: Record<AppointmentStatus, string> = {
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No Show",
+};
+
+const appointmentStatusColors: Record<AppointmentStatus, string> = {
+  PENDING: "status-warning",
+  CONFIRMED: "status-success",
+  COMPLETED: "text-muted",
+  CANCELLED: "status-danger",
+  NO_SHOW: "status-danger",
+};
+
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
@@ -656,6 +672,18 @@ function App() {
 
     socket.on("queue:patient-added", (payload: { patient: QueueEntry }) => {
       setQueue(prev => [...prev, payload.patient]);
+    });
+
+    socket.on("appointment:created", (payload: { appointment: Appointment }) => {
+      setAppointments(prev => [...prev, payload.appointment]);
+    });
+
+    socket.on("appointment:updated", (payload: { appointment: Appointment }) => {
+      setAppointments(prev =>
+        prev.map(apt =>
+          apt.id === payload.appointment.id ? payload.appointment : apt
+        )
+      );
     });
 
     return () => {
@@ -924,6 +952,9 @@ function App() {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date('2026-06-22'));
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isNewApptDrawerOpen, setIsNewApptDrawerOpen] = useState(false);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [newApptLoading, setNewApptLoading] = useState(false);
+  const [newApptError, setNewApptError] = useState<string | null>(null);
 
   // Filters state
   const [apptSearchQuery, setApptSearchQuery] = useState('');
@@ -1036,6 +1067,98 @@ function App() {
   useEffect(() => {
     setOnboardingDoctorRole(selectedDoctorRoles.join(', '));
   }, [selectedDoctorRoles]);
+
+  // Time conversion helpers
+  const convertTo24Hour = (timeStr: string): string => {
+    if (!timeStr) return '';
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = match[3].toUpperCase();
+    if (ampm === "PM" && hours < 12) hours += 12;
+    if (ampm === "AM" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  };
+
+  const formatTime12h = (timeStr: string): string => {
+    if (!timeStr) return '';
+    if (/\s*(AM|PM)$/i.test(timeStr)) return timeStr;
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+  };
+
+  // Load Appointments from Backend
+  const loadAppointmentsRange = async (start: Date) => {
+    try {
+      setAppointmentsLoading(true);
+      const weekStart = new Date(start);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+
+      const fromStr = weekStart.toISOString().split("T")[0];
+      const toStr = weekEnd.toISOString().split("T")[0];
+
+      const data = await api.appointments.list({
+        from: fromStr,
+        to: toStr,
+      });
+      setAppointments(data);
+    } catch (err) {
+      console.error("Failed to load appointments:", err);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRoute === 'appointments' && clinicId) {
+      loadAppointmentsRange(currentWeekStart);
+    }
+  }, [currentRoute, currentWeekStart, clinicId]);
+
+  // Handle New Appointment Form submit
+  const handleCreateAppointment = async () => {
+    if (!formPatientId) {
+      setNewApptError("Please select a patient.");
+      return;
+    }
+    const patient = patients.find(p => p.id === formPatientId);
+    if (!patient) return;
+
+    try {
+      setNewApptLoading(true);
+      setNewApptError(null);
+      const newAppt = await api.appointments.create({
+        patientId: formPatientId,
+        patientName: patient.name,
+        doctor: formDoctor,
+        date: formDate || new Date().toISOString().split("T")[0],
+        time: convertTo24Hour(formTime),
+        visitType: formDept,
+        bookedVia: "manual",
+      });
+      setAppointments(prev => [newAppt, ...prev]);
+      setIsNewApptDrawerOpen(false);
+      // Reset form fields
+      setFormPatientId(null);
+      setFormDate('');
+      setFormTime('09:00 AM');
+      setFormDoctor('Dr. Lan Mandragoran');
+      setFormDept('General Medicine');
+      setFormNotes('');
+    } catch (err: any) {
+      setNewApptError(err.message || "Failed to create appointment.");
+    } finally {
+      setNewApptLoading(false);
+    }
+  };
 
   // Step 4 -> 5 Transition state
   const [isTransitioningStep, setIsTransitioningStep] = useState(false);
@@ -1212,8 +1335,19 @@ function App() {
     setAttentionItems(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleStatusChange = (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
-    setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: newStatus } : apt));
+  const handleStatusChange = async (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
+    try {
+      const statusMap: Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'> = {
+        Confirmed: 'CONFIRMED',
+        Pending: 'PENDING',
+        Cancelled: 'CANCELLED'
+      };
+      const backendStatus = statusMap[newStatus];
+      await api.appointments.update(id, { status: backendStatus });
+      setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: backendStatus } : apt));
+    } catch (err) {
+      console.error("Failed to update appointment status:", err);
+    }
   };
 
   const handleApproveOutreach = (patientId: string) => {
@@ -2328,9 +2462,9 @@ function App() {
                               {slotAppts.map((appt) => {
                                 const isZero = appt.bookedVia === 'zero';
                                 let statusClasses = 'bg-brand-50/50 border-brand-200/50 text-brand-700';
-                                if (appt.status === 'Pending') statusClasses = 'bg-status-warningBg border-status-warning/20 text-status-warning';
-                                else if (appt.status === 'Completed') statusClasses = 'bg-status-successBg border-status-success/20 text-status-success';
-                                else if (appt.status === 'Cancelled') statusClasses = 'bg-status-dangerBg/30 border-status-danger/10 text-text-muted line-through opacity-70';
+                                if (appt.status === 'PENDING') statusClasses = 'bg-status-warningBg border-status-warning/20 text-status-warning';
+                                else if (appt.status === 'COMPLETED') statusClasses = 'bg-status-successBg border-status-success/20 text-status-success';
+                                else if (appt.status === 'CANCELLED') statusClasses = 'bg-status-dangerBg/30 border-status-danger/10 text-text-muted line-through opacity-70';
 
                                 return (
                                   <div
@@ -2431,15 +2565,15 @@ function App() {
                           {/* Status */}
                           <td className="p-4">
                             <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                              appt.status === 'Confirmed'
+                              appt.status === 'CONFIRMED'
                                 ? 'bg-status-successBg text-status-success border border-status-success/15'
-                                : appt.status === 'Pending'
+                                : appt.status === 'PENDING'
                                 ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                                : appt.status === 'Completed'
+                                : appt.status === 'COMPLETED'
                                 ? 'bg-brand-50 text-brand-500 border border-brand-100'
                                 : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
                             }`}>
-                              {appt.status}
+                              {appointmentStatusLabels[appt.status] || appt.status}
                             </span>
                           </td>
 
@@ -5504,15 +5638,15 @@ function App() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Appointment Info</span>
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                          appt.status === 'Confirmed'
+                          appt.status === 'CONFIRMED'
                             ? 'bg-status-successBg text-status-success border border-status-success/15'
-                            : appt.status === 'Pending'
+                            : appt.status === 'PENDING'
                             ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                            : appt.status === 'Completed'
+                            : appt.status === 'COMPLETED'
                             ? 'bg-brand-50 text-brand-500 border border-brand-100'
                             : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
                         }`}>
-                          {appt.status}
+                          {appointmentStatusLabels[appt.status] || appt.status}
                         </span>
                       </div>
 
@@ -5580,10 +5714,19 @@ function App() {
                             <div className="flex gap-2 pt-1.5">
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
                                   if (rescheduleDate) {
-                                    setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, date: rescheduleDate, time: rescheduleTime } : a));
-                                    setIsRescheduling(false);
+                                    try {
+                                      await api.appointments.update(appt.id, {
+                                        date: rescheduleDate,
+                                        time: convertTo24Hour(rescheduleTime)
+                                      });
+                                      setIsRescheduling(false);
+                                      setSelectedAppointmentId(null);
+                                      await loadAppointmentsRange(currentWeekStart);
+                                    } catch (err) {
+                                      console.error("Failed to reschedule appointment:", err);
+                                    }
                                   }
                                 }}
                                 className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-xs transition duration-150"
@@ -5634,12 +5777,17 @@ function App() {
                   {!isRescheduling && (
                     <div className="px-6 pt-6 pb-8 border-t border-surface-border/20 bg-surface-subtle/20 flex flex-col gap-2.5 flex-shrink-0">
                       <div className="flex gap-3">
-                        {appt.status !== 'Completed' && (
+                        {appt.status !== 'COMPLETED' && (
                           <button
                             type="button"
-                            onClick={() => {
-                              setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: 'Completed' } : a));
-                              setSelectedAppointmentId(null);
+                            onClick={async () => {
+                              try {
+                                await api.appointments.update(appt.id, { status: "COMPLETED" });
+                                setSelectedAppointmentId(null);
+                                await loadAppointmentsRange(currentWeekStart);
+                              } catch (err) {
+                                console.error("Failed to complete appointment:", err);
+                              }
                             }}
                             className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
                           >
@@ -5650,7 +5798,7 @@ function App() {
                           type="button"
                           onClick={() => {
                             setRescheduleDate(appt.date);
-                            setRescheduleTime(appt.time);
+                            setRescheduleTime(formatTime12h(appt.time));
                             setIsRescheduling(true);
                           }}
                           className="flex-1 py-2.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-xs transition duration-150"
@@ -5658,12 +5806,17 @@ function App() {
                           Reschedule
                         </button>
                       </div>
-                      {appt.status !== 'Cancelled' && (
+                      {appt.status !== 'CANCELLED' && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setAppointments(prev => prev.map(a => a.id === appt.id ? { ...a, status: 'Cancelled' } : a));
-                            setSelectedAppointmentId(null);
+                          onClick={async () => {
+                            try {
+                              await api.appointments.update(appt.id, { status: "CANCELLED" });
+                              setSelectedAppointmentId(null);
+                              await loadAppointmentsRange(currentWeekStart);
+                            } catch (err) {
+                              console.error("Failed to cancel appointment:", err);
+                            }
                           }}
                           className="w-full py-2.5 border border-status-danger/30 hover:bg-status-dangerBg text-status-danger font-bold rounded-xl text-xs transition duration-150"
                         >
@@ -5701,30 +5854,7 @@ function App() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    if (!formPatientId) {
-                      alert("Please select a patient.");
-                      return;
-                    }
-                    const patient = patients.find(p => p.id === formPatientId);
-                    if (!patient) return;
-
-                    const nextId = crypto.randomUUID();
-                    const newAppt: Appointment = {
-                      id: nextId,
-                      name: patient.name,
-                      initials: patient.initials,
-                      phone: patient.phone,
-                      date: formDate || "2026-06-23",
-                      time: formTime,
-                      doctor: formDoctor,
-                      department: formDept,
-                      status: 'Confirmed',
-                      bookedVia: 'manual',
-                      notes: formNotes
-                    };
-
-                    setAppointments(prev => [newAppt, ...prev]);
-                    setIsNewApptDrawerOpen(false);
+                    handleCreateAppointment();
                   }}
                   className="p-6 space-y-5 flex-1 overflow-y-auto text-xs font-semibold"
                 >
@@ -5825,13 +5955,20 @@ function App() {
                     />
                   </div>
 
+                  {newApptError && (
+                    <div className="p-3 bg-status-dangerBg border border-status-danger/20 rounded-xl text-status-danger text-xs font-semibold">
+                      {newApptError}
+                    </div>
+                  )}
+
                   {/* Form Actions Footer */}
                   <div className="pt-4 flex gap-3">
                     <button
                       type="submit"
-                      className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
+                      disabled={newApptLoading}
+                      className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
                     >
-                      Book Appointment
+                      {newApptLoading ? "Booking..." : "Book Appointment"}
                     </button>
                     <button
                       type="button"

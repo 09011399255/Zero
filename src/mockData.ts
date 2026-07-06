@@ -29,7 +29,7 @@ export interface Appointment {
   time: string; // e.g. "09:00 AM"
   doctor: string;
   department: string;
-  status: 'Confirmed' | 'Pending' | 'Cancelled' | 'Completed';
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';
   bookedVia: 'zero' | 'manual';
   notes?: string;
 }
@@ -85,7 +85,7 @@ export const mockAppointments: Appointment[] = [
     time: "02:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "Neurology",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Migraine follow-up check-in."
   },
@@ -98,7 +98,7 @@ export const mockAppointments: Appointment[] = [
     time: "10:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Pending",
+    status: "PENDING",
     bookedVia: "zero",
     notes: "Routine blood panel review."
   },
@@ -111,7 +111,7 @@ export const mockAppointments: Appointment[] = [
     time: "09:00 AM",
     doctor: "Dr. Lan Mandragoran",
     department: "Cardiology",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Check heart rate variability."
   },
@@ -124,7 +124,7 @@ export const mockAppointments: Appointment[] = [
     time: "11:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Cancelled",
+    status: "CANCELLED",
     bookedVia: "manual",
     notes: "Diabetic foot exam - cancelled by patient."
   },
@@ -137,7 +137,7 @@ export const mockAppointments: Appointment[] = [
     time: "03:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Hypertension follow-up recall slot."
   },
@@ -150,7 +150,7 @@ export const mockAppointments: Appointment[] = [
     time: "08:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "Prenatal",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Routine prenatal exam."
   },
@@ -163,7 +163,7 @@ export const mockAppointments: Appointment[] = [
     time: "04:00 PM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Follow-up on previous lab results."
   },
@@ -176,7 +176,7 @@ export const mockAppointments: Appointment[] = [
     time: "01:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Asthma action plan review."
   },
@@ -189,7 +189,7 @@ export const mockAppointments: Appointment[] = [
     time: "11:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Pending",
+    status: "PENDING",
     bookedVia: "zero",
     notes: "Glaucoma screening."
   },
@@ -202,7 +202,7 @@ export const mockAppointments: Appointment[] = [
     time: "10:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Hearing checkup."
   },
@@ -215,7 +215,7 @@ export const mockAppointments: Appointment[] = [
     time: "12:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "manual",
     notes: "Scheduled checkup."
   },
@@ -228,7 +228,7 @@ export const mockAppointments: Appointment[] = [
     time: "09:00 AM",
     doctor: "Dr. Lan Mandragoran",
     department: "Neurology",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Initial neurological assessment."
   },
@@ -241,7 +241,7 @@ export const mockAppointments: Appointment[] = [
     time: "04:00 PM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Routine prescription refill assessment."
   },
@@ -254,7 +254,7 @@ export const mockAppointments: Appointment[] = [
     time: "11:00 AM",
     doctor: "Dr. Lan Mandragoran",
     department: "Cardiology",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Routine cardiology assessment."
   },
@@ -267,7 +267,7 @@ export const mockAppointments: Appointment[] = [
     time: "02:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "Dermatology",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Skin assessment exam."
   },
@@ -280,7 +280,7 @@ export const mockAppointments: Appointment[] = [
     time: "02:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Pending",
+    status: "PENDING",
     bookedVia: "zero",
     notes: "Routine blood panel review."
   },
@@ -293,7 +293,7 @@ export const mockAppointments: Appointment[] = [
     time: "08:00 AM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Shoulder strain follow-up physical review."
   },
@@ -306,7 +306,7 @@ export const mockAppointments: Appointment[] = [
     time: "03:00 PM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "manual",
     notes: "Annual physical exam."
   },
@@ -319,7 +319,7 @@ export const mockAppointments: Appointment[] = [
     time: "10:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Previous glaucoma follow-up review."
   },
@@ -332,7 +332,7 @@ export const mockAppointments: Appointment[] = [
     time: "03:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "Neurology",
-    status: "Completed",
+    status: "COMPLETED",
     bookedVia: "zero",
     notes: "Previous migraine follow-up exam."
   },
@@ -345,7 +345,7 @@ export const mockAppointments: Appointment[] = [
     time: "11:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Next month routine checkup."
   },
@@ -358,7 +358,7 @@ export const mockAppointments: Appointment[] = [
     time: "09:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "manual",
     notes: "Rescheduled diabetic foot check."
   },
@@ -371,7 +371,7 @@ export const mockAppointments: Appointment[] = [
     time: "02:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "Cardiology",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Review of occasional palpitations."
   },
@@ -384,7 +384,7 @@ export const mockAppointments: Appointment[] = [
     time: "03:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Recall slot booked automatically via Zero."
   },
@@ -397,7 +397,7 @@ export const mockAppointments: Appointment[] = [
     time: "09:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "Prenatal",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Second prenatal wellness review check."
   },
@@ -410,7 +410,7 @@ export const mockAppointments: Appointment[] = [
     time: "10:00 AM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "manual",
     notes: "Weekend wellness check."
   },
@@ -423,7 +423,7 @@ export const mockAppointments: Appointment[] = [
     time: "11:00 AM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "manual",
     notes: "Follow-up test review."
   },
@@ -436,7 +436,7 @@ export const mockAppointments: Appointment[] = [
     time: "01:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "Cardiology",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Hypertension/BP spike review."
   },
@@ -449,7 +449,7 @@ export const mockAppointments: Appointment[] = [
     time: "03:00 PM",
     doctor: "Dr. Moiraine Damodred",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Refill assessment."
   },
@@ -462,7 +462,7 @@ export const mockAppointments: Appointment[] = [
     time: "04:00 PM",
     doctor: "Dr. Lan Mandragoran",
     department: "General Medicine",
-    status: "Confirmed",
+    status: "CONFIRMED",
     bookedVia: "zero",
     notes: "Weekly physical therapy check."
   }
