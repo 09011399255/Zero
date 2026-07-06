@@ -574,14 +574,6 @@ const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   NO_SHOW: "No Show",
 };
 
-const appointmentStatusColors: Record<AppointmentStatus, string> = {
-  PENDING: "status-warning",
-  CONFIRMED: "status-success",
-  COMPLETED: "text-muted",
-  CANCELLED: "status-danger",
-  NO_SHOW: "status-danger",
-};
-
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
@@ -2178,9 +2170,9 @@ function App() {
     const endStr = formatDateString(weekDays[6]);
 
     // Current week appointments count
-    const weekAppts = appointments.filter(a => a.date >= startStr && a.date <= endStr && a.status !== 'Cancelled');
+    const weekAppts = appointments.filter(a => a.date >= startStr && a.date <= endStr && a.status !== 'CANCELLED');
     const todayStr = "2026-06-23"; // Today's date in mock clinic OS
-    const todayAppts = appointments.filter(a => a.date === todayStr && a.status !== 'Cancelled');
+    const todayAppts = appointments.filter(a => a.date === todayStr && a.status !== 'CANCELLED');
 
     // 2. Filter logic (especially for List view)
     const filteredAppts = appointments.filter(a => {
@@ -2234,8 +2226,11 @@ function App() {
         {/* HEADER SECTION */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[24px] font-semibold text-text-primary leading-tight">
-              Appointments
+            <h2 className="text-[24px] font-semibold text-text-primary leading-tight flex items-center gap-2">
+              <span>Appointments</span>
+              {appointmentsLoading && (
+                <span className="text-xs font-normal text-text-muted animate-pulse">(Updating...)</span>
+              )}
             </h2>
             <p className="text-[14px] text-text-secondary mt-1">
               {weekAppts.length} active appointments this week · {todayAppts.length} today
@@ -4797,20 +4792,20 @@ function App() {
                               <td className="py-3 text-xs text-text-secondary font-medium">{apt.doctor}</td>
                               <td className="py-3">
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                  apt.status === 'Confirmed'
+                                  apt.status === 'CONFIRMED'
                                     ? 'bg-status-successBg text-status-success'
-                                    : apt.status === 'Pending'
+                                    : apt.status === 'PENDING'
                                     ? 'bg-status-warningBg text-status-warning'
                                     : 'bg-status-dangerBg text-status-danger'
                                 }`}>
                                   <span className={`w-1 h-1 rounded-full ${
-                                    apt.status === 'Confirmed'
+                                    apt.status === 'CONFIRMED'
                                       ? 'bg-status-success'
-                                      : apt.status === 'Pending'
+                                      : apt.status === 'PENDING'
                                       ? 'bg-status-warning'
                                       : 'bg-status-danger'
                                   }`}></span>
-                                  {apt.status}
+                                  {appointmentStatusLabels[apt.status] || apt.status}
                                 </span>
                               </td>
                               <td className="py-3 text-right relative">
