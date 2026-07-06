@@ -66,10 +66,22 @@ export const api = {
       request<any>("POST", "/api/staff", body),
   },
   patients: {
-    list: () => request<any[]>("GET", "/api/patients"),
-    create: (body: { name: string; phone: string; age?: number; gender?: string; complaint?: string }) => 
-      request<any>("POST", "/api/patients", body),
-    getById: (id: string) => request<any>("GET", `/api/patients/${id}`),
+    list: (params?: { recall?: boolean }) => {
+      const query = params?.recall ? "?recall=true" : "";
+      return request<any[]>("GET", `/api/patients${query}`);
+    },
+    get: (id: string) =>
+      request<any>("GET", `/api/patients/${id}`),
+    create: (body: {
+      name: string;
+      phone: string;
+      email?: string;
+      dob?: string;
+      gender?: string;
+      primaryDoctor?: string;
+      recallStatus?: string;
+      recallReason?: string;
+    }) => request<any>("POST", "/api/patients", body),
   },
   appointments: {
     list: () => request<any[]>("GET", "/api/appointments"),
