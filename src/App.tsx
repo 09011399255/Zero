@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { api, AppointmentStatus } from './api';
+import { api, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient } from './api';
 import { jwtDecode } from 'jwt-decode';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -42,35 +42,13 @@ import {
 import {
   mockClinicInfo,
   mockAIStats,
-  mockStatCards,
   mockAppointments,
-  mockAttentionItems,
   mockChartData,
   Appointment,
-  AttentionItem,
-  mockPatients,
-  Patient
+  mockPatients
 } from './mockData';
 
-interface ChatMessage {
-  sender: 'ai' | 'patient' | 'staff' | 'system';
-  senderName?: string;
-  text: string;
-  time: string;
-}
 
-interface ChatConversation {
-  id: string;
-  patientName: string;
-  patientInitials: string;
-  patientPhone: string;
-  status: 'needs_review' | 'ai_handling' | 'resolved';
-  urgency: 'urgent' | 'admin' | 'none';
-  escalationReason?: string;
-  lastMessageTime?: string;
-  messages: ChatMessage[];
-  assignedStaff?: string;
-}
 
 interface NotificationItem {
   id: string;
@@ -298,236 +276,7 @@ const initialQueue: QueueEntry[] = [
   }
 ];
 
-const initialConversations: ChatConversation[] = [
-  {
-    id: "413055e0-cb3a-7c6d-79b6-b446a98e0ad1",
-    patientName: "Nynaeve al'Meara",
-    patientInitials: "NM",
-    patientPhone: "+1 (555) 019-2834",
-    status: 'needs_review',
-    urgency: 'urgent',
-    escalationReason: "Urgent — patient reported chest tightness, flagged as urgent",
-    messages: [
-      { sender: 'ai', text: "Hi Nynaeve, this is Zero. It looks like you're due for your hypertension checkup. Would you like to schedule a visit?", time: "09:15 AM" },
-      { sender: 'patient', text: "I have been having some headaches, but today my chest feels really tight and heavy.", time: "09:17 AM" },
-      { sender: 'ai', text: "I'm flagging this immediately for clinic staff. Please sit down, rest, and we will contact you right away. If you feel it's an emergency, please call 911.", time: "09:18 AM" }
-    ]
-  },
-  {
-    id: "e4697434-7214-5ec8-d229-a4800e06fcbd",
-    patientName: "Egwene al'Vere",
-    patientInitials: "EA",
-    patientPhone: "+1 (555) 015-6789",
-    status: 'needs_review',
-    urgency: 'admin',
-    escalationReason: "Billing — billing dispute requires human judgment",
-    messages: [
-      { sender: 'ai', text: "Hi Egwene, we noticed your routine blood panel checkup is due soon. Dr. Moiraine has openings on Tuesday. Would you like to schedule?", time: "10:30 AM" },
-      { sender: 'patient', text: "I want to, but I got a bill for $120 for my last visit which should have been fully covered by my copay. I'm not booking anything until this is sorted.", time: "10:32 AM" },
-      { sender: 'ai', text: "I understand your concern. Let me escalate this to our billing supervisor to review your charge. Someone will reply to you here shortly.", time: "10:33 AM" }
-    ]
-  },
-  {
-    id: "beff33e6-b741-251f-f5fd-55f5a19baf55",
-    patientName: "Aviendha",
-    patientInitials: "AV",
-    patientPhone: "+1 (555) 023-5544",
-    status: 'needs_review',
-    urgency: 'urgent',
-    escalationReason: "Urgent — patient reporting severe shortness of breath after new inhaler",
-    messages: [
-      { sender: 'ai', text: "Hi Aviendha, Dr. Lan would like to review your asthma action plan. Do you have 15 minutes this Friday?", time: "Yesterday" },
-      { sender: 'patient', text: "I started the new inhaler today but I feel very short of breath and wheezy. Is that normal?", time: "Yesterday" },
-      { sender: 'ai', text: "This is not normal. I am escalating this to Dr. Lan and the clinical team immediately. Please take your rescue inhaler and sit upright. Staff will message you now.", time: "Yesterday" }
-    ]
-  },
-  {
-    id: "016710bb-f342-71a6-fbe8-f2c61649abee",
-    patientName: "Rand al'Thor",
-    patientInitials: "RT",
-    patientPhone: "+1 (555) 012-3456",
-    status: 'ai_handling',
-    urgency: 'none',
-    messages: [
-      { sender: 'patient', text: "I need to book my follow-up for next week.", time: "11:00 AM" },
-      { sender: 'ai', text: "Sure, Rand! Dr. Lan has slots on June 25th at 02:30 PM. Would that work?", time: "11:01 AM" },
-      { sender: 'patient', text: "Do you have anything in the morning?", time: "11:02 AM" },
-      { sender: 'ai', text: "Yes, we have 09:30 AM on the same day. Should I book that for you?", time: "11:03 AM" }
-    ]
-  },
-  {
-    id: "9bcda724-1aa3-d9ee-8dbd-59ef72864e4a",
-    patientName: "Perrin Aybara",
-    patientInitials: "PA",
-    patientPhone: "+1 (555) 017-9876",
-    status: 'ai_handling',
-    urgency: 'none',
-    messages: [
-      { sender: 'ai', text: "Hi Perrin, your annual diabetic foot check is overdue. Would you like to book an appointment with Dr. Moiraine?", time: "Monday" },
-      { sender: 'patient', text: "Is it covered by Cigna insurance?", time: "Monday" },
-      { sender: 'ai', text: "Yes, Apex Family Clinic is in-network with Cigna. Your preventive foot exam should be fully covered, subject to your plan details.", time: "Monday" }
-    ]
-  },
-  {
-    id: "dfb001c4-5aff-badd-14a7-1a2e6ee6b6fe",
-    patientName: "Matrim Cauthon",
-    patientInitials: "MC",
-    patientPhone: "+1 (555) 018-4321",
-    status: 'ai_handling',
-    urgency: 'none',
-    messages: [
-      { sender: 'patient', text: "What are your hours on Saturday?", time: "Sunday" },
-      { sender: 'ai', text: "Hi Matrim! We are open on Saturdays from 09:00 AM to 01:00 PM for urgent care and pre-scheduled appointments.", time: "Sunday" }
-    ]
-  },
-  {
-    id: "b5b9c118-8fc8-9e77-eaf1-3fa252eb6eb2",
-    patientName: "Elayne Trakand",
-    patientInitials: "ET",
-    patientPhone: "+1 (555) 021-9988",
-    status: 'ai_handling',
-    urgency: 'none',
-    messages: [
-      { sender: 'ai', text: "Hi Elayne, it is time for your next prenatal wellness check. Dr. Moiraine is available on Wednesday morning. Let us know if you'd like to book!", time: "2 days ago" },
-      { sender: 'patient', text: "Can we do 11:30 AM?", time: "2 days ago" },
-      { sender: 'ai', text: "Yes, I've reserved Wednesday at 11:30 AM with Dr. Moiraine for you. You will receive a confirmation text shortly.", time: "2 days ago" }
-    ]
-  },
-  {
-    id: "f121b269-a0e3-2a69-d904-b9c183bce237",
-    patientName: "Min Farshaw",
-    patientInitials: "MF",
-    patientPhone: "+1 (555) 022-7766",
-    status: 'resolved',
-    urgency: 'none',
-    messages: [
-      { sender: 'patient', text: "Can I get a refill on my eye drops?", time: "Jun 15" },
-      { sender: 'ai', text: "Sure, Min. I've sent a refill request for your Systane drops to Dr. Moiraine for approval. You'll get a text when sent to your pharmacy.", time: "Jun 15" },
-      { sender: 'ai', text: "Your prescription refill has been approved and sent to Walgreens. It's ready for pickup.", time: "Jun 16" }
-    ]
-  },
-  {
-    id: "978a59b6-d75a-db99-bc5a-728485440185",
-    patientName: "Moiraine Damodred",
-    patientInitials: "MD",
-    patientPhone: "+1 (555) 024-3322",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "c5451e97-58f6-3184-2d99-44201a134727",
-    patientName: "Lan Mandragoran",
-    patientInitials: "LM",
-    patientPhone: "+1 (555) 025-1100",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "ba81ab2a-7668-d875-d60f-c03d382f838f",
-    patientName: "Thom Merrilin",
-    patientInitials: "TM",
-    patientPhone: "+1 (555) 026-8877",
-    status: 'resolved',
-    urgency: 'none',
-    assignedStaff: "Apex Billing",
-    messages: [
-      { sender: 'ai', text: "Hi Thom, it's time for your routine audiology hearing checkup. Would you like to check availability for next week?", time: "Jun 20" },
-      { sender: 'patient', text: "I lost my hearing aid insurance card. Can you find my policy on file?", time: "Jun 20" },
-      { sender: 'ai', text: "I am escalating this query so our front desk staff can look up your archived insurance details.", time: "Jun 20" },
-      { sender: 'system', text: "Taken over by Apex Billing", time: "Jun 20" },
-      { sender: 'staff', senderName: "Apex Billing", text: "Hi Thom, this is Sarah from the billing office. I located your policy details on file: BlueShield Policy #BS998372. You are all set!", time: "Jun 21" },
-      { sender: 'system', text: "Conversation marked resolved", time: "Jun 21" }
-    ]
-  },
-  {
-    id: "3abfd7af-0c4e-e06d-b90b-497a84ebd4c1",
-    patientName: "Loial",
-    patientInitials: "LO",
-    patientPhone: "+1 (555) 027-6655",
-    status: 'resolved',
-    urgency: 'none',
-    messages: [
-      { sender: 'patient', text: "Need to cancel my appointment for tomorrow. My book club was rescheduled.", time: "Jun 18" },
-      { sender: 'ai', text: "No problem, Loial. I have cancelled your appointment. Would you like to reschedule for next week?", time: "Jun 18" },
-      { sender: 'patient', text: "No, I will call the clinic later. Thank you.", time: "Jun 18" },
-      { sender: 'ai', text: "You're welcome! Have a great day.", time: "Jun 18" }
-    ]
-  },
-  {
-    id: "d72add3c-0cf7-41f3-b9af-a31b22d5ddd2",
-    patientName: "Siuan Sanche",
-    patientInitials: "SS",
-    patientPhone: "+1 (555) 028-4433",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "07c22c7c-d551-5c2f-27f5-ce4f91f1ee06",
-    patientName: "Logain Ablar",
-    patientInitials: "LA",
-    patientPhone: "+1 (555) 029-2211",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "99b77834-593a-2321-2951-4ef584784d00",
-    patientName: "Verin Mathwin",
-    patientInitials: "VM",
-    patientPhone: "+1 (555) 030-9988",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "a49d168c-17fc-f047-598a-ca41838b489e",
-    patientName: "Cadsuane Melaidhrin",
-    patientInitials: "CM",
-    patientPhone: "+1 (555) 031-7766",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "5fa0c616-4dd2-1f17-d010-569c3c27522c",
-    patientName: "Alivia",
-    patientInitials: "AL",
-    patientPhone: "+1 (555) 032-5544",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "13f5a253-f4f2-48fe-e495-07fc4759a0fb",
-    patientName: "Tuon",
-    patientInitials: "TU",
-    patientPhone: "+1 (555) 033-3322",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "b6aaac94-ce4b-651e-262b-df878a00e6d9",
-    patientName: "Birgitte Silverbow",
-    patientInitials: "BS",
-    patientPhone: "+1 (555) 034-1100",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  },
-  {
-    id: "095752cd-8c49-2a61-a86e-cf0109f9d877",
-    patientName: "Gaul",
-    patientInitials: "GL",
-    patientPhone: "+1 (555) 035-8877",
-    status: 'resolved',
-    urgency: 'none',
-    messages: []
-  }
-];
+
 
 const PRESET_SERVICES = [
   'Cardiology',
@@ -574,10 +323,35 @@ const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   NO_SHOW: "No Show",
 };
 
+const statusLabels: Record<string, string> = {
+  WAITING: "Waiting",
+  waiting: "Waiting",
+  WITH_DOCTOR: "With Doctor",
+  with_doctor: "With Doctor",
+  COMPLETED: "Completed",
+  completed: "Completed",
+  NO_SHOW: "No Show",
+  no_show: "No Show",
+};
+
+const statusToTab: Record<string, string> = {
+  WAITING: "waiting",
+  waiting: "waiting",
+  WITH_DOCTOR: "with_doctor",
+  with_doctor: "with_doctor",
+  COMPLETED: "completed",
+  completed: "completed",
+  NO_SHOW: "no_show",
+  no_show: "no_show",
+};
+
 
 function App() {
   const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
-  const [attentionItems, setAttentionItems] = useState<AttentionItem[]>(mockAttentionItems);
+  const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
+  const [queueLoaded, setQueueLoaded] = useState(false);
+  const [appointmentsLoadedThisSession, setAppointmentsLoadedThisSession] = useState(false);
+  const [conversationsLoadedThisSession, setConversationsLoadedThisSession] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
@@ -678,6 +452,33 @@ function App() {
       );
     });
 
+    socket.on(
+      "conversation:updated",
+      (payload: { conversationId: string; status: string; lastMessage: string; escalated: boolean }) => {
+        // Update matching conversation in local state
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === payload.conversationId
+              ? { ...conv, status: payload.status as ConversationStatus, lastMessage: payload.lastMessage }
+              : conv
+          )
+        );
+        // If this is the currently open thread, reload it
+        if (activeConversationRef.current?.id === payload.conversationId) {
+          loadConversationThread(payload.conversationId);
+        }
+      }
+    );
+
+    socket.on(
+      "conversation:escalated",
+      (_payload: { conversationId: string; patientPhone: string; reason: string }) => {
+        // Reload conversations to pick up the new NEEDS_REVIEW entry
+        loadConversations();
+        loadConversationCounts();
+      }
+    );
+
     return () => {
       socket.emit("leave:clinic", clinicId);
       socket.disconnect();
@@ -697,6 +498,7 @@ function App() {
         ...data.no_show,
       ];
       setQueue(allEntries);
+      setQueueLoaded(true);
     } catch (err) {
       console.error("Failed to load queue:", err);
     } finally {
@@ -979,8 +781,13 @@ function App() {
   const [walkInDoctor, setWalkInDoctor] = useState('Dr. Lan Mandragoran');
 
   // ZeroChat screen states
-  const [chatConversations, setChatConversations] = useState<ChatConversation[]>(initialConversations);
-  const [selectedChatId, setSelectedChatId] = useState<string>("413055e0-cb3a-7c6d-79b6-b446a98e0ad1");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [conversationCounts, setConversationCounts] = useState<{ needs_review: number; ai_handling: number; resolved: number }>({ needs_review: 0, ai_handling: 0, resolved: 0 });
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [chatInputText, setChatInputText] = useState('');
   const [chatSearchQuery, setChatSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState({
@@ -988,6 +795,11 @@ function App() {
     ai_handling: true,
     resolved: true
   });
+
+  const activeConversationRef = useRef<Conversation | null>(null);
+  useEffect(() => {
+    activeConversationRef.current = activeConversation;
+  }, [activeConversation]);
 
   // Onboarding Wizard States
   const [isOnboarded, setIsOnboarded] = useState(false);
@@ -1102,6 +914,7 @@ function App() {
         to: toStr,
       });
       setAppointments(data);
+      setAppointmentsLoadedThisSession(true);
     } catch (err) {
       console.error("Failed to load appointments:", err);
     } finally {
@@ -1114,6 +927,102 @@ function App() {
       loadAppointmentsRange(currentWeekStart);
     }
   }, [currentRoute, currentWeekStart, clinicId]);
+
+  const loadConversations = async () => {
+    try {
+      setConversationsLoading(true);
+      const [needsReview, aiHandling, resolved] = await Promise.all([
+        api.conversations.list({ status: "NEEDS_REVIEW" }),
+        api.conversations.list({ status: "AI_HANDLING" }),
+        api.conversations.list({ status: "RESOLVED" }),
+      ]);
+      const allConversations = [...needsReview, ...aiHandling, ...resolved];
+      setConversations(allConversations);
+      setConversationsLoadedThisSession(true);
+      return { needsReview, aiHandling, resolved, allConversations };
+    } catch (err) {
+      console.error("Failed to load conversations:", err);
+      return null;
+    } finally {
+      setConversationsLoading(false);
+    }
+  };
+
+  const loadConversationCounts = async () => {
+    try {
+      const counts = await api.conversations.counts();
+      setConversationCounts(counts);
+    } catch (err) {
+      console.error("Failed to load conversation counts:", err);
+    }
+  };
+
+  const loadConversationThread = async (conversationId: string) => {
+    try {
+      setThreadLoading(true);
+      const data = await api.conversations.get(conversationId);
+      setActiveConversation(data);
+    } catch (err) {
+      console.error("Failed to load conversation thread:", err);
+    } finally {
+      setThreadLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRoute === 'zero-chat' && clinicId) {
+      const initZeroChat = async () => {
+        const res = await loadConversations();
+        loadConversationCounts();
+        if (res && !selectedChatId) {
+          let defaultSelect: Conversation | null = null;
+          if (res.needsReview.length > 0) {
+            defaultSelect = res.needsReview[0];
+          } else if (res.aiHandling.length > 0) {
+            defaultSelect = res.aiHandling[0];
+          } else if (res.resolved.length > 0) {
+            defaultSelect = res.resolved[0];
+          }
+          if (defaultSelect) {
+            setSelectedChatId(defaultSelect.id);
+          }
+        }
+      };
+      initZeroChat();
+    }
+  }, [currentRoute, clinicId]);
+
+  useEffect(() => {
+    if (currentRoute === 'dashboard' && clinicId) {
+      if (!queueLoaded) {
+        loadQueue();
+      }
+      if (!appointmentsLoadedThisSession) {
+        loadAppointmentsRange(currentWeekStart);
+      }
+      if (!conversationsLoadedThisSession) {
+        loadConversations();
+        loadConversationCounts();
+      }
+    }
+  }, [currentRoute, clinicId, queueLoaded, appointmentsLoadedThisSession, conversationsLoadedThisSession]);
+
+  useEffect(() => {
+    if (selectedChatId) {
+      loadConversationThread(selectedChatId);
+    } else {
+      setActiveConversation(null);
+    }
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    if (drawerTab === 'conversations' && selectedPatient) {
+      const patientConv = conversations.find(c => c.patientId === selectedPatient.id);
+      if (patientConv) {
+        setSelectedChatId(patientConv.id);
+      }
+    }
+  }, [drawerTab, selectedPatient, conversations]);
 
   // Handle New Appointment Form submit
   const handleCreateAppointment = async () => {
@@ -1323,9 +1232,7 @@ function App() {
     };
   }, []);
 
-  const handleResolveAttention = (id: number) => {
-    setAttentionItems(prev => prev.filter(item => item.id !== id));
-  };
+
 
   const handleStatusChange = async (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
     try {
@@ -1368,27 +1275,7 @@ function App() {
 
   // Render Live Queue Screen
   const renderLiveQueueScreen = () => {
-    const statusLabels: Record<string, string> = {
-      WAITING: "Waiting",
-      waiting: "Waiting",
-      WITH_DOCTOR: "With Doctor",
-      with_doctor: "With Doctor",
-      COMPLETED: "Completed",
-      completed: "Completed",
-      NO_SHOW: "No Show",
-      no_show: "No Show",
-    };
 
-    const statusToTab: Record<string, string> = {
-      WAITING: "waiting",
-      waiting: "waiting",
-      WITH_DOCTOR: "with_doctor",
-      with_doctor: "with_doctor",
-      COMPLETED: "completed",
-      completed: "completed",
-      NO_SHOW: "no_show",
-      no_show: "no_show",
-    };
 
     const waitingCount = queue.filter(q => statusToTab[q.status] === 'waiting').length;
     const withDoctorCount = queue.filter(q => statusToTab[q.status] === 'with_doctor').length;
@@ -2185,9 +2072,18 @@ function App() {
 
     // Sort by Date/Time
     const sortedAppts = [...filteredAppts].sort((a, b) => {
-      const timeA = new Date(`${a.date} ${a.time}`).getTime();
-      const timeB = new Date(`${b.date} ${b.time}`).getTime();
-      return apptSortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      const getMinutes = (t: string) => {
+        const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (!m) return 0;
+        let h = parseInt(m[1], 10);
+        if (m[3].toUpperCase() === "PM" && h < 12) h += 12;
+        if (m[3].toUpperCase() === "AM" && h === 12) h = 0;
+        return h * 60 + parseInt(m[2], 10);
+      };
+      const diff = a.date !== b.date 
+        ? a.date.localeCompare(b.date) 
+        : getMinutes(a.time) - getMinutes(b.time);
+      return apptSortOrder === 'asc' ? diff : -diff;
     });
 
     // Pagination for list view
@@ -2639,94 +2535,123 @@ function App() {
     );
   };
 
-  const handleTakeOver = (convId: string) => {
-    setChatConversations(prev => prev.map(c => {
-      if (c.id === convId) {
-        return {
-          ...c,
-          assignedStaff: "Apex Admin",
-          messages: [
-            ...c.messages,
-            { sender: 'system', text: "Taken over by Apex Admin", time: "Just now" }
-          ]
-        };
+  const handleTakeOver = async (convId: string) => {
+    try {
+      const updated = await api.conversations.takeOver(convId);
+      setConversations(prev =>
+        prev.map(c => (c.id === convId ? updated : c))
+      );
+      if (activeConversation && activeConversation.id === convId) {
+        setActiveConversation(updated);
       }
-      return c;
-    }));
+      loadConversationCounts();
+    } catch (err) {
+      console.error("Failed to take over conversation:", err);
+    }
   };
 
-  const handleResolve = (convId: string) => {
-    setChatConversations(prev => prev.map(c => {
-      if (c.id === convId) {
-        return {
-          ...c,
-          status: 'resolved',
-          messages: [
-            ...c.messages,
-            { sender: 'system', text: "Conversation marked resolved", time: "Just now" }
-          ]
-        };
+  const handleResolve = async (convId: string) => {
+    try {
+      const updated = await api.conversations.resolve(convId);
+      setConversations(prev =>
+        prev.map(c => (c.id === convId ? updated : c))
+      );
+      if (activeConversation && activeConversation.id === convId) {
+        setActiveConversation(updated);
       }
-      return c;
-    }));
+      loadConversationCounts();
+    } catch (err) {
+      console.error("Failed to resolve conversation:", err);
+    }
   };
 
   const handleReopen = (convId: string) => {
-    setChatConversations(prev => prev.map(c => {
-      if (c.id === convId) {
-        return {
-          ...c,
-          status: 'ai_handling',
-          assignedStaff: undefined,
-          messages: [
-            ...c.messages,
-            { sender: 'system', text: "Conversation reopened, handed back to Zero AI", time: "Just now" }
-          ]
-        };
-      }
-      return c;
-    }));
-  };
-
-  const renderZeroChatScreen = () => {
-    // Filter conversations by search query
-    const filteredConversations = chatConversations.filter(c =>
-      c.patientName.toLowerCase().includes(chatSearchQuery.toLowerCase())
-    );
-
-    // Grouping
-    const needsReviewList = filteredConversations.filter(c => c.status === 'needs_review');
-    const aiHandlingList = filteredConversations.filter(c => c.status === 'ai_handling');
-    const resolvedList = filteredConversations.filter(c => c.status === 'resolved');
-
-    const selectedConv = chatConversations.find(c => c.id === selectedChatId) || chatConversations[0];
-
-    const handleSendMessage = (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-      if (!chatInputText.trim() || !selectedConv || !selectedConv.assignedStaff) return;
-      
-      const newMsg: ChatMessage = {
-        sender: 'staff',
-        senderName: "Apex Admin",
-        text: chatInputText,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setChatConversations(prev => prev.map(c => {
-        if (c.id === selectedConv.id) {
+    setConversations(prev =>
+      prev.map(c => {
+        if (c.id === convId) {
           return {
             ...c,
-            messages: [...c.messages, newMsg]
+            status: "AI_HANDLING" as ConversationStatus,
+            assignedStaff: undefined,
           };
         }
         return c;
-      }));
-      setChatInputText('');
+      })
+    );
+    if (activeConversation && activeConversation.id === convId) {
+      setActiveConversation(prev => {
+        if (!prev) return null;
+        const newMsg: ConversationMessage = {
+          id: `local-reopen-${Date.now()}`,
+          role: "system",
+          text: "Conversation reopened, handed back to Zero AI",
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          ...prev,
+          status: "AI_HANDLING" as ConversationStatus,
+          assignedStaff: undefined,
+          messages: [...(prev.messages || []), newMsg],
+        };
+      });
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const renderZeroChatScreen = () => {
+    const filteredConversations = conversations.filter(c =>
+      c.patientName.toLowerCase().includes(chatSearchQuery.toLowerCase())
+    );
+
+    const needsReviewList = filteredConversations.filter(c => c.status === 'NEEDS_REVIEW');
+    const aiHandlingList = filteredConversations.filter(c => c.status === 'AI_HANDLING' || c.status === 'STAFF_TOOK_OVER');
+    const resolvedList = filteredConversations.filter(c => c.status === 'RESOLVED');
+
+    const selectedConv = conversations.find(c => c.id === selectedChatId) || conversations[0];
+    const messagesToShow = activeConversation && activeConversation.id === selectedConv?.id
+      ? activeConversation.messages || []
+      : selectedConv?.messages || [];
+
+    const handleSendMessage = async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
+      if (!chatInputText.trim() || !selectedConv || !selectedConv.assignedStaff) return;
+      
+      try {
+        setSendingMessage(true);
+        const newMsg = await api.conversations.reply(selectedConv.id, { text: chatInputText });
+        if (activeConversation && activeConversation.id === selectedConv.id) {
+          setActiveConversation(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              messages: [...(prev.messages || []), newMsg]
+            };
+          });
+        }
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === selectedConv.id ? { ...c, lastMessage: newMsg.text } : c
+          )
+        );
+        setChatInputText('');
+      } catch (err) {
+        console.error("Failed to send message:", err);
+      } finally {
+        setSendingMessage(false);
+      }
     };
 
-    const renderConvRow = (conv: ChatConversation, selectedConv: ChatConversation) => {
+    const renderConvRow = (conv: Conversation, selectedConv: Conversation) => {
       const isSelected = selectedConv && selectedConv.id === conv.id;
-      const lastMsg = conv.messages[conv.messages.length - 1];
+      const initials = getInitials(conv.patientName);
+      const lastMsgText = conv.lastMessage || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].text : "No messages");
+      const lastMsgTime = conv.lastMessageTime || "";
 
       return (
         <button
@@ -2743,26 +2668,26 @@ function App() {
         >
           {/* Avatar */}
           <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0 mt-0.5 font-sans">
-            {conv.patientInitials}
+            {initials}
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-1.5">
               <span className="text-xs font-bold text-text-primary truncate">{conv.patientName}</span>
-              <span className="text-[9px] text-text-muted font-medium whitespace-nowrap font-sans">{conv.lastMessageTime || lastMsg?.time}</span>
+              <span className="text-[9px] text-text-muted font-medium whitespace-nowrap font-sans">{lastMsgTime}</span>
             </div>
             
             <p className="text-[11px] text-text-secondary truncate mt-1 leading-normal font-medium font-sans">
-              {lastMsg ? lastMsg.text : 'No messages'}
+              {lastMsgText}
             </p>
 
             {/* Sub-tag or urgency badge inside row */}
-            {conv.status === 'needs_review' && (
+            {conv.status === 'NEEDS_REVIEW' && (
               <div className="flex items-center gap-1.5 mt-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${conv.urgency === 'urgent' ? 'bg-status-danger' : 'bg-status-warning'}`}></span>
                 <span className={`text-[9px] font-bold uppercase tracking-wider font-sans ${conv.urgency === 'urgent' ? 'text-status-danger' : 'text-status-warning'}`}>
-                  {conv.urgency === 'urgent' ? 'Urgent Medical' : 'Billing Dispute'}
+                  {conv.urgency === 'urgent' ? 'Urgent Medical' : 'Billing/Admin'}
                 </span>
               </div>
             )}
@@ -2800,87 +2725,96 @@ function App() {
 
           {/* Collapsible Sections Container */}
           <div className="flex-1 overflow-y-auto p-2.5 space-y-4">
-            {/* Needs Review Section */}
-            <div>
-              <button
-                onClick={() => setExpandedSections(prev => ({ ...prev, needs_review: !prev.needs_review }))}
-                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.needs_review ? '' : '-rotate-90'}`} />
-                  <span>Needs Review</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-sans ${
-                  needsReviewList.length > 0
-                    ? 'bg-status-dangerBg text-status-danger border border-status-danger/10'
-                    : 'bg-surface-subtle text-text-muted'
-                }`}>
-                  {needsReviewList.length}
-                </span>
-              </button>
+            {conversationsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-text-muted gap-2">
+                <RefreshCw size={18} className="animate-spin text-brand-500" />
+                <span className="text-[11px] font-medium font-sans">Loading chats...</span>
+              </div>
+            ) : (
+              <>
+                {/* Needs Review Section */}
+                <div>
+                  <button
+                    onClick={() => setExpandedSections(prev => ({ ...prev, needs_review: !prev.needs_review }))}
+                    className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.needs_review ? '' : '-rotate-90'}`} />
+                      <span>Needs Review</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-sans ${
+                      needsReviewList.length > 0
+                        ? 'bg-status-dangerBg text-status-danger border border-status-danger/10'
+                        : 'bg-surface-subtle text-text-muted'
+                    }`}>
+                      {needsReviewList.length}
+                    </span>
+                  </button>
 
-              {expandedSections.needs_review && (
-                <div className="mt-1.5 space-y-1">
-                  {needsReviewList.length === 0 ? (
-                    <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No items need review</div>
-                  ) : (
-                    needsReviewList.map(conv => renderConvRow(conv, selectedConv))
+                  {expandedSections.needs_review && (
+                    <div className="mt-1.5 space-y-1">
+                      {needsReviewList.length === 0 ? (
+                        <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No items need review</div>
+                      ) : (
+                        needsReviewList.map(conv => renderConvRow(conv, selectedConv))
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* AI Handling Section */}
-            <div>
-              <button
-                onClick={() => setExpandedSections(prev => ({ ...prev, ai_handling: !prev.ai_handling }))}
-                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.ai_handling ? '' : '-rotate-90'}`} />
-                  <span>AI Handling</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-ai-50 text-ai-600 border border-ai-100/50 font-sans">
-                  {aiHandlingList.length}
-                </span>
-              </button>
+                {/* AI Handling Section */}
+                <div>
+                  <button
+                    onClick={() => setExpandedSections(prev => ({ ...prev, ai_handling: !prev.ai_handling }))}
+                    className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.ai_handling ? '' : '-rotate-90'}`} />
+                      <span>AI Handling</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-ai-50 text-ai-600 border border-ai-100/50 font-sans">
+                      {aiHandlingList.length}
+                    </span>
+                  </button>
 
-              {expandedSections.ai_handling && (
-                <div className="mt-1.5 space-y-1">
-                  {aiHandlingList.length === 0 ? (
-                    <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No active AI conversations</div>
-                  ) : (
-                    aiHandlingList.map(conv => renderConvRow(conv, selectedConv))
+                  {expandedSections.ai_handling && (
+                    <div className="mt-1.5 space-y-1">
+                      {aiHandlingList.length === 0 ? (
+                        <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No active AI conversations</div>
+                      ) : (
+                        aiHandlingList.map(conv => renderConvRow(conv, selectedConv))
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Resolved Section */}
-            <div>
-              <button
-                onClick={() => setExpandedSections(prev => ({ ...prev, resolved: !prev.resolved }))}
-                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
-              >
-                <div className="flex items-center gap-1.5">
-                  <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.resolved ? '' : '-rotate-90'}`} />
-                  <span>Resolved</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-status-successBg text-status-success border border-status-success/10 font-sans">
-                  {resolvedList.length}
-                </span>
-              </button>
+                {/* Resolved Section */}
+                <div>
+                  <button
+                    onClick={() => setExpandedSections(prev => ({ ...prev, resolved: !prev.resolved }))}
+                    className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider hover:text-text-primary transition duration-150 font-sans"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ChevronDown size={12} className={`transition-transform duration-150 ${expandedSections.resolved ? '' : '-rotate-90'}`} />
+                      <span>Resolved</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-status-successBg text-status-success border border-status-success/10 font-sans">
+                      {resolvedList.length}
+                    </span>
+                  </button>
 
-              {expandedSections.resolved && (
-                <div className="mt-1.5 space-y-1">
-                  {resolvedList.length === 0 ? (
-                    <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No resolved conversations</div>
-                  ) : (
-                    resolvedList.map(conv => renderConvRow(conv, selectedConv))
+                  {expandedSections.resolved && (
+                    <div className="mt-1.5 space-y-1">
+                      {resolvedList.length === 0 ? (
+                        <div className="text-[11px] text-text-muted text-center py-4 italic font-sans">No resolved conversations</div>
+                      ) : (
+                        resolvedList.map(conv => renderConvRow(conv, selectedConv))
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -2892,30 +2826,30 @@ function App() {
               <div className="p-4 border-b border-surface-border/20 bg-surface-base flex items-center justify-between flex-shrink-0">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0 font-sans">
-                    {selectedConv.patientInitials}
+                    {getInitials(selectedConv.patientName)}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold text-text-primary truncate">{selectedConv.patientName}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider font-sans whitespace-nowrap ${
-                        selectedConv.status === 'needs_review'
+                        selectedConv.status === 'NEEDS_REVIEW'
                           ? selectedConv.urgency === 'urgent'
                             ? 'bg-status-dangerBg text-status-danger border border-status-danger/10'
                             : 'bg-status-warningBg text-status-warning border border-status-warning/10'
-                          : selectedConv.status === 'ai_handling'
+                          : selectedConv.status === 'AI_HANDLING' || selectedConv.status === 'STAFF_TOOK_OVER'
                           ? 'bg-ai-50 text-ai-600 border border-ai-100/50'
                           : 'bg-status-successBg text-status-success border border-status-success/10'
                       }`}>
-                        {selectedConv.status === 'needs_review'
+                        {selectedConv.status === 'NEEDS_REVIEW'
                           ? `Needs Review · ${selectedConv.urgency === 'urgent' ? 'Urgent' : 'Admin'}`
-                          : selectedConv.status.replace('_', ' ')}
+                          : selectedConv.status.toLowerCase().replace('_', ' ')}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-[10px]">
                       <span className="text-text-secondary font-sans">{selectedConv.patientPhone}</span>
                       <span className="text-text-muted">·</span>
                       <button
-                        onClick={() => setSelectedPatientId(selectedConv.id)}
+                        onClick={() => setSelectedPatientId(selectedConv.patientId)}
                         className="font-bold text-brand-500 hover:text-brand-600 transition"
                       >
                         View Patient
@@ -2926,7 +2860,7 @@ function App() {
 
                 {/* Take Over & Resolve Actions */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {!selectedConv.assignedStaff && selectedConv.status !== 'resolved' && (
+                  {!selectedConv.assignedStaff && selectedConv.status !== 'RESOLVED' && (
                     <button
                       onClick={() => handleTakeOver(selectedConv.id)}
                       className="px-3 py-1.5 text-xs font-bold border border-status-warning/45 text-status-warning hover:bg-status-warningBg/80 rounded-xl transition duration-150 shadow-sm"
@@ -2934,7 +2868,7 @@ function App() {
                       Take Over
                     </button>
                   )}
-                  {selectedConv.status !== 'resolved' && (
+                  {selectedConv.status !== 'RESOLVED' && (
                     <button
                       onClick={() => handleResolve(selectedConv.id)}
                       className="px-3 py-1.5 text-xs font-bold bg-status-success hover:bg-status-success/90 text-white rounded-xl transition duration-150 shadow-sm"
@@ -2942,7 +2876,7 @@ function App() {
                       Resolve
                     </button>
                   )}
-                  {selectedConv.status === 'resolved' && (
+                  {selectedConv.status === 'RESOLVED' && (
                     <button
                       onClick={() => handleReopen(selectedConv.id)}
                       className="px-3 py-1.5 text-xs font-bold border border-brand-500 text-brand-500 hover:bg-brand-50 rounded-xl transition duration-150 shadow-sm"
@@ -2954,7 +2888,7 @@ function App() {
               </div>
 
               {/* Escalation Context Banner */}
-              {selectedConv.status === 'needs_review' && selectedConv.escalationReason && (
+              {selectedConv.status === 'NEEDS_REVIEW' && selectedConv.escalationReason && (
                 <div className={`p-3.5 mx-6 mt-4 border-l-4 rounded-r-xl flex items-start gap-3 shadow-sm ${
                   selectedConv.urgency === 'urgent'
                     ? 'bg-status-dangerBg border-status-danger text-status-danger'
@@ -2970,48 +2904,63 @@ function App() {
 
               {/* Message List area */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-start">
-                {selectedConv.messages.map((msg, index) => {
-                  if (msg.sender === 'system') {
+                {threadLoading ? (
+                  <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+                    <span className="text-[11px] text-text-muted mt-2 font-sans">Loading thread...</span>
+                  </div>
+                ) : messagesToShow.length === 0 ? (
+                  <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
+                    <MessageSquare size={36} className="text-text-muted mb-2" />
+                    <p className="text-xs text-text-secondary font-sans font-medium">No messages in this thread yet.</p>
+                  </div>
+                ) : (
+                  messagesToShow.map((msg, index) => {
+                    const isSystem = msg.role === 'system';
+                    if (isSystem) {
+                      return (
+                        <div key={index} className="flex items-center justify-center my-2">
+                          <span className="text-[9px] font-bold text-text-muted bg-surface-subtle px-3 py-1 rounded-full border border-surface-border/50 uppercase tracking-wider font-sans">
+                            {msg.text} · {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    const isAI = msg.role === 'ai';
+                    const isPatient = msg.role === 'patient';
+
                     return (
-                      <div key={index} className="flex items-center justify-center my-2">
-                        <span className="text-[9px] font-bold text-text-muted bg-surface-subtle px-3 py-1 rounded-full border border-surface-border/50 uppercase tracking-wider font-sans">
-                          {msg.text} · {msg.time}
+                      <div
+                        key={index}
+                        className={`flex flex-col max-w-[75%] ${isPatient ? 'self-end items-end' : 'self-start'}`}
+                      >
+                        {/* Name / Sender Indicator */}
+                        <span className={`text-[9px] font-bold mb-1 px-1 font-sans ${
+                          isAI ? 'text-ai-600 font-bold' : isPatient ? 'text-text-muted' : 'text-brand-600 font-bold'
+                        }`}>
+                          {isAI ? 'Zero AI' : isPatient ? selectedConv.patientName : (msg.senderName || 'Staff')}
+                        </span>
+
+                        {/* Bubble */}
+                        <div className={`p-3.5 text-xs leading-relaxed font-sans shadow-sm ${
+                          isAI
+                            ? 'bg-ai-100 border border-ai-200 text-ai-950 rounded-2xl rounded-tl-none border-l-4 border-l-ai-500'
+                            : isPatient
+                            ? 'bg-white border border-surface-border text-text-primary rounded-2xl rounded-tr-none'
+                            : 'bg-brand-100 border border-brand-200 text-brand-950 rounded-2xl rounded-tl-none border-l-4 border-l-brand-500'
+                        }`}>
+                          {msg.text}
+                        </div>
+
+                        {/* Time */}
+                        <span className="text-[8px] text-text-muted mt-1 px-1 font-sans">
+                          {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     );
-                  }
-
-                  const isAI = msg.sender === 'ai';
-                  const isPatient = msg.sender === 'patient';
-
-                  return (
-                    <div
-                      key={index}
-                      className={`flex flex-col max-w-[75%] ${isPatient ? 'self-end items-end' : 'self-start'}`}
-                    >
-                      {/* Name / Sender Indicator */}
-                      <span className={`text-[9px] font-bold mb-1 px-1 font-sans ${
-                        isAI ? 'text-ai-600 font-bold' : isPatient ? 'text-text-muted' : 'text-brand-600 font-bold'
-                      }`}>
-                        {isAI ? 'Zero AI' : isPatient ? selectedConv.patientName : (msg.senderName || 'Staff')}
-                      </span>
-
-                      {/* Bubble */}
-                      <div className={`p-3.5 text-xs leading-relaxed font-sans shadow-sm ${
-                        isAI
-                          ? 'bg-ai-100 border border-ai-200 text-ai-950 rounded-2xl rounded-tl-none border-l-4 border-l-ai-500'
-                          : isPatient
-                          ? 'bg-white border border-surface-border text-text-primary rounded-2xl rounded-tr-none'
-                          : 'bg-brand-100 border border-brand-200 text-brand-950 rounded-2xl rounded-tl-none border-l-4 border-l-brand-500'
-                      }`}>
-                        {msg.text}
-                      </div>
-
-                      {/* Time */}
-                      <span className="text-[8px] text-text-muted mt-1 px-1 font-sans">{msg.time}</span>
-                    </div>
-                  );
-                })}
+                  })
+                )}
               </div>
 
               {/* Message Input Panel */}
@@ -3019,27 +2968,29 @@ function App() {
                 <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                   <input
                     type="text"
-                    disabled={!selectedConv.assignedStaff || selectedConv.status === 'resolved'}
+                    disabled={!selectedConv.assignedStaff || selectedConv.status === 'RESOLVED' || sendingMessage}
                     value={chatInputText}
                     onChange={(e) => setChatInputText(e.target.value)}
                     placeholder={
-                      selectedConv.status === 'resolved'
+                      selectedConv.status === 'RESOLVED'
                         ? "This conversation is resolved."
                         : selectedConv.assignedStaff
-                        ? "Type your message..."
+                        ? sendingMessage
+                          ? "Sending..."
+                          : "Type your message..."
                         : "Click 'Take Over' to reply manually..."
                     }
                     className={`flex-1 px-4 py-3 bg-surface-subtle border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans ${
-                      !selectedConv.assignedStaff || selectedConv.status === 'resolved'
+                      !selectedConv.assignedStaff || selectedConv.status === 'RESOLVED' || sendingMessage
                         ? 'cursor-not-allowed text-text-muted border-surface-border/50'
                         : 'text-text-primary border-surface-border/80'
                     }`}
                   />
                   <button
                     type="submit"
-                    disabled={!chatInputText.trim() || !selectedConv.assignedStaff || selectedConv.status === 'resolved'}
+                    disabled={!chatInputText.trim() || !selectedConv.assignedStaff || selectedConv.status === 'RESOLVED' || sendingMessage}
                     className={`p-3 rounded-xl transition duration-150 flex items-center justify-center ${
-                      !chatInputText.trim() || !selectedConv.assignedStaff || selectedConv.status === 'resolved'
+                      !chatInputText.trim() || !selectedConv.assignedStaff || selectedConv.status === 'RESOLVED' || sendingMessage
                         ? 'bg-surface-subtle border border-surface-border/50 text-text-muted cursor-not-allowed'
                         : 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm'
                     }`}
@@ -4395,14 +4346,21 @@ function App() {
                 <li>
                   <button
                     onClick={() => setCurrentRoute('zero-chat')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
                       currentRoute === 'zero-chat'
                         ? 'bg-ai-50 text-brand-500 font-semibold'
                         : 'text-brand-100/70 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    <MessageSquare size={16} />
-                    <span>ZeroChat</span>
+                    <div className="flex items-center gap-3">
+                      <MessageSquare size={16} />
+                      <span>ZeroChat</span>
+                    </div>
+                    {conversationCounts.needs_review > 0 && (
+                      <span className="bg-status-danger text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold font-sans">
+                        {conversationCounts.needs_review}
+                      </span>
+                    )}
                   </button>
                 </li>
               </ul>
@@ -4652,7 +4610,7 @@ function App() {
                   <p className="text-[14px] text-text-secondary mt-1">
                     {mockClinicInfo.todayPatients} patients today · {mockClinicInfo.doctorsOnDuty} doctors on duty ·{' '}
                     <span className="font-semibold text-status-warning">
-                      {attentionItems.length} conversations need your attention
+                      {conversations.filter(c => c.status === 'NEEDS_REVIEW' && !dismissedAttentionIds.includes(c.id)).length} conversations need your attention
                     </span>
                   </p>
                 </div>
@@ -4672,9 +4630,15 @@ function App() {
                   <span className="text-[13px] font-medium text-text-secondary">
                     Zero is working — AI patient care operations
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
-                    <span className="text-[12px] font-semibold text-status-success">Active</span>
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-100">
+                      <RefreshCw size={10} className="animate-spin" style={{ animationDuration: '3s' }} />
+                      Analytics Pending
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
+                      <span className="text-[12px] font-semibold text-status-success">Active</span>
+                    </div>
                   </div>
                 </div>
 
@@ -4714,7 +4678,26 @@ function App() {
 
               {/* STAT ROW (3 Compact Cards) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {mockStatCards.map((card) => (
+                {[
+                  {
+                    label: "Patients Waiting",
+                    count: queue.filter(q => statusToTab[q.status] === 'waiting').length,
+                    change: "Live count",
+                    type: "waiting"
+                  },
+                  {
+                    label: "With Doctor",
+                    count: queue.filter(q => statusToTab[q.status] === 'with_doctor').length,
+                    change: "Live count",
+                    type: "withDoctor"
+                  },
+                  {
+                    label: "Completed Today",
+                    count: queue.filter(q => statusToTab[q.status] === 'completed').length,
+                    change: "Live count",
+                    type: "completed"
+                  }
+                ].map((card) => (
                   <div
                     key={card.label}
                     className="bg-surface-base rounded-2xl p-6 shadow-soft hover:shadow-soft-md transition duration-200 border border-surface-border/20 flex items-center justify-between"
@@ -4780,73 +4763,88 @@ function App() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-border/20">
-                          {appointments.slice(0, 8).map((apt) => (
-                            <tr key={apt.id} className="hover:bg-surface-subtle/50 transition duration-150">
-                              <td className="py-3 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100">
-                                  {apt.initials}
-                                </div>
-                                <span className="text-xs font-semibold text-text-primary">{apt.name}</span>
-                              </td>
-                              <td className="py-3 text-xs font-medium text-text-primary">{apt.time}</td>
-                              <td className="py-3 text-xs text-text-secondary font-medium">{apt.doctor}</td>
-                              <td className="py-3">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                  apt.status === 'CONFIRMED'
-                                    ? 'bg-status-successBg text-status-success'
-                                    : apt.status === 'PENDING'
-                                    ? 'bg-status-warningBg text-status-warning'
-                                    : 'bg-status-dangerBg text-status-danger'
-                                }`}>
-                                  <span className={`w-1 h-1 rounded-full ${
+                          {[...appointments]
+                            .filter(a => a.status !== 'CANCELLED')
+                            .sort((a, b) => {
+                              if (a.date !== b.date) return a.date.localeCompare(b.date);
+                              const getMinutes = (t: string) => {
+                                const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                                if (!m) return 0;
+                                let h = parseInt(m[1], 10);
+                                if (m[3].toUpperCase() === "PM" && h < 12) h += 12;
+                                if (m[3].toUpperCase() === "AM" && h === 12) h = 0;
+                                return h * 60 + parseInt(m[2], 10);
+                              };
+                              return getMinutes(a.time) - getMinutes(b.time);
+                            })
+                            .slice(0, 8)
+                            .map((apt) => (
+                              <tr key={apt.id} className="hover:bg-surface-subtle/50 transition duration-150">
+                                <td className="py-3 flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100">
+                                    {apt.initials}
+                                  </div>
+                                  <span className="text-xs font-semibold text-text-primary">{apt.name}</span>
+                                </td>
+                                <td className="py-3 text-xs font-medium text-text-primary">{apt.time}</td>
+                                <td className="py-3 text-xs text-text-secondary font-medium">{apt.doctor}</td>
+                                <td className="py-3">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
                                     apt.status === 'CONFIRMED'
-                                      ? 'bg-status-success'
+                                      ? 'bg-status-successBg text-status-success'
                                       : apt.status === 'PENDING'
-                                      ? 'bg-status-warning'
-                                      : 'bg-status-danger'
-                                  }`}></span>
-                                  {appointmentStatusLabels[apt.status] || apt.status}
-                                </span>
-                              </td>
-                              <td className="py-3 text-right relative">
-                                <div className="relative inline-block text-left">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenDropdownId(openDropdownId === apt.id ? null : apt.id);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
-                                  >
-                                    <span>Actions</span>
-                                    <ChevronDown size={12} className="text-text-muted" />
-                                  </button>
-                                  
-                                  {openDropdownId === apt.id && (
-                                    <div className="absolute right-0 mt-1.5 w-28 bg-surface-base border border-surface-border rounded-xl shadow-lg z-50 py-1 origin-top-right">
-                                      <button
-                                        onClick={() => {
-                                          handleStatusChange(apt.id, 'Confirmed');
-                                          setOpenDropdownId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs text-status-success hover:bg-status-successBg font-semibold transition duration-150"
-                                      >
-                                        Accept
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          handleStatusChange(apt.id, 'Cancelled');
-                                          setOpenDropdownId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs text-status-danger hover:bg-status-dangerBg font-semibold transition duration-150"
-                                      >
-                                        Reject
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                      ? 'bg-status-warningBg text-status-warning'
+                                      : 'bg-status-dangerBg text-status-danger'
+                                  }`}>
+                                    <span className={`w-1 h-1 rounded-full ${
+                                      apt.status === 'CONFIRMED'
+                                        ? 'bg-status-success'
+                                        : apt.status === 'PENDING'
+                                        ? 'bg-status-warning'
+                                        : 'bg-status-danger'
+                                    }`}></span>
+                                    {appointmentStatusLabels[apt.status] || apt.status}
+                                  </span>
+                                </td>
+                                <td className="py-3 text-right relative">
+                                  <div className="relative inline-block text-left">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenDropdownId(openDropdownId === apt.id ? null : apt.id);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
+                                    >
+                                      <span>Actions</span>
+                                      <ChevronDown size={12} className="text-text-muted" />
+                                    </button>
+                                    
+                                    {openDropdownId === apt.id && (
+                                      <div className="absolute right-0 mt-1.5 w-28 bg-surface-base border border-surface-border rounded-xl shadow-lg z-50 py-1 origin-top-right">
+                                        <button
+                                          onClick={() => {
+                                            handleStatusChange(apt.id, 'Confirmed');
+                                            setOpenDropdownId(null);
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs text-status-success hover:bg-status-successBg font-semibold transition duration-150"
+                                        >
+                                          Accept
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleStatusChange(apt.id, 'Cancelled');
+                                            setOpenDropdownId(null);
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs text-status-danger hover:bg-status-dangerBg font-semibold transition duration-150"
+                                        >
+                                          Reject
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     </div>
@@ -4858,7 +4856,7 @@ function App() {
                   <div>
                     <h3 className="text-base font-semibold text-text-primary mb-6">Needs Attention</h3>
                     
-                    {attentionItems.length === 0 ? (
+                    {conversations.filter(c => c.status === 'NEEDS_REVIEW' && !dismissedAttentionIds.includes(c.id)).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <div className="w-12 h-12 bg-status-successBg text-status-success rounded-full flex items-center justify-center mb-4">
                           <CheckCircle2 size={24} />
@@ -4868,60 +4866,66 @@ function App() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {attentionItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition duration-150 ${
-                              item.type === 'escalation'
-                                ? 'bg-status-dangerBg border-status-danger/10'
-                                : 'bg-status-warningBg border-status-warning/10'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                  item.type === 'escalation'
-                                    ? 'bg-status-danger text-white'
-                                    : 'bg-status-warning text-white'
-                                }`}>
-                                  {item.type === 'escalation' ? <ShieldAlert size={16} /> : <AlertTriangle size={16} />}
-                                </div>
-                                <div>
-                                  <h4 className="text-xs font-bold text-text-primary leading-tight">{item.title}</h4>
-                                  <p className="text-[11px] text-text-secondary mt-1 line-clamp-2 leading-relaxed">
-                                    {item.description}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-semibold text-text-muted flex-shrink-0">{item.time}</span>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2 pt-1 border-t border-black/[0.03]">
-                              <button
-                                onClick={() => handleResolveAttention(item.id)}
-                                className="px-2.5 py-1 text-[10px] font-bold text-text-secondary hover:text-text-primary rounded-md transition duration-150"
-                              >
-                                Dismiss
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (item.type === 'escalation') {
-                                    setCurrentRoute('zero-chat');
-                                  } else {
-                                    setCurrentRoute('patients');
-                                  }
-                                }}
-                                className={`px-3 py-1 rounded-md font-bold text-[10px] transition duration-150 text-white shadow-sm ${
-                                  item.type === 'escalation'
-                                    ? 'bg-status-danger hover:bg-status-danger/90'
-                                    : 'bg-status-warning hover:bg-status-warning/90'
+                        {conversations
+                          .filter(c => c.status === 'NEEDS_REVIEW' && !dismissedAttentionIds.includes(c.id))
+                          .map((conv) => {
+                            const isUrgent = conv.urgency === 'urgent';
+                            const title = isUrgent ? 'Urgent Medical' : 'Billing/Admin';
+                            const type = isUrgent ? 'escalation' : 'warning';
+                            return (
+                              <div
+                                key={conv.id}
+                                className={`p-4 rounded-xl border flex flex-col justify-between gap-3 transition duration-150 ${
+                                  type === 'escalation'
+                                    ? 'bg-status-dangerBg border-status-danger/10'
+                                    : 'bg-status-warningBg border-status-warning/10'
                                 }`}
                               >
-                                {item.action}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-start gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                      type === 'escalation'
+                                        ? 'bg-status-danger text-white'
+                                        : 'bg-status-warning text-white'
+                                    }`}>
+                                      {type === 'escalation' ? <ShieldAlert size={16} /> : <AlertTriangle size={16} />}
+                                    </div>
+                                    <div>
+                                      <h4 className="text-xs font-bold text-text-primary leading-tight">{title}</h4>
+                                      <p className="text-[11px] text-text-secondary mt-1 line-clamp-2 leading-relaxed">
+                                        {conv.escalationReason || 'Requires review'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] font-semibold text-text-muted flex-shrink-0">
+                                    {conv.lastMessageTime || ''}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-1 border-t border-black/[0.03]">
+                                  <button
+                                    onClick={() => setDismissedAttentionIds(prev => [...prev, conv.id])}
+                                    className="px-2.5 py-1 text-[10px] font-bold text-text-secondary hover:text-text-primary rounded-md transition duration-150"
+                                  >
+                                    Dismiss
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedChatId(conv.id);
+                                      setCurrentRoute('zero-chat');
+                                    }}
+                                    className={`px-3 py-1 rounded-md font-bold text-[10px] transition duration-150 text-white shadow-sm ${
+                                      type === 'escalation'
+                                        ? 'bg-status-danger hover:bg-status-danger/90'
+                                        : 'bg-status-warning hover:bg-status-warning/90'
+                                    }`}
+                                  >
+                                    Review
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                       </div>
                     )}
                   </div>
@@ -4930,90 +4934,28 @@ function App() {
 
               {/* BOTTOM ROW: TREND CHART */}
               <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-                {/* Booking Trend Chart - 70% width */}
-                <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 lg:col-span-7 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-base font-semibold text-text-primary">Bookings & Conversations</h3>
-                        <p className="text-xs text-text-secondary mt-0.5">Weekly comparison of total bookings handled by Zero AI</p>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs font-semibold">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded bg-brand-500"></span>
-                          <span className="text-text-secondary">Total Bookings</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded bg-ai-500"></span>
-                          <span className="text-text-secondary">AI Handled</span>
-                        </div>
-                      </div>
+                {/* Booking Trend Chart - 70% width -> Placeholder */}
+                <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 lg:col-span-7 flex flex-col justify-center items-center min-h-[340px] relative overflow-hidden group">
+                  {/* Subtle decorative background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-50/10 to-ai-50/10 opacity-30"></div>
+                  <div className="relative flex flex-col items-center text-center max-w-sm px-4">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center mb-4 animate-pulse">
+                      <RefreshCw size={24} className="animate-spin text-brand-500" style={{ animationDuration: '4s' }} />
                     </div>
-
-                    <div className="h-60 w-full mt-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart
-                          data={mockChartData}
-                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                        >
-                          <defs>
-                            <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15}/>
-                              <stop offset="95%" stopColor="#2563EB" stopOpacity={0.01}/>
-                            </linearGradient>
-                            <linearGradient id="colorAI" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.15}/>
-                              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.01}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" opacity={0.6} />
-                          <XAxis
-                            dataKey="day"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
-                          />
-                          <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: '#FFFFFF',
-                              border: '1px solid #E2E8F0',
-                              borderRadius: '12px',
-                              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
-                            }}
-                            labelStyle={{ fontWeight: 'bold', color: '#0F172A', fontSize: '12px' }}
-                            itemStyle={{ fontSize: '11px', padding: '2px 0' }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="bookings"
-                            stroke="#2563EB"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="url(#colorBookings)"
-                            name="Total Bookings"
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="aiHandled"
-                            stroke="#8B5CF6"
-                            strokeWidth={2}
-                            fillOpacity={1}
-                            fill="url(#colorAI)"
-                            name="AI Handled"
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <h3 className="text-base font-bold text-text-primary mb-2">Analytics Sync Pending</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      Real-time booking and conversation trends will populate here once the backend analytics integration goes live.
+                    </p>
                   </div>
                 </div>
 
                 {/* AI Performance Insights - 30% width */}
-                <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 lg:col-span-3 flex flex-col justify-between">
+                <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 lg:col-span-3 flex flex-col justify-between relative overflow-hidden">
+                  <div className="absolute top-4 right-4">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-brand-50 text-brand-600 border border-brand-100">
+                      Syncing...
+                    </span>
+                  </div>
                   <div className="space-y-4">
                     <span className="text-[11px] font-semibold text-ai-600 uppercase tracking-widest block">
                       AI AUTONOMY RATE
@@ -5492,29 +5434,42 @@ function App() {
                       )}
 
                       {drawerTab === 'conversations' && (() => {
-                        const activeConv = chatConversations.find(c => c.id === selectedPatient.id);
-                        if (!activeConv || !activeConv.messages || activeConv.messages.length === 0) {
+                        const patientConv = conversations.find(c => c.patientId === selectedPatient.id);
+                        if (!patientConv) {
                           return (
                             <div className="text-center py-8 text-xs text-text-secondary font-sans font-medium">
                               No message exchange log available.
                             </div>
                           );
                         }
+                        const messagesToShow = activeConversation && activeConversation.id === patientConv.id
+                          ? activeConversation.messages
+                          : patientConv.messages;
+
+                        if (!messagesToShow || messagesToShow.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-xs text-text-secondary font-sans font-medium">
+                              {threadLoading ? "Loading conversation..." : "No messages in this conversation."}
+                            </div>
+                          );
+                        }
+
                         return (
                           <div className="space-y-3 flex flex-col">
-                            {activeConv.messages.map((msg, index) => {
-                              if (msg.sender === 'system') {
+                            {messagesToShow.map((msg, index) => {
+                              const isSystem = msg.role === 'system';
+                              if (isSystem) {
                                 return (
                                   <div key={index} className="flex items-center justify-center my-2">
                                     <span className="text-[9px] font-bold text-text-muted bg-surface-subtle px-3 py-1 rounded-full border border-surface-border/50 uppercase tracking-wider font-sans">
-                                      {msg.text} · {msg.time}
+                                      {msg.text}
                                     </span>
                                   </div>
                                 );
                               }
 
-                              const isAI = msg.sender === 'ai';
-                              const isPatient = msg.sender === 'patient';
+                              const isAI = msg.role === 'ai';
+                              const isPatient = msg.role === 'patient';
 
                               return (
                                 <div
@@ -5524,7 +5479,7 @@ function App() {
                                   <span className={`text-[9px] font-bold mb-1 px-1 font-sans ${
                                     isAI ? 'text-ai-600 font-bold' : isPatient ? 'text-text-muted' : 'text-brand-600 font-bold'
                                   }`}>
-                                    {isAI ? 'Zero AI' : isPatient ? activeConv.patientName : (msg.senderName || 'Staff')}
+                                    {isAI ? 'Zero AI' : isPatient ? patientConv.patientName : (msg.senderName || 'Staff')}
                                   </span>
 
                                   <div className={`p-3.5 text-xs leading-relaxed font-sans shadow-sm ${
@@ -5536,7 +5491,9 @@ function App() {
                                   }`}>
                                     {msg.text}
                                   </div>
-                                  <span className="text-[9px] text-text-muted mt-1 px-1 font-sans">{msg.time}</span>
+                                  <span className="text-[9px] text-text-muted mt-1 px-1 font-sans">
+                                    {new Date(msg.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
                                 </div>
                               );
                             })}
@@ -5554,20 +5511,12 @@ function App() {
                       </button>
                       <button
                         onClick={() => {
-                          const exists = chatConversations.some(c => c.id === selectedPatient.id);
-                          if (!exists) {
-                            const newConv: ChatConversation = {
-                              id: selectedPatient.id,
-                              patientName: selectedPatient.name,
-                              patientInitials: selectedPatient.initials,
-                              patientPhone: selectedPatient.phone,
-                              status: 'ai_handling',
-                              urgency: 'none',
-                              messages: []
-                            };
-                            setChatConversations(prev => [newConv, ...prev]);
+                          const patientConv = conversations.find(c => c.patientId === selectedPatient.id);
+                          if (patientConv) {
+                            setSelectedChatId(patientConv.id);
+                          } else {
+                            setSelectedChatId(null);
                           }
-                          setSelectedChatId(selectedPatient.id);
                           setCurrentRoute('zero-chat');
                           setSelectedPatientId(null);
                         }}

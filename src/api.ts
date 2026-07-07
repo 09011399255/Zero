@@ -60,6 +60,75 @@ export interface Appointment {
   notes?: string;
 }
 
+export type ConversationStatus =
+  | "AI_HANDLING"
+  | "NEEDS_REVIEW"
+  | "STAFF_TOOK_OVER"
+  | "RESOLVED";
+
+export interface ConversationMessage {
+  id: string;
+  role: "ai" | "patient" | "staff" | "system";
+  text: string;
+  createdAt: string;
+  senderName?: string;
+}
+
+export interface Conversation {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientPhone: string;
+  status: ConversationStatus;
+  urgency: "urgent" | "admin" | "none";
+  escalationReason?: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  messages?: ConversationMessage[];
+  assignedStaff?: string;
+}
+
+export interface PatientHistoryItem {
+  date: string;
+  doctor: string;
+  reason: string;
+  notes: string;
+}
+
+export interface PatientIntakeNotes {
+  symptoms?: string;
+  structuredAnswers?: { question: string; answer: string }[];
+  dob?: string;
+  gender?: string;
+  primaryDoctor?: string;
+  lastVisit?: string;
+  nextAppointment?: string;
+  reasonForVisit?: string;
+  services?: string[];
+}
+
+export interface PatientChatMessage {
+  sender: 'ai' | 'patient';
+  text: string;
+  time: string;
+}
+
+export interface Patient {
+  id: string;
+  name: string;
+  initials: string;
+  phone: string;
+  lastVisit: string;
+  nextAppointment: string;
+  recallStatus: 'UP_TO_DATE' | 'DUE_SOON' | 'OVERDUE' | 'NA';
+  conversationsCount: number;
+  recallReason?: string;
+  aiOutreachDraft?: string;
+  history: PatientHistoryItem[];
+  intakeNotes?: PatientIntakeNotes;
+  conversations: PatientChatMessage[];
+}
+
 export const api = {
   auth: {
     register: (body: {
@@ -90,10 +159,10 @@ export const api = {
   patients: {
     list: (params?: { recall?: boolean }) => {
       const query = params?.recall ? "?recall=true" : "";
-      return request<any[]>("GET", `/api/patients${query}`);
+      return request<Patient[]>("GET", `/api/patients${query}`);
     },
     get: (id: string) =>
-      request<any>("GET", `/api/patients/${id}`),
+      request<Patient>("GET", `/api/patients/${id}`),
     create: (body: {
       name: string;
       phone: string;
@@ -103,7 +172,7 @@ export const api = {
       primaryDoctor?: string;
       recallStatus?: string;
       recallReason?: string;
-    }) => request<any>("POST", "/api/patients", body),
+    }) => request<Patient>("POST", "/api/patients", body),
   },
   appointments: {
     list: (params?: { from?: string; to?: string; status?: string; doctor?: string }) => {
@@ -145,5 +214,28 @@ export const api = {
         `/api/queue/patients/${patientId}/status`,
         { status }
       ),
-  }
+  },
+  conversations: {
+    list: (params?: { status?: string }) => {
+      const query = params?.status ? `?status=${params.status}` : "";
+      return request<Conversation[]>("GET", `/api/conversations${query}`);
+    },
+    counts: () =>
+      request<{ needs_review: number; ai_handling: number; resolved: number }>(
+        "GET",
+        "/api/conversations/counts"
+      ),
+    get: (id: string) =>
+      request<Conversation>("GET", `/api/conversations/${id}`),
+    takeOver: (id: string) =>
+      request<Conversation>("POST", `/api/conversations/${id}/take-over`, {}),
+    reply: (id: string, body: { text: string }) =>
+      request<ConversationMessage>(
+        "POST",
+        `/api/conversations/${id}/reply`,
+        body
+      ),
+    resolve: (id: string) =>
+      request<Conversation>("POST", `/api/conversations/${id}/resolve`, {}),
+  },
 };

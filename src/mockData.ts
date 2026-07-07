@@ -1,3 +1,4 @@
+import { Patient } from './api';
 export interface ClinicInfo {
   name: string;
   todayPatients: number;
@@ -34,14 +35,7 @@ export interface Appointment {
   notes?: string;
 }
 
-export interface AttentionItem {
-  id: number;
-  type: 'escalation' | 'recall';
-  title: string;
-  time: string;
-  description: string;
-  action: string;
-}
+
 
 export interface ChartDataPoint {
   day: string;
@@ -468,32 +462,7 @@ export const mockAppointments: Appointment[] = [
   }
 ];
 
-export const mockAttentionItems: AttentionItem[] = [
-  {
-    id: 1,
-    type: "escalation",
-    title: "Patient dispute — billing question",
-    time: "12 min ago",
-    description: "WhatsApp conversation escalated: patient questioning billing charge for booking fee.",
-    action: "Review",
-  },
-  {
-    id: 2,
-    type: "escalation",
-    title: "Symptom flagged as urgent",
-    time: "18 min ago",
-    description: "AI detected urgent safety keyword: patient reports chest tightness following new dose.",
-    action: "Review",
-  },
-  {
-    id: 3,
-    type: "recall",
-    title: "3 patients overdue for recall",
-    time: "Overdue",
-    description: "Patients failed to respond to third automated reminder for hypertension checkup.",
-    action: "View",
-  },
-];
+
 
 export const mockChartData: ChartDataPoint[] = [
   { day: "Mon", bookings: 12, aiHandled: 10 },
@@ -505,46 +474,7 @@ export const mockChartData: ChartDataPoint[] = [
   { day: "Sun", bookings: 5, aiHandled: 4 },
 ];
 
-export interface PatientHistoryItem {
-  date: string;
-  doctor: string;
-  reason: string;
-  notes: string;
-}
 
-export interface PatientIntakeNotes {
-  symptoms?: string;
-  structuredAnswers?: { question: string; answer: string }[];
-  dob?: string;
-  gender?: string;
-  primaryDoctor?: string;
-  lastVisit?: string;
-  nextAppointment?: string;
-  reasonForVisit?: string;
-  services?: string[];
-}
-
-export interface PatientChatMessage {
-  sender: 'ai' | 'patient';
-  text: string;
-  time: string;
-}
-
-export interface Patient {
-  id: string;
-  name: string;
-  initials: string;
-  phone: string;
-  lastVisit: string;
-  nextAppointment: string;
-  recallStatus: 'up_to_date' | 'due_soon' | 'overdue' | 'na';
-  conversationsCount: number;
-  recallReason?: string;
-  aiOutreachDraft?: string;
-  history: PatientHistoryItem[];
-  intakeNotes?: PatientIntakeNotes;
-  conversations: PatientChatMessage[];
-}
 
 export const mockPatients: Patient[] = [
   {
@@ -554,7 +484,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 019-2834",
     lastVisit: "4 months ago",
     nextAppointment: "—",
-    recallStatus: "overdue",
+    recallStatus: "OVERDUE",
     conversationsCount: 14,
     recallReason: "Hypertension checkup",
     aiOutreachDraft: "Hi Nynaeve, it's been a while since your last hypertension checkup at Apex Family Clinic. Would you like to book a follow-up this week?",
@@ -583,7 +513,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 012-3456",
     lastVisit: "2 weeks ago",
     nextAppointment: "2026-06-25",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 28,
     history: [
       { date: "2026-06-10", doctor: "Dr. Lan Mandragoran", reason: "Migraine follow-up", notes: "Patient reports migraine frequency decreased since beginning new preventative routine." }
@@ -608,7 +538,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 015-6789",
     lastVisit: "2 months ago",
     nextAppointment: "—",
-    recallStatus: "due_soon",
+    recallStatus: "DUE_SOON",
     conversationsCount: 8,
     recallReason: "Routine Blood Panel Review",
     aiOutreachDraft: "Hi Egwene, we noticed your routine blood panel checkup is due soon. Dr. Moiraine has openings on Tuesday afternoon. Would you like to schedule?",
@@ -634,7 +564,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 017-9876",
     lastVisit: "6 months ago",
     nextAppointment: "—",
-    recallStatus: "overdue",
+    recallStatus: "OVERDUE",
     conversationsCount: 12,
     recallReason: "Diabetic Foot Exam",
     aiOutreachDraft: "Hi Perrin, your annual diabetic foot check is overdue. It's important for preventing complications. Would you like to book an appointment with Dr. Moiraine?",
@@ -659,7 +589,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 018-4321",
     lastVisit: "1 month ago",
     nextAppointment: "2026-06-25",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 6,
     history: [],
     conversations: []
@@ -671,7 +601,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 021-9988",
     lastVisit: "1 month ago",
     nextAppointment: "—",
-    recallStatus: "due_soon",
+    recallStatus: "DUE_SOON",
     conversationsCount: 15,
     recallReason: "Prenatal checkup",
     aiOutreachDraft: "Hi Elayne, it is time for your next prenatal wellness check. Dr. Moiraine is available on Wednesday morning. Let us know if you'd like to book!",
@@ -685,7 +615,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 022-7766",
     lastVisit: "1 week ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 3,
     history: [],
     conversations: []
@@ -697,7 +627,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 023-5544",
     lastVisit: "5 months ago",
     nextAppointment: "—",
-    recallStatus: "overdue",
+    recallStatus: "OVERDUE",
     conversationsCount: 9,
     recallReason: "Asthma action plan review",
     aiOutreachDraft: "Hi Aviendha, Dr. Lan would like to review your asthma action plan to ensure your inhaler dosage is optimal. Do you have 15 minutes this Friday for a consultation?",
@@ -711,7 +641,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 024-3322",
     lastVisit: "3 weeks ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 4,
     history: [],
     conversations: []
@@ -723,7 +653,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 025-1100",
     lastVisit: "—",
     nextAppointment: "—",
-    recallStatus: "na",
+    recallStatus: "NA",
     conversationsCount: 1,
     history: [],
     conversations: []
@@ -735,7 +665,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 026-8877",
     lastVisit: "8 months ago",
     nextAppointment: "—",
-    recallStatus: "overdue",
+    recallStatus: "OVERDUE",
     conversationsCount: 7,
     recallReason: "Audiology follow-up",
     aiOutreachDraft: "Hi Thom, it's time for your routine audiology hearing checkup at Apex Family Clinic. Would you like to check availability for next week?",
@@ -749,7 +679,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 027-6655",
     lastVisit: "3 weeks ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 2,
     history: [],
     conversations: []
@@ -761,7 +691,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 028-4433",
     lastVisit: "1 month ago",
     nextAppointment: "—",
-    recallStatus: "due_soon",
+    recallStatus: "DUE_SOON",
     conversationsCount: 5,
     recallReason: "Glaucoma check",
     aiOutreachDraft: "Hi Siuan, your scheduled eye pressure check is due soon. Would you like us to find a morning slot with Dr. Moiraine?",
@@ -775,7 +705,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 029-2211",
     lastVisit: "—",
     nextAppointment: "—",
-    recallStatus: "na",
+    recallStatus: "NA",
     conversationsCount: 0,
     history: [],
     conversations: []
@@ -787,7 +717,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 030-9988",
     lastVisit: "1 week ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 11,
     history: [],
     conversations: []
@@ -799,7 +729,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 031-7766",
     lastVisit: "10 months ago",
     nextAppointment: "—",
-    recallStatus: "overdue",
+    recallStatus: "OVERDUE",
     conversationsCount: 19,
     recallReason: "Cardiology follow-up",
     aiOutreachDraft: "Hi Cadsuane, it's time for your semi-annual cardiology assessment with Dr. Lan Mandragoran. Would you like to schedule a session this week?",
@@ -813,7 +743,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 032-5544",
     lastVisit: "1 week ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 2,
     history: [],
     conversations: []
@@ -825,7 +755,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 033-3322",
     lastVisit: "1 month ago",
     nextAppointment: "—",
-    recallStatus: "due_soon",
+    recallStatus: "DUE_SOON",
     conversationsCount: 4,
     recallReason: "Routine blood panel",
     aiOutreachDraft: "Hi Tuon, it's time to schedule your scheduled routine blood panel. Dr. Lan has slots open on Thursday morning. Shall we reserve one?",
@@ -839,7 +769,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 034-1100",
     lastVisit: "3 weeks ago",
     nextAppointment: "—",
-    recallStatus: "up_to_date",
+    recallStatus: "UP_TO_DATE",
     conversationsCount: 3,
     history: [],
     conversations: []
@@ -851,7 +781,7 @@ export const mockPatients: Patient[] = [
     phone: "+1 (555) 035-8877",
     lastVisit: "—",
     nextAppointment: "—",
-    recallStatus: "na",
+    recallStatus: "NA",
     conversationsCount: 1,
     history: [],
     conversations: []
