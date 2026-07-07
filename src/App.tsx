@@ -31,19 +31,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip
-} from 'recharts';
-import {
   mockClinicInfo,
   mockAIStats,
   mockAppointments,
-  mockChartData,
   Appointment,
   mockPatients
 } from './mockData';
