@@ -37,6 +37,8 @@ import {
   Appointment,
   mockPatients
 } from './mockData';
+import logoBlue from './assets/logo-blue.svg';
+import logoWhite from './assets/logo-white.svg';
 
 
 
@@ -3063,8 +3065,12 @@ function App() {
         {onboardingStep === 1 && (
           <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
             <div className="text-center space-y-2">
-              <div className="inline-flex w-10 h-10 bg-brand-50 rounded-xl items-center justify-center border border-brand-100 mb-2">
-                <span className="text-lg font-bold text-brand-600">Z</span>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
+                <div className="h-4 w-px bg-brand-200"></div>
+                <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
+                  Clinic OS
+                </span>
               </div>
               <h2 className="text-lg font-bold text-text-primary">Welcome to Zero Clinic OS</h2>
               <p className="text-text-secondary">Let's set up your clinic's AI patient operator in minutes.</p>
@@ -4276,14 +4282,10 @@ function App() {
       <aside className="w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 select-none shadow-lg">
         <div>
           {/* Logo Section */}
-          <div className="p-6 pb-4 flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
-              <span className="text-xl font-bold text-white tracking-wider">Z</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-white leading-none">Zero</h1>
-              <span className="text-[10px] text-brand-100/60 uppercase tracking-widest font-semibold">Clinic OS</span>
-            </div>
+          <div className="p-6 pb-4 flex items-center gap-2.5">
+            <img src={logoWhite} className="h-6 w-auto object-contain" alt="Zero Logo" />
+            <div className="h-4 w-px bg-white/20"></div>
+            <span className="text-[10px] text-brand-100/60 uppercase tracking-widest font-semibold">Clinic OS</span>
           </div>
 
           {/* Sidebar Nav Sections */}
