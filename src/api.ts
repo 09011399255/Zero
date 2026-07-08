@@ -40,25 +40,26 @@ export interface QueueResponse {
 }
 
 export type AppointmentStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "NO_SHOW";
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "no_show";
 
 export interface Appointment {
   id: string;
-  patientId?: string;
-  name: string;
-  initials: string;
-  phone: string;
-  date: string; // YYYY-MM-DD
-  time: string; // e.g. "09:00 AM"
+  patientId?: string | null;
+  patientName: string;
+  patientPhone: string;
   doctor: string;
-  department: string;
+  date: string;
+  time: string;
+  visitType?: string | null;
   status: AppointmentStatus;
   bookedVia: 'zero' | 'manual';
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ConversationStatus =
@@ -207,7 +208,8 @@ export const api = {
   queue: {
     get: () => request<QueueResponse>("GET", "/api/queue"),
     addWalkIn: (body: {
-      patientName: string;
+      name: string;
+      phone: string;
       reason: string;
       doctor: string;
       source: "walk-in";

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { api, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient } from './api';
+import { useState, useEffect, useRef, Component, ReactNode, ErrorInfo } from 'react';
+import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient } from './api';
 import { jwtDecode } from 'jwt-decode';
 import { io, Socket } from 'socket.io-client';
 import {
@@ -34,9 +34,69 @@ import {
   mockClinicInfo,
   mockAIStats,
   mockAppointments,
-  Appointment,
   mockPatients
 } from './mockData';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("ClinicErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 bg-status-dangerBg/20 border border-status-danger/10 rounded-2xl text-center space-y-4 max-w-lg mx-auto my-12">
+          <div className="w-12 h-12 rounded-full bg-status-dangerBg text-status-danger flex items-center justify-center border border-status-danger/20">
+            <AlertTriangle size={24} />
+          </div>
+          <h2 className="text-base font-bold text-text-primary">Something went wrong</h2>
+          <p className="text-xs text-text-secondary max-w-sm">
+            {this.state.error?.message || "An unexpected error occurred while rendering this section."}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
+  id: apt.id,
+  patientId: apt.patientId || null,
+  patientName: apt.name,
+  patientPhone: apt.phone,
+  doctor: apt.doctor,
+  date: apt.date,
+  time: apt.time,
+  visitType: apt.department,
+  status: apt.status.toLowerCase() as AppointmentStatus,
+  bookedVia: apt.bookedVia,
+  notes: apt.notes
+}));
 import logoBlue from './assets/logo-blue.svg';
 import logoWhite from './assets/logo-white.svg';
 
@@ -308,11 +368,11 @@ const recallStatusLabels: Record<string, string> = {
 };
 
 const appointmentStatusLabels: Record<AppointmentStatus, string> = {
-  PENDING: "Pending",
-  CONFIRMED: "Confirmed",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No Show",
+  pending: "Pending",
+  confirmed: "Confirmed",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  no_show: "No Show",
 };
 
 const statusLabels: Record<string, string> = {
@@ -344,7 +404,7 @@ function App() {
   const [queueLoaded, setQueueLoaded] = useState(false);
   const [appointmentsLoadedThisSession, setAppointmentsLoadedThisSession] = useState(false);
   const [conversationsLoadedThisSession, setConversationsLoadedThisSession] = useState(false);
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+    const [appointments, setAppointments] = useState<Appointment[]>(mappedMockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Auth & Session States
@@ -769,8 +829,9 @@ function App() {
   const [queueTab, setQueueTab] = useState<'waiting' | 'with_doctor' | 'completed' | 'no_show'>('waiting');
   const [isNewWalkInDrawerOpen, setIsNewWalkInDrawerOpen] = useState(false);
   const [walkInType, setWalkInType] = useState<'registered' | 'new'>('registered');
-  const [walkInPatientId, setWalkInPatientId] = useState<string | null>(null);
+    const [walkInPatientId, setWalkInPatientId] = useState<string | null>(null);
   const [walkInNewPatientName, setWalkInNewPatientName] = useState('');
+  const [walkInNewPatientPhone, setWalkInNewPatientPhone] = useState('');
   const [walkInReason, setWalkInReason] = useState('');
   const [walkInDoctor, setWalkInDoctor] = useState('Dr. Lan Mandragoran');
   const [queueError, setQueueError] = useState<string | null>(null);
@@ -1234,12 +1295,12 @@ function App() {
 
 
 
-  const handleStatusChange = async (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
+    const handleStatusChange = async (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => {
     try {
-      const statusMap: Record<string, 'PENDING' | 'CONFIRMED' | 'CANCELLED'> = {
-        Confirmed: 'CONFIRMED',
-        Pending: 'PENDING',
-        Cancelled: 'CANCELLED'
+      const statusMap: Record<string, AppointmentStatus> = {
+        Confirmed: 'confirmed',
+        Pending: 'pending',
+        Cancelled: 'cancelled'
       };
       const backendStatus = statusMap[newStatus];
       await api.appointments.update(id, { status: backendStatus });
@@ -1616,7 +1677,8 @@ function App() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  let patientName = '';
+                                    let patientName = '';
+                  let patientPhone = '';
 
                   if (walkInType === 'registered') {
                     if (!walkInPatientId) {
@@ -1626,18 +1688,25 @@ function App() {
                     const patient = patients.find(p => p.id === walkInPatientId);
                     if (!patient) return;
                     patientName = patient.name;
+                    patientPhone = patient.phone;
                   } else {
                     if (!walkInNewPatientName.trim()) {
                       alert("Please enter patient name.");
                       return;
                     }
+                    if (!walkInNewPatientPhone.trim()) {
+                      alert("Please enter phone number.");
+                      return;
+                    }
                     patientName = walkInNewPatientName.trim();
+                    patientPhone = walkInNewPatientPhone.trim();
                   }
 
                   try {
                     setWalkInLoading(true);
                     await api.queue.addWalkIn({
-                      patientName,
+                      name: patientName,
+                      phone: patientPhone,
                       reason: walkInReason || "General consultation",
                       doctor: walkInDoctor,
                       source: "walk-in",
@@ -1695,17 +1764,30 @@ function App() {
                       ))}
                     </select>
                   </div>
-                ) : (
-                  <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Full Name</label>
-                    <input
-                      type="text"
-                      value={walkInNewPatientName}
-                      onChange={(e) => setWalkInNewPatientName(e.target.value)}
-                      placeholder="Enter full name..."
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    />
+                                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5 flex flex-col">
+                      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Full Name</label>
+                      <input
+                        type="text"
+                        value={walkInNewPatientName}
+                        onChange={(e) => setWalkInNewPatientName(e.target.value)}
+                        placeholder="Enter full name..."
+                        required
+                        className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      />
+                    </div>
+                    <div className="space-y-1.5 flex flex-col">
+                      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Phone Number</label>
+                      <input
+                        type="text"
+                        value={walkInNewPatientPhone}
+                        onChange={(e) => setWalkInNewPatientPhone(e.target.value)}
+                        placeholder="e.g. +1 (555) 012-3456"
+                        required
+                        className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -2081,16 +2163,16 @@ function App() {
     const endStr = formatDateString(weekDays[6]);
 
     // Current week appointments count
-    const weekAppts = appointments.filter(a => a.date >= startStr && a.date <= endStr && a.status !== 'CANCELLED');
+    const weekAppts = appointments.filter(a => a.date >= startStr && a.date <= endStr && (a.status?.toLowerCase() ?? '') !== 'cancelled');
     const todayStr = "2026-06-23"; // Today's date in mock clinic OS
-    const todayAppts = appointments.filter(a => a.date === todayStr && a.status !== 'CANCELLED');
+    const todayAppts = appointments.filter(a => a.date === todayStr && (a.status?.toLowerCase() ?? '') !== 'cancelled');
 
     // 2. Filter logic (especially for List view)
     const filteredAppts = appointments.filter(a => {
       const query = apptSearchQuery.toLowerCase().trim();
-      const matchesSearch = a.name.toLowerCase().includes(query) || a.phone.includes(query);
+      const matchesSearch = (a.patientName ?? '').toLowerCase().includes(query) || (a.patientPhone ?? '').includes(query);
       const matchesDoctor = apptDoctorFilter === 'all' || a.doctor === apptDoctorFilter;
-      const matchesStatus = apptStatusFilter === 'all' || a.status === apptStatusFilter;
+      const matchesStatus = apptStatusFilter === 'all' || a.status?.toLowerCase() === apptStatusFilter.toLowerCase();
       return matchesSearch && matchesDoctor && matchesStatus;
     });
 
@@ -2374,12 +2456,13 @@ function App() {
                             </div>
                           ) : (
                             <div className="flex flex-col gap-1.5 h-full justify-start">
-                              {slotAppts.map((appt) => {
+                                                            {slotAppts.map((appt) => {
                                 const isZero = appt.bookedVia === 'zero';
                                 let statusClasses = 'bg-brand-50/50 border-brand-200/50 text-brand-700';
-                                if (appt.status === 'PENDING') statusClasses = 'bg-status-warningBg border-status-warning/20 text-status-warning';
-                                else if (appt.status === 'COMPLETED') statusClasses = 'bg-status-successBg border-status-success/20 text-status-success';
-                                else if (appt.status === 'CANCELLED') statusClasses = 'bg-status-dangerBg/30 border-status-danger/10 text-text-muted line-through opacity-70';
+                                const apptStatus = appt.status?.toLowerCase();
+                                if (apptStatus === 'pending') statusClasses = 'bg-status-warningBg border-status-warning/20 text-status-warning';
+                                else if (apptStatus === 'completed') statusClasses = 'bg-status-successBg border-status-success/20 text-status-success';
+                                else if (apptStatus === 'cancelled') statusClasses = 'bg-status-dangerBg/30 border-status-danger/10 text-text-muted line-through opacity-70';
 
                                 return (
                                   <div
@@ -2391,14 +2474,14 @@ function App() {
                                     className={`p-2.5 rounded-xl border ${statusClasses} text-[11px] leading-tight font-semibold shadow-soft cursor-pointer hover:shadow-soft-md hover:scale-[1.01] transition-all flex flex-col justify-between h-full select-none`}
                                   >
                                     <div className="flex items-start justify-between gap-1.5">
-                                      <span className="truncate block font-bold text-text-primary">{appt.name}</span>
+                                      <span className="truncate block font-bold text-text-primary">{appt.patientName ?? ''}</span>
                                       {isZero && (
                                         <span className="flex-shrink-0 w-2 h-2 rounded-full bg-ai-500 inline-block" title="Booked via Zero AI"></span>
                                       )}
                                     </div>
                                     <div className="flex items-center justify-between mt-2.5 text-[10px] text-text-secondary font-medium font-semibold">
-                                      <span>{appt.doctor.split(' ')[1]}</span>
-                                      <span className="opacity-80 text-[9px] px-1.5 py-0.5 rounded-md bg-white/60 border border-surface-border/5">{appt.department}</span>
+                                      <span>{(appt.doctor ?? '').split(' ')[1] || ''}</span>
+                                      <span className="opacity-80 text-[9px] px-1.5 py-0.5 rounded-md bg-white/60 border border-surface-border/5">{appt.visitType ?? ''}</span>
                                     </div>
                                   </div>
                                 );
@@ -2444,12 +2527,12 @@ function App() {
                           {/* Patient info */}
                           <td className="p-4 pl-6">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0">
-                                {appt.initials}
+                                                            <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0">
+                                {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
                               </div>
                               <div>
-                                <span className="font-bold text-text-primary block">{appt.name}</span>
-                                <span className="text-[10px] text-text-secondary font-medium">{appt.phone}</span>
+                                <span className="font-bold text-text-primary block">{appt.patientName ?? ''}</span>
+                                <span className="text-[10px] text-text-secondary font-medium">{appt.patientPhone ?? ''}</span>
                               </div>
                             </div>
                           </td>
@@ -2471,24 +2554,24 @@ function App() {
                           <td className="p-4 text-text-primary font-semibold">{appt.doctor}</td>
 
                           {/* Department */}
-                          <td className="p-4">
+                                                    <td className="p-4">
                             <span className="px-2 py-1 rounded-lg bg-surface-subtle border border-surface-border/40 text-[10px] text-text-secondary">
-                              {appt.department}
+                              {appt.visitType ?? ''}
                             </span>
                           </td>
 
                           {/* Status */}
-                          <td className="p-4">
+                                                    <td className="p-4">
                             <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                              appt.status === 'CONFIRMED'
+                              appt.status?.toLowerCase() === 'confirmed'
                                 ? 'bg-status-successBg text-status-success border border-status-success/15'
-                                : appt.status === 'PENDING'
+                                : appt.status?.toLowerCase() === 'pending'
                                 ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                                : appt.status === 'COMPLETED'
+                                : appt.status?.toLowerCase() === 'completed'
                                 ? 'bg-brand-50 text-brand-500 border border-brand-100'
                                 : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
                             }`}>
-                              {appointmentStatusLabels[appt.status] || appt.status}
+                              {appointmentStatusLabels[appt.status?.toLowerCase() as AppointmentStatus] || appt.status}
                             </span>
                           </td>
 
@@ -4609,9 +4692,10 @@ function App() {
           </div>
         </header>
 
-        {/* 3. MAIN CONTENT AREA */}
+                {/* 3. MAIN CONTENT AREA */}
         <main className="p-8 flex-1 space-y-6 w-full">
-          {currentRoute === 'patients' ? (
+          <ErrorBoundary>
+            {currentRoute === 'patients' ? (
             renderPatientsScreen()
           ) : currentRoute === 'appointments' ? (
             renderAppointmentsScreen()
@@ -4786,89 +4870,97 @@ function App() {
                             <th className="pb-3 text-xs font-semibold text-text-secondary tracking-wider text-right">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-surface-border/20">
+                                                <tbody className="divide-y divide-surface-border/20">
                           {[...appointments]
-                            .filter(a => a.status !== 'CANCELLED')
+                            .filter(a => (a.status?.toLowerCase() ?? '') !== 'cancelled')
                             .sort((a, b) => {
                               if (a.date !== b.date) return a.date.localeCompare(b.date);
                               const getMinutes = (t: string) => {
-                                const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                                if (!t) return 0;
+                                const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
                                 if (!m) return 0;
                                 let h = parseInt(m[1], 10);
-                                if (m[3].toUpperCase() === "PM" && h < 12) h += 12;
-                                if (m[3].toUpperCase() === "AM" && h === 12) h = 0;
-                                return h * 60 + parseInt(m[2], 10);
+                                const mins = parseInt(m[2], 10);
+                                if (m[3]) {
+                                  const ampm = m[3].toUpperCase();
+                                  if (ampm === "PM" && h < 12) h += 12;
+                                  if (ampm === "AM" && h === 12) h = 0;
+                                }
+                                return h * 60 + mins;
                               };
                               return getMinutes(a.time) - getMinutes(b.time);
                             })
                             .slice(0, 8)
-                            .map((apt) => (
-                              <tr key={apt.id} className="hover:bg-surface-subtle/50 transition duration-150">
-                                <td className="py-3 flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100">
-                                    {apt.initials}
-                                  </div>
-                                  <span className="text-xs font-semibold text-text-primary">{apt.name}</span>
-                                </td>
-                                <td className="py-3 text-xs font-medium text-text-primary">{apt.time}</td>
-                                <td className="py-3 text-xs text-text-secondary font-medium">{apt.doctor}</td>
-                                <td className="py-3">
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                    apt.status === 'CONFIRMED'
-                                      ? 'bg-status-successBg text-status-success'
-                                      : apt.status === 'PENDING'
-                                      ? 'bg-status-warningBg text-status-warning'
-                                      : 'bg-status-dangerBg text-status-danger'
-                                  }`}>
-                                    <span className={`w-1 h-1 rounded-full ${
-                                      apt.status === 'CONFIRMED'
-                                        ? 'bg-status-success'
-                                        : apt.status === 'PENDING'
-                                        ? 'bg-status-warning'
-                                        : 'bg-status-danger'
-                                    }`}></span>
-                                    {appointmentStatusLabels[apt.status] || apt.status}
-                                  </span>
-                                </td>
-                                <td className="py-3 text-right relative">
-                                  <div className="relative inline-block text-left">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setOpenDropdownId(openDropdownId === apt.id ? null : apt.id);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
-                                    >
-                                      <span>Actions</span>
-                                      <ChevronDown size={12} className="text-text-muted" />
-                                    </button>
-                                    
-                                    {openDropdownId === apt.id && (
-                                      <div className="absolute right-0 mt-1.5 w-28 bg-surface-base border border-surface-border rounded-xl shadow-lg z-50 py-1 origin-top-right">
-                                        <button
-                                          onClick={() => {
-                                            handleStatusChange(apt.id, 'Confirmed');
-                                            setOpenDropdownId(null);
-                                          }}
-                                          className="w-full text-left px-3 py-2 text-xs text-status-success hover:bg-status-successBg font-semibold transition duration-150"
-                                        >
-                                          Accept
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            handleStatusChange(apt.id, 'Cancelled');
-                                            setOpenDropdownId(null);
-                                          }}
-                                          className="w-full text-left px-3 py-2 text-xs text-status-danger hover:bg-status-dangerBg font-semibold transition duration-150"
-                                        >
-                                          Reject
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                            .map((apt) => {
+                              const aptStatus = apt.status?.toLowerCase();
+                              return (
+                                <tr key={apt.id} className="hover:bg-surface-subtle/50 transition duration-150">
+                                  <td className="py-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100">
+                                      {apt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
+                                    </div>
+                                    <span className="text-xs font-semibold text-text-primary">{apt.patientName ?? ''}</span>
+                                  </td>
+                                  <td className="py-3 text-xs font-medium text-text-primary">{apt.time}</td>
+                                  <td className="py-3 text-xs text-text-secondary font-medium">{apt.doctor}</td>
+                                  <td className="py-3">
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                                      aptStatus === 'confirmed'
+                                        ? 'bg-status-successBg text-status-success'
+                                        : aptStatus === 'pending'
+                                        ? 'bg-status-warningBg text-status-warning'
+                                        : 'bg-status-dangerBg text-status-danger'
+                                    }`}>
+                                      <span className={`w-1 h-1 rounded-full ${
+                                        aptStatus === 'confirmed'
+                                          ? 'bg-status-success'
+                                          : aptStatus === 'pending'
+                                          ? 'bg-status-warning'
+                                          : 'bg-status-danger'
+                                      }`}></span>
+                                      {appointmentStatusLabels[aptStatus as AppointmentStatus] || apt.status}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 text-right relative">
+                                    <div className="relative inline-block text-left">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenDropdownId(openDropdownId === apt.id ? null : apt.id);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
+                                      >
+                                        <span>Actions</span>
+                                        <ChevronDown size={12} className="text-text-muted" />
+                                      </button>
+                                      
+                                      {openDropdownId === apt.id && (
+                                        <div className="absolute right-0 mt-1.5 w-28 bg-surface-base border border-surface-border rounded-xl shadow-lg z-50 py-1 origin-top-right">
+                                          <button
+                                            onClick={() => {
+                                              handleStatusChange(apt.id, 'Confirmed');
+                                              setOpenDropdownId(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-xs text-status-success hover:bg-status-successBg font-semibold transition duration-150"
+                                          >
+                                            Accept
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              handleStatusChange(apt.id, 'Cancelled');
+                                              setOpenDropdownId(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-xs text-status-danger hover:bg-status-dangerBg font-semibold transition duration-150"
+                                          >
+                                            Reject
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>
@@ -5015,8 +5107,9 @@ function App() {
                   </div>
                 </div>
               </div>
-            </>
-          )}
+                          </>
+            )}
+          </ErrorBoundary>
         </main>
       </div>
       {/* 4. SIDE DRAWERS */}
@@ -5588,14 +5681,14 @@ function App() {
                       </button>
                     </div>
 
-                    {/* Patient Information Row */}
+                                        {/* Patient Information Row */}
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-500 font-bold text-base flex items-center justify-center border border-brand-100 flex-shrink-0">
-                        {appt.initials}
+                        {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-text-primary leading-snug">{appt.name}</h3>
-                        <p className="text-xs text-text-secondary mt-0.5">{appt.phone}</p>
+                        <h3 className="text-base font-bold text-text-primary leading-snug">{appt.patientName ?? ''}</h3>
+                        <p className="text-xs text-text-secondary mt-0.5">{appt.patientPhone ?? ''}</p>
                       </div>
                     </div>
                   </div>
@@ -5603,18 +5696,18 @@ function App() {
                   {/* Drawer Content */}
                   <div className="p-6 space-y-6 flex-1 overflow-y-auto">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                                            <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Appointment Info</span>
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                          appt.status === 'CONFIRMED'
+                          appt.status?.toLowerCase() === 'confirmed'
                             ? 'bg-status-successBg text-status-success border border-status-success/15'
-                            : appt.status === 'PENDING'
+                            : appt.status?.toLowerCase() === 'pending'
                             ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                            : appt.status === 'COMPLETED'
+                            : appt.status?.toLowerCase() === 'completed'
                             ? 'bg-brand-50 text-brand-500 border border-brand-100'
                             : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
                         }`}>
-                          {appointmentStatusLabels[appt.status] || appt.status}
+                          {appointmentStatusLabels[appt.status?.toLowerCase() as AppointmentStatus] || appt.status}
                         </span>
                       </div>
 
@@ -5626,7 +5719,7 @@ function App() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-text-secondary font-semibold">Department</span>
-                          <span className="font-bold text-text-primary">{appt.department}</span>
+                          <span className="font-bold text-text-primary">{appt.visitType ?? ''}</span>
                         </div>
                         {!isRescheduling ? (
                           <>
@@ -5744,13 +5837,13 @@ function App() {
                   {/* Drawer Footer Actions */}
                   {!isRescheduling && (
                     <div className="px-6 pt-6 pb-8 border-t border-surface-border/20 bg-surface-subtle/20 flex flex-col gap-2.5 flex-shrink-0">
-                      <div className="flex gap-3">
-                        {appt.status !== 'COMPLETED' && (
+                                            <div className="flex gap-3">
+                        {appt.status?.toLowerCase() !== 'completed' && (
                           <button
                             type="button"
                             onClick={async () => {
                               try {
-                                await api.appointments.update(appt.id, { status: "COMPLETED" });
+                                await api.appointments.update(appt.id, { status: "completed" });
                                 setSelectedAppointmentId(null);
                                 await loadAppointmentsRange(currentWeekStart);
                               } catch (err) {
@@ -5774,12 +5867,12 @@ function App() {
                           Reschedule
                         </button>
                       </div>
-                      {appt.status !== 'CANCELLED' && (
+                      {appt.status?.toLowerCase() !== 'cancelled' && (
                         <button
                           type="button"
                           onClick={async () => {
                             try {
-                              await api.appointments.update(appt.id, { status: "CANCELLED" });
+                              await api.appointments.update(appt.id, { status: "cancelled" });
                               setSelectedAppointmentId(null);
                               await loadAppointmentsRange(currentWeekStart);
                             } catch (err) {
