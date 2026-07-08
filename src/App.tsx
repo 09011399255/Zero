@@ -492,14 +492,16 @@ function App() {
       setQueue(prev => [...prev, payload.patient]);
     });
 
-    socket.on("appointment:created", (payload: { appointment: Appointment }) => {
-      setAppointments(prev => [...prev, payload.appointment]);
+        socket.on("appointment:created", (payload: { appointment: Appointment }) => {
+      const normalized = { ...payload.appointment, time: formatTime12h(payload.appointment.time) };
+      setAppointments(prev => [...prev, normalized]);
     });
 
     socket.on("appointment:updated", (payload: { appointment: Appointment }) => {
+      const normalized = { ...payload.appointment, time: formatTime12h(payload.appointment.time) };
       setAppointments(prev =>
         prev.map(apt =>
-          apt.id === payload.appointment.id ? payload.appointment : apt
+          apt.id === normalized.id ? normalized : apt
         )
       );
     });
@@ -965,11 +967,12 @@ function App() {
       const fromStr = weekStart.toISOString().split("T")[0];
       const toStr = weekEnd.toISOString().split("T")[0];
 
-      const data = await api.appointments.list({
+            const data = await api.appointments.list({
         from: fromStr,
         to: toStr,
       });
-      setAppointments(data);
+      const normalized = data.map(appt => ({ ...appt, time: formatTime12h(appt.time) }));
+      setAppointments(normalized);
       setAppointmentsLoadedThisSession(true);
     } catch (err) {
       console.error("Failed to load appointments:", err);
@@ -1106,7 +1109,8 @@ function App() {
         visitType: formDept,
         bookedVia: "manual",
       });
-      setAppointments(prev => [newAppt, ...prev]);
+            const normalized = { ...newAppt, time: formatTime12h(newAppt.time) };
+      setAppointments(prev => [normalized, ...prev]);
       setIsNewApptDrawerOpen(false);
       // Reset form fields
       setFormPatientId(null);
@@ -2176,8 +2180,10 @@ function App() {
       return matchesSearch && matchesDoctor && matchesStatus;
     });
 
-    // Sort by Date/Time
-    const sortedAppts = [...filteredAppts].sort((a, b) => {
+        // Sort by Date/Time
+    const sortedAppts = [...filteredAppts]
+      .filter(appt => appt && appt.date)
+      .sort((a, b) => {
       const getMinutes = (t: string) => {
         const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
         if (!m) return 0;
@@ -4871,8 +4877,8 @@ function App() {
                           </tr>
                         </thead>
                                                 <tbody className="divide-y divide-surface-border/20">
-                          {[...appointments]
-                            .filter(a => (a.status?.toLowerCase() ?? '') !== 'cancelled')
+                                                    {[...appointments]
+                            .filter(a => a && a.date && (a.status?.toLowerCase() ?? '') !== 'cancelled')
                             .sort((a, b) => {
                               if (a.date !== b.date) return a.date.localeCompare(b.date);
                               const getMinutes = (t: string) => {
