@@ -33,9 +33,10 @@ export type QueueStatus = "WAITING" | "WITH_DOCTOR" | "COMPLETED" | "NO_SHOW";
 
 export interface QueueResponse {
   waiting: any[];
-  with_doctor: any[];
+  withDoctor: any[];
   completed: any[];
-  no_show: any[];
+  noShow: any[];
+  total?: number;
 }
 
 export type AppointmentStatus =
@@ -187,11 +188,14 @@ export const api = {
     create: (body: {
       patientId?: string;
       patientName: string;
-      doctor: string;
-      date: string;         // "YYYY-MM-DD"
-      time: string;         // "HH:MM"
-      visitType: string;
-      bookedVia: "manual";  // always "manual" when created from dashboard
+      patientPhone: string;
+      doctor?: string;
+      doctorName?: string;
+      date?: string;
+      time?: string;
+      scheduledAt: string;
+      visitType?: string;
+      bookedVia: "manual";
     }) => request<Appointment>("POST", "/api/appointments", body),
     update: (id: string, body: Partial<{
       status: AppointmentStatus;

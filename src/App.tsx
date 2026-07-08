@@ -482,17 +482,19 @@ function App() {
   const loadQueue = async () => {
     try {
       setQueueLoading(true);
+      setQueueError(null);
       const data = await api.queue.get();
       const allEntries = [
-        ...data.waiting,
-        ...data.with_doctor,
-        ...data.completed,
-        ...data.no_show,
+        ...(data.waiting ?? []),
+        ...(data.withDoctor ?? []),
+        ...(data.completed ?? []),
+        ...(data.noShow ?? []),
       ];
       setQueue(allEntries);
       setQueueLoaded(true);
     } catch (err) {
       console.error("Failed to load queue:", err);
+      setQueueError("Couldn't load live queue data.");
     } finally {
       setQueueLoading(false);
     }
@@ -771,6 +773,7 @@ function App() {
   const [walkInNewPatientName, setWalkInNewPatientName] = useState('');
   const [walkInReason, setWalkInReason] = useState('');
   const [walkInDoctor, setWalkInDoctor] = useState('Dr. Lan Mandragoran');
+  const [queueError, setQueueError] = useState<string | null>(null);
 
   // ZeroChat screen states
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1028,12 +1031,17 @@ function App() {
     try {
       setNewApptLoading(true);
       setNewApptError(null);
+      const apptDate = formDate || new Date().toISOString().split("T")[0];
+      const apptTime = convertTo24Hour(formTime);
       const newAppt = await api.appointments.create({
         patientId: formPatientId,
         patientName: patient.name,
+        patientPhone: patient.phone,
         doctor: formDoctor,
-        date: formDate || new Date().toISOString().split("T")[0],
-        time: convertTo24Hour(formTime),
+        doctorName: formDoctor,
+        date: apptDate,
+        time: apptTime,
+        scheduledAt: `${apptDate}T${apptTime}:00.000Z`,
         visitType: formDept,
         bookedVia: "manual",
       });
@@ -1338,6 +1346,30 @@ function App() {
             <span>Add Walk-in</span>
           </button>
         </div>
+
+        {/* ERROR BANNER */}
+        {queueError && (
+          <div className="flex items-center justify-between p-4 bg-status-dangerBg border border-status-danger/20 rounded-xl text-sm text-status-danger animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} />
+              <span>{queueError}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => loadQueue()}
+                className="px-3 py-1 bg-white hover:bg-status-dangerBg border border-status-danger/20 text-status-danger text-xs font-bold rounded-lg transition duration-150"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => setQueueError(null)}
+                className="text-status-danger/60 hover:text-status-danger transition duration-150"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* STATUS TABS */}
         <div className="flex border-b border-surface-border/30 gap-6">
