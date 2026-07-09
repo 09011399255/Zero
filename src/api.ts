@@ -131,6 +131,25 @@ export interface Patient {
   conversations: PatientChatMessage[];
 }
 
+export interface MeResponse {
+  staff: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    emailVerified: boolean;
+  };
+  clinic?: {
+    id: string;
+    name: string;
+    address?: string;
+    services?: string[];
+    whatsappStatus?: string;
+    plan?: string;
+  } | null;
+  onboardingComplete: boolean;
+}
+
 export const api = {
   auth: {
     register: (body: {
@@ -148,6 +167,12 @@ export const api = {
         clinic: { id?: string };
         onboardingComplete: boolean;
       }>("POST", "/api/auth/login", body, false),
+    verifyEmail: (body: { token: string }) =>
+      request<{ success: boolean; message: string }>("POST", "/api/auth/verify-email", body, false),
+    resendVerification: (body: { email: string }) =>
+      request<{ success: boolean }>("POST", "/api/auth/resend-verification", body, false),
+    me: () =>
+      request<MeResponse>("GET", "/api/auth/me"),
   },
   clinic: {
     get: () => request<any>("GET", "/api/clinic"),

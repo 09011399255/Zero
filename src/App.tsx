@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Component, ReactNode, ErrorInfo } from 'react';
 import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient } from './api';
-import { jwtDecode } from 'jwt-decode';
+
 import { io, Socket } from 'socket.io-client';
 import {
   LayoutGrid,
@@ -27,8 +27,9 @@ import {
   X,
   ChevronLeft,
   Send,
-  Trash2,
-  RefreshCw
+    Trash2,
+  RefreshCw,
+  Mail
 } from 'lucide-react';
 import {
   mockClinicInfo,
@@ -407,7 +408,7 @@ function App() {
     const [appointments, setAppointments] = useState<Appointment[]>(mappedMockAppointments);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
-  // Auth & Session States
+    // Auth & Session States
   const [sessionChecked, setSessionChecked] = useState(false);
   const [signUpError, setSignUpError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -416,48 +417,128 @@ function App() {
   const [queueLoading, setQueueLoading] = useState(false);
   const [walkInLoading, setWalkInLoading] = useState(false);
 
+  // New Email Verification States
+  const [isVerificationPending, setIsVerificationPending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'expired' | 'invalid' | 'missing'>('loading');
+
+    // Resend email verification timer & handler
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerification = async (email: string) => {
+    if (resendCooldown > 0) return;
+    try {
+      setResendCooldown(30);
+      await api.auth.resendVerification({ email });
+    } catch (err) {
+      console.error("Failed to resend verification:", err);
+    }
+  };
+
+  const checkSession = async () => {
+    try {
+      const res = await api.auth.me();
+      const staff = res.staff;
+      const clinic = res.clinic;
+
+      if (staff?.email) {
+        setOnboardingEmail(staff.email);
+      }
+      if (staff?.fullName) {
+        setOnboardingAdminName(staff.fullName);
+      }
+
+      if (clinic?.id) {
+        localStorage.setItem("zero_clinic_id", clinic.id);
+        setClinicId(clinic.id);
+      }
+
+      if (staff && !staff.emailVerified) {
+        setIsVerificationPending(true);
+        setOnboardingStep(1);
+        setIsOnboarded(false);
+        return;
+      }
+
+      if (res.onboardingComplete) {
+        setIsOnboarded(true);
+        setCurrentRoute("dashboard");
+      } else {
+        setOnboardingStep(2);
+        setIsOnboarded(false);
+      }
+    } catch (err: any) {
+      if (err.status === 401) {
+        localStorage.removeItem("zero_token");
+        localStorage.removeItem("zero_clinic_id");
+        setClinicId(null);
+      }
+    } finally {
+      setSessionChecked(true);
+    }
+  };
+
   // Session Check on App Load
   useEffect(() => {
+    // Check if we are on the verify-email page
+    if (window.location.pathname === '/verify-email') {
+      setCurrentRoute('verify-email');
+      setSessionChecked(true);
+      return;
+    }
+
     const token = localStorage.getItem("zero_token");
     if (!token) {
       setSessionChecked(true);
       return;
     }
-    try {
-      const decoded = jwtDecode<{ exp: number }>(token);
-      const isExpired = decoded.exp * 1000 < Date.now();
-      if (isExpired) {
-        localStorage.removeItem("zero_token");
-        localStorage.removeItem("zero_clinic_id");
-        setClinicId(null);
-        setSessionChecked(true);
-        return;
-      }
-      api.clinic.get()
-        .then((clinic: any) => {
-          if (clinic?.id) {
-            localStorage.setItem("zero_clinic_id", clinic.id);
-            setClinicId(clinic.id);
-          }
-          setIsOnboarded(true);
-          setCurrentRoute("dashboard");
-          setSessionChecked(true);
-        })
-        .catch((err: any) => {
-          if (err.status === 401) {
-            localStorage.removeItem("zero_token");
-            localStorage.removeItem("zero_clinic_id");
-            setClinicId(null);
-          }
-          setSessionChecked(true);
-        });
-    } catch {
-      localStorage.removeItem("zero_token");
-      localStorage.removeItem("zero_clinic_id");
-      setClinicId(null);
-      setSessionChecked(true);
-    }
+    checkSession();
   }, []);
+
+  // Email verification check
+  useEffect(() => {
+    if (currentRoute !== 'verify-email') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (!token) {
+      setVerificationState('missing');
+      return;
+    }
+
+    const verify = async () => {
+      try {
+        setVerificationState('loading');
+        await api.auth.verifyEmail({ token });
+        setVerificationState('success');
+      } catch (err: any) {
+        const code = err.code || (err.message && err.message.includes('EXPIRED') ? 'TOKEN_EXPIRED' : '');
+        if (code === 'TOKEN_EXPIRED' || err.message === 'TOKEN_EXPIRED') {
+          setVerificationState('expired');
+        } else if (code === 'INVALID_TOKEN' || err.message === 'INVALID_TOKEN') {
+          setVerificationState('invalid');
+        } else if (code === 'MISSING_TOKEN' || err.message === 'MISSING_TOKEN') {
+          setVerificationState('missing');
+        } else {
+          const msg = (err.message || '').toUpperCase();
+          if (msg.includes('EXPIRE')) {
+            setVerificationState('expired');
+          } else {
+            setVerificationState('invalid');
+          }
+        }
+      }
+    };
+
+    verify();
+  }, [currentRoute]);
 
   // Socket.io Connection & Listeners
   const socketRef = useRef<Socket | null>(null);
@@ -3126,7 +3207,159 @@ function App() {
   };
 
   // Render Onboarding Wizard Screen
-  const renderOnboardingWizard = () => {
+    const renderVerifyEmailScreen = () => {
+    return (
+      <div className="w-full max-w-md bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
+            <div className="h-4 w-px bg-brand-200"></div>
+            <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
+              Clinic OS
+            </span>
+          </div>
+        </div>
+
+        {verificationState === 'loading' && (
+          <div className="text-center py-6 space-y-4">
+            <RefreshCw className="animate-spin text-brand-500 mx-auto" size={32} />
+            <p className="text-sm font-medium text-text-secondary">Verifying your email... Please wait.</p>
+          </div>
+        )}
+
+        {verificationState === 'success' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
+              <CheckCircle2 size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">Email Verified!</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Email verified! You can now continue setting up your clinic.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const token = localStorage.getItem("zero_token");
+                if (token) {
+                  await checkSession();
+                } else {
+                  setCurrentRoute('dashboard');
+                  setIsOnboarded(false);
+                  setOnboardingStep(1);
+                  setOnboardingAuthMode('login');
+                }
+              }}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+            >
+              Continue to Setup
+            </button>
+          </div>
+        )}
+
+        {verificationState === 'expired' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">This link has expired.</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                The email verification link has expired. You can request a new verification email below.
+              </p>
+            </div>
+            <div className="space-y-3 pt-2">
+              <div className="space-y-1.5 flex flex-col text-left">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email Address</label>
+                <input
+                  type="email"
+                  value={onboardingEmail}
+                  onChange={(e) => setOnboardingEmail(e.target.value)}
+                  placeholder="name@clinic.com"
+                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={resendCooldown > 0 || !onboardingEmail.trim()}
+                onClick={() => handleResendVerification(onboardingEmail)}
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+              >
+                {resendCooldown > 0 ? `Resend email (${resendCooldown}s)` : "Resend email"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentRoute('dashboard');
+                  setIsOnboarded(false);
+                  setOnboardingStep(1);
+                  setOnboardingAuthMode('login');
+                }}
+                className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+              >
+                Back to Login
+              </button>
+            </div>
+          </div>
+        )}
+
+        {verificationState === 'invalid' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">This verification link isn't valid.</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                This verification link isn't valid. It may be broken or tampered with. Please log in and request a fresh verification link from your settings.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentRoute('dashboard');
+                setIsOnboarded(false);
+                setOnboardingStep(1);
+                setOnboardingAuthMode('login');
+              }}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+            >
+              Back to Login
+            </button>
+          </div>
+        )}
+
+        {verificationState === 'missing' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">Missing Verification Token</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                No verification token was provided in the link. Please check your email again or return to sign up.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentRoute('dashboard');
+                setIsOnboarded(false);
+                setOnboardingStep(1);
+                setOnboardingAuthMode('login');
+              }}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+            >
+              Back to Login
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+const renderOnboardingWizard = () => {
     if (isTransitioningStep) {
       const statusTexts = [
         "Reading your clinic's services...",
@@ -3166,39 +3399,79 @@ function App() {
           </button>
         )}
 
-        {/* Step Indicator dots */}
-        <div className="flex justify-center items-center gap-2 mb-8">
-          {[1, 2, 3, 4, 5].map((stepNum) => (
-            <div
-              key={stepNum}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                stepNum === onboardingStep
-                  ? 'w-8 bg-brand-500'
-                  : stepNum < onboardingStep
-                  ? 'w-2 bg-brand-200'
-                  : 'w-2 bg-surface-border'
-              }`}
-            />
-          ))}
-        </div>
+                {/* Step Indicator dots */}
+        {!isVerificationPending && (
+          <div className="flex justify-center items-center gap-2 mb-8">
+            {[1, 2, 3, 4, 5].map((stepNum) => (
+              <div
+                key={stepNum}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  stepNum === onboardingStep
+                    ? 'w-8 bg-brand-500'
+                    : stepNum < onboardingStep
+                    ? 'w-2 bg-brand-200'
+                    : 'w-2 bg-surface-border'
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* STEP 1: ACCOUNT SETUP */}
+                {/* STEP 1: ACCOUNT SETUP */}
         {onboardingStep === 1 && (
           <div className="bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
-                <div className="h-4 w-px bg-brand-200"></div>
-                <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
-                  Clinic OS
-                </span>
+            {isVerificationPending ? (
+              <div className="space-y-6 text-center py-4 animate-fade-in">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
+                  <div className="h-4 w-px bg-brand-200"></div>
+                  <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
+                    Clinic OS
+                  </span>
+                </div>
+                <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center mx-auto border border-brand-100 shadow-sm animate-pulse">
+                  <Mail size={32} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold text-text-primary">Check your email</h3>
+                  <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
+                    We sent a verification link to <span className="font-semibold text-text-primary">{onboardingEmail}</span>. Please click the link in that email to verify your account.
+                  </p>
+                </div>
+                <div className="pt-2 space-y-3">
+                  <button
+                    type="button"
+                    disabled={resendCooldown > 0}
+                    onClick={() => handleResendVerification(onboardingEmail)}
+                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+                  >
+                    {resendCooldown > 0 ? `Resend email (${resendCooldown}s)` : "Resend email"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsVerificationPending(false)}
+                    className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+                  >
+                    Back to Sign Up
+                  </button>
+                </div>
               </div>
-              <h2 className="text-lg font-bold text-text-primary">Welcome to Zero Clinic OS</h2>
-              <p className="text-text-secondary">Let's set up your clinic's AI patient operator in minutes.</p>
-            </div>
+            ) : (
+              <>
+                <div className="text-center space-y-2">
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
+                    <div className="h-4 w-px bg-brand-200"></div>
+                    <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
+                      Clinic OS
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-bold text-text-primary">Welcome to Zero Clinic OS</h2>
+                  <p className="text-text-secondary">Let's set up your clinic's AI patient operator in minutes.</p>
+                </div>
 
-            {/* Sign Up / Log In Toggle */}
-            <div className="flex bg-surface-subtle p-1 rounded-xl">
+                {/* Sign Up / Log In Toggle */}
+                <div className="flex bg-surface-subtle p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => {
@@ -3247,13 +3520,13 @@ function App() {
                       password: onboardingPassword,
                       clinicName: onboardingClinicName.trim() || "New Clinic",
                     });
-                    localStorage.setItem("zero_token", res.token);
+                                        localStorage.setItem("zero_token", res.token);
                     const cId = res.clinic?.id || res.staff?.clinicId;
                     if (cId) {
                       localStorage.setItem("zero_clinic_id", cId);
                       setClinicId(cId);
                     }
-                    setOnboardingStep(2);
+                    setIsVerificationPending(true);
                   } catch (err: any) {
                     setSignUpError(err.message || "Registration failed. Please try again.");
                   } finally {
@@ -3335,29 +3608,8 @@ function App() {
                       email: onboardingEmail,
                       password: onboardingPassword,
                     });
-                    localStorage.setItem("zero_token", res.token);
-                    const cId = res.clinic?.id || res.staff?.clinicId;
-                    if (cId) {
-                      localStorage.setItem("zero_clinic_id", cId);
-                      setClinicId(cId);
-                    }
-                    
-                    try {
-                      const decoded = jwtDecode<{ name?: string }>(res.token);
-                      if (decoded.name) {
-                        setOnboardingAdminName(decoded.name);
-                      }
-                    } catch (e) {
-                      // ignore
-                    }
-
-                    if (res.onboardingComplete) {
-                      setIsOnboarded(true);
-                      setCurrentRoute("dashboard");
-                    } else {
-                      setOnboardingStep(2);
-                      setIsOnboarded(false);
-                    }
+                                        localStorage.setItem("zero_token", res.token);
+                    await checkSession();
                   } catch (err: any) {
                     setLoginError(err.message || "Invalid email or password.");
                   } finally {
@@ -3422,7 +3674,7 @@ function App() {
               <div className="flex-grow border-t border-surface-border/40"></div>
             </div>
 
-            <button
+                        <button
               type="button"
               onClick={() => {
                 if (onboardingAuthMode === 'login') {
@@ -3441,8 +3693,10 @@ function App() {
               </svg>
               Continue with Google
             </button>
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {/* STEP 2: CLINIC INFO */}
         {onboardingStep === 2 && (
@@ -4389,7 +4643,15 @@ function App() {
     );
   }
 
-  if (!isOnboarded) {
+    if (currentRoute === 'verify-email') {
+    return (
+      <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
+        {renderVerifyEmailScreen()}
+      </div>
+    );
+  }
+
+if (!isOnboarded) {
     return (
       <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
         {renderOnboardingWizard()}
