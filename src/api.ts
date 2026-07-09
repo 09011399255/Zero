@@ -1,5 +1,10 @@
 const BASE_URL = "https://zero-ai-production-5544.up.railway.app";
 
+// Fired whenever an authenticated request comes back 401 (expired/invalid
+// token) so the app can react in one place instead of every call site
+// needing to check for it.
+export const UNAUTHORIZED_EVENT = "zero:unauthorized";
+
 function getToken(): string | null {
   return localStorage.getItem("zero_token");
 }
@@ -23,8 +28,18 @@ async function request<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw { status: res.status, ...error };
+    // Backend error responses are shaped { error, code, details? } — normalize
+    // to `message` here so every caller can just read err.message/err.code.
+    const responseBody = await res.json().catch(() => ({ error: res.statusText }));
+    if (requiresAuth && res.status === 401) {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    }
+    throw {
+      status: res.status,
+      message: responseBody.error || responseBody.message || res.statusText,
+      code: responseBody.code,
+      details: responseBody.details,
+    };
   }
   return res.json();
 }
@@ -171,6 +186,10 @@ export const api = {
       request<{ success: boolean; message: string }>("POST", "/api/auth/verify-email", body, false),
     resendVerification: (body: { email: string }) =>
       request<{ success: boolean }>("POST", "/api/auth/resend-verification", body, false),
+    forgotPassword: (body: { email: string }) =>
+      request<{ success: boolean }>("POST", "/api/auth/forgot-password", body, false),
+    resetPassword: (body: { token: string; password: string }) =>
+      request<{ success: boolean; message: string }>("POST", "/api/auth/reset-password", body, false),
     me: () =>
       request<MeResponse>("GET", "/api/auth/me"),
   },

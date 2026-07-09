@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Component, ReactNode, ErrorInfo } from 'react';
-import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient } from './api';
+import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
 import {
@@ -422,6 +422,33 @@ function App() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'expired' | 'invalid' | 'missing'>('loading');
 
+  // Forgot / Reset Password States
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
+  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
+  const [resetPasswordToken, setResetPasswordToken] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [resetPasswordState, setResetPasswordState] = useState<'form' | 'submitting' | 'success' | 'invalid' | 'expired' | 'missing'>('form');
+
+  // Clears all session state and returns the user to the login screen —
+  // used both for the manual "Log out" button and for the automatic
+  // logout that fires when any API call comes back 401 (expired/invalid token).
+  const handleLogout = () => {
+    localStorage.removeItem("zero_token");
+    localStorage.removeItem("zero_clinic_id");
+    setClinicId(null);
+    setIsOnboarded(false);
+    setOnboardingStep(1);
+    setOnboardingAuthMode('login');
+  };
+
+  useEffect(() => {
+    window.addEventListener(UNAUTHORIZED_EVENT, handleLogout);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleLogout);
+  }, []);
+
     // Resend email verification timer & handler
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -489,6 +516,16 @@ function App() {
     // Check if we are on the verify-email page
     if (window.location.pathname === '/verify-email') {
       setCurrentRoute('verify-email');
+      setSessionChecked(true);
+      return;
+    }
+
+    // Check if we are on the reset-password page
+    if (window.location.pathname === '/reset-password') {
+      const token = new URLSearchParams(window.location.search).get('token');
+      setResetPasswordToken(token);
+      setResetPasswordState(token ? 'form' : 'missing');
+      setCurrentRoute('reset-password');
       setSessionChecked(true);
       return;
     }
@@ -943,7 +980,7 @@ function App() {
   // Onboarding Wizard States
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
-  const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'login'>('signup');
+  const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'login' | 'forgot'>('signup');
   
   // Step 1: Account
   const [onboardingAdminName, setOnboardingAdminName] = useState('');
@@ -3359,6 +3396,189 @@ function App() {
     );
   };
 
+  const renderResetPasswordScreen = () => {
+    const backToLogin = () => {
+      window.history.replaceState({}, '', '/');
+      setCurrentRoute('dashboard');
+      setIsOnboarded(false);
+      setOnboardingStep(1);
+      setOnboardingAuthMode('login');
+    };
+
+    return (
+      <div className="w-full max-w-md bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
+            <div className="h-4 w-px bg-brand-200"></div>
+            <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
+              Clinic OS
+            </span>
+          </div>
+        </div>
+
+        {resetPasswordState === 'missing' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">Missing Reset Token</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                No reset token was provided in the link. Please check your email again or request a new one.
+              </p>
+            </div>
+            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
+              Back to Login
+            </button>
+          </div>
+        )}
+
+        {resetPasswordState === 'invalid' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">This reset link isn't valid.</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                It may be broken or already used. Please request a fresh password reset link.
+              </p>
+            </div>
+            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
+              Back to Login
+            </button>
+          </div>
+        )}
+
+        {resetPasswordState === 'expired' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
+              <AlertTriangle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">This link has expired.</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Password reset links expire after 1 hour. Please request a new one from the login screen.
+              </p>
+            </div>
+            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
+              Back to Login
+            </button>
+          </div>
+        )}
+
+        {resetPasswordState === 'success' && (
+          <div className="text-center py-4 space-y-6">
+            <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
+              <CheckCircle2 size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-bold text-text-primary">Password updated</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Your password has been reset successfully. Log in with your new password.
+              </p>
+            </div>
+            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
+              Back to Login
+            </button>
+          </div>
+        )}
+
+        {(resetPasswordState === 'form' || resetPasswordState === 'submitting') && (
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setResetPasswordError(null);
+
+              if (resetPasswordValue.length < 8) {
+                setResetPasswordError('Password must be at least 8 characters.');
+                return;
+              }
+              if (resetPasswordValue !== resetPasswordConfirm) {
+                setResetPasswordError('Passwords do not match.');
+                return;
+              }
+              if (!resetPasswordToken) {
+                setResetPasswordState('missing');
+                return;
+              }
+
+              try {
+                setResetPasswordState('submitting');
+                await api.auth.resetPassword({ token: resetPasswordToken, password: resetPasswordValue });
+                setResetPasswordState('success');
+              } catch (err: any) {
+                if (err.code === 'TOKEN_EXPIRED') {
+                  setResetPasswordState('expired');
+                } else if (err.code === 'INVALID_TOKEN') {
+                  setResetPasswordState('invalid');
+                } else {
+                  setResetPasswordState('form');
+                  setResetPasswordError(err.message || 'Could not reset password. Please try again.');
+                }
+              }
+            }}
+          >
+            <div className="text-center space-y-2 pb-2">
+              <h3 className="text-base font-bold text-text-primary">Set a new password</h3>
+              <p className="text-xs text-text-secondary">Choose a new password for your account.</p>
+            </div>
+
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">New Password</label>
+              <input
+                type="password"
+                value={resetPasswordValue}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+                required
+                minLength={8}
+                placeholder="••••••••"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Confirm Password</label>
+              <input
+                type="password"
+                value={resetPasswordConfirm}
+                onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                required
+                minLength={8}
+                placeholder="••••••••"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
+            {resetPasswordError && (
+              <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-center gap-2">
+                <AlertTriangle size={14} className="flex-shrink-0" />
+                <span>{resetPasswordError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={resetPasswordState === 'submitting'}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
+            >
+              {resetPasswordState === 'submitting' ? (
+                <>
+                  <RefreshCw className="animate-spin" size={14} />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <span>Update Password</span>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
+    );
+  };
+
 const renderOnboardingWizard = () => {
     if (isTransitioningStep) {
       const statusTexts = [
@@ -3471,6 +3691,7 @@ const renderOnboardingWizard = () => {
                 </div>
 
                 {/* Sign Up / Log In Toggle */}
+                {onboardingAuthMode !== 'forgot' && (
                 <div className="flex bg-surface-subtle p-1 rounded-xl">
               <button
                 type="button"
@@ -3505,8 +3726,88 @@ const renderOnboardingWizard = () => {
                 Log In
               </button>
             </div>
+            )}
 
-            {onboardingAuthMode === 'signup' ? (
+            {onboardingAuthMode === 'forgot' ? (
+              <form
+                key="forgot-password-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    setIsLoading(true);
+                    setForgotPasswordError(null);
+                    await api.auth.forgotPassword({ email: forgotPasswordEmail });
+                    setForgotPasswordSent(true);
+                  } catch (err: any) {
+                    setForgotPasswordError(err.message || "Could not send reset email. Please try again.");
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div className="text-center space-y-1 pb-1">
+                  <h3 className="text-sm font-bold text-text-primary">Reset your password</h3>
+                  <p className="text-[11px] text-text-secondary">
+                    {forgotPasswordSent
+                      ? "If an account exists for that email, we've sent a reset link."
+                      : "Enter your work email and we'll send you a reset link."}
+                  </p>
+                </div>
+
+                {!forgotPasswordSent && (
+                  <>
+                    <div className="space-y-1.5 flex flex-col">
+                      <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email</label>
+                      <input
+                        key="forgot-email"
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        required
+                        placeholder="e.g. admin@yourclinic.com"
+                        className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      />
+                    </div>
+
+                    {forgotPasswordError && (
+                      <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-center gap-2">
+                        <AlertTriangle size={14} className="flex-shrink-0" />
+                        <span>{forgotPasswordError}</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw className="animate-spin" size={14} />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <span>Send Reset Link</span>
+                      )}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnboardingAuthMode('login');
+                    setForgotPasswordEmail('');
+                    setForgotPasswordSent(false);
+                    setForgotPasswordError(null);
+                  }}
+                  className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+                >
+                  Back to Login
+                </button>
+              </form>
+            ) : onboardingAuthMode === 'signup' ? (
               <form
                 key="signup-form"
                 onSubmit={async (e) => {
@@ -3642,6 +3943,22 @@ const renderOnboardingWizard = () => {
                     placeholder="••••••••"
                     className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
+                </div>
+
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnboardingAuthMode('forgot');
+                      setForgotPasswordEmail(onboardingEmail);
+                      setForgotPasswordSent(false);
+                      setForgotPasswordError(null);
+                      setLoginError(null);
+                    }}
+                    className="text-[11px] font-semibold text-brand-500 hover:text-brand-600 transition duration-150"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
 
                 {loginError && (
@@ -4655,6 +4972,14 @@ const renderOnboardingWizard = () => {
     );
   }
 
+  if (currentRoute === 'reset-password') {
+    return (
+      <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
+        {renderResetPasswordScreen()}
+      </div>
+    );
+  }
+
 if (!isOnboarded) {
     return (
       <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
@@ -4835,13 +5160,7 @@ if (!isOnboarded) {
               <span>Support</span>
             </button>
             <button
-              onClick={() => {
-                localStorage.removeItem("zero_token");
-                localStorage.removeItem("zero_clinic_id");
-                setClinicId(null);
-                setIsOnboarded(false);
-                setOnboardingStep(1);
-              }}
+              onClick={handleLogout}
               className="flex items-center gap-3 w-full text-left px-2 py-1.5 rounded-lg text-xs text-brand-100/60 hover:text-white hover:bg-white/5 transition duration-150"
             >
               <LogOut size={14} />
