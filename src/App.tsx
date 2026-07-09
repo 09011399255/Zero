@@ -3780,7 +3780,8 @@ const renderOnboardingWizard = () => {
                                 <button
                                   key={service}
                                   type="button"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
                                     setSelectedServices(prev => [...prev, service]);
                                     setServiceSearch('');
                                     setIsServiceDropdownOpen(false);
@@ -3795,7 +3796,8 @@ const renderOnboardingWizard = () => {
                               {serviceSearch.trim() && !PRESET_SERVICES.some(s => s.toLowerCase() === serviceSearch.trim().toLowerCase()) && !selectedServices.some(s => s.toLowerCase() === serviceSearch.trim().toLowerCase()) && (
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
                                     setSelectedServices(prev => [...prev, serviceSearch.trim()]);
                                     setServiceSearch('');
                                     setIsServiceDropdownOpen(false);
@@ -4047,7 +4049,8 @@ const renderOnboardingWizard = () => {
                                 <button
                                   key={role}
                                   type="button"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
                                     setSelectedDoctorRoles(prev => [...prev, role]);
                                     setDoctorRoleSearch('');
                                     setIsDoctorRoleDropdownOpen(false);
@@ -4062,7 +4065,8 @@ const renderOnboardingWizard = () => {
                               {doctorRoleSearch.trim() && !PRESET_ROLES.some(r => r.toLowerCase() === doctorRoleSearch.trim().toLowerCase()) && !selectedDoctorRoles.some(r => r.toLowerCase() === doctorRoleSearch.trim().toLowerCase()) && (
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
                                     setSelectedDoctorRoles(prev => [...prev, doctorRoleSearch.trim()]);
                                     setDoctorRoleSearch('');
                                     setIsDoctorRoleDropdownOpen(false);
