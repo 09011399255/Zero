@@ -493,13 +493,11 @@ function App() {
         return;
       }
 
-      if (res.onboardingComplete) {
-        setIsOnboarded(true);
-        setCurrentRoute("dashboard");
-      } else {
-        setOnboardingStep(2);
-        setIsOnboarded(false);
-      }
+      // Once the email is verified, go straight to the dashboard —
+      // clinic setup (address/services/staff) is no longer a hard
+      // gate on login, just a settings task the admin can finish later.
+      setIsOnboarded(true);
+      setCurrentRoute("dashboard");
     } catch (err: any) {
       if (err.status === 401) {
         localStorage.removeItem("zero_token");
