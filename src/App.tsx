@@ -4,7 +4,6 @@ import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage,
 import { io, Socket } from 'socket.io-client';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Calendar,
   MessageSquare,
   Users,
   TrendingUp,
@@ -15,10 +14,8 @@ import {
   Activity,
   ArrowUpRight,
   ShieldAlert,
-  ChevronRight,
   ChevronDown,
   Search,
-  Plus,
   X,
   ChevronLeft,
   Send,
@@ -41,6 +38,9 @@ import { PatientsPage } from './features/patients/PatientsPage';
 import { AddPatientModal } from './features/patients/AddPatientModal';
 import { PatientOutreachDrawer } from './features/patients/PatientOutreachDrawer';
 import { PatientDetailDrawer } from './features/patients/PatientDetailDrawer';
+import { AppointmentsPage } from './features/appointments/AppointmentsPage';
+import { AppointmentDetailDrawer } from './features/appointments/AppointmentDetailDrawer';
+import { NewAppointmentDrawer } from './features/appointments/NewAppointmentDrawer';
 
 const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   id: apt.id,
@@ -1483,493 +1483,40 @@ function App() {
     return `${start.toLocaleDateString('en-US', optionsStart)} – ${end.getDate()}, ${start.getFullYear()}`;
   };
 
-  const renderAppointmentsScreen = () => {
-    // 1. Calculations & Week days
-    const weekDays = getWeekDays(currentWeekStart);
-    const startStr = formatDateString(weekDays[0]);
-    const endStr = formatDateString(weekDays[6]);
+  const renderAppointmentsScreen = () => (
+    <AppointmentsPage
+      appointments={appointments}
+      appointmentsLoading={appointmentsLoading}
+      currentWeekStart={currentWeekStart}
+      setCurrentWeekStart={setCurrentWeekStart}
+      apptViewMode={apptViewMode}
+      setApptViewMode={setApptViewMode}
+      apptSearchQuery={apptSearchQuery}
+      setApptSearchQuery={setApptSearchQuery}
+      apptDoctorFilter={apptDoctorFilter}
+      setApptDoctorFilter={setApptDoctorFilter}
+      apptStatusFilter={apptStatusFilter}
+      setApptStatusFilter={setApptStatusFilter}
+      apptSortOrder={apptSortOrder}
+      setApptSortOrder={setApptSortOrder}
+      apptCurrentPage={apptCurrentPage}
+      setApptCurrentPage={setApptCurrentPage}
+      onSelectAppointment={(id) => setSelectedAppointmentId(id)}
+      onOpenNewAppointment={({ date, time }) => {
+        setFormPatientId(null);
+        setFormDate(date);
+        setFormTime(time);
+        setFormDoctor("Dr. Lan Mandragoran");
+        setFormDept("General Medicine");
+        setFormNotes("");
+        setIsNewApptDrawerOpen(true);
+      }}
+      getWeekDays={getWeekDays}
+      formatDateString={formatDateString}
+      formatRangeLabel={formatRangeLabel}
+    />
+  );
 
-    // Current week appointments count
-    const weekAppts = appointments.filter(a => a.date >= startStr && a.date <= endStr && (a.status?.toLowerCase() ?? '') !== 'cancelled');
-    const todayStr = "2026-06-23"; // Today's date in mock clinic OS
-    const todayAppts = appointments.filter(a => a.date === todayStr && (a.status?.toLowerCase() ?? '') !== 'cancelled');
-
-    // 2. Filter logic (especially for List view)
-    const filteredAppts = appointments.filter(a => {
-      const query = apptSearchQuery.toLowerCase().trim();
-      const matchesSearch = (a.patientName ?? '').toLowerCase().includes(query) || (a.patientPhone ?? '').includes(query);
-      const matchesDoctor = apptDoctorFilter === 'all' || a.doctor === apptDoctorFilter;
-      const matchesStatus = apptStatusFilter === 'all' || a.status?.toLowerCase() === apptStatusFilter.toLowerCase();
-      return matchesSearch && matchesDoctor && matchesStatus;
-    });
-
-        // Sort by Date/Time
-    const sortedAppts = [...filteredAppts]
-      .filter(appt => appt && appt.date)
-      .sort((a, b) => {
-      const getMinutes = (t: string) => {
-        const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-        if (!m) return 0;
-        let h = parseInt(m[1], 10);
-        if (m[3].toUpperCase() === "PM" && h < 12) h += 12;
-        if (m[3].toUpperCase() === "AM" && h === 12) h = 0;
-        return h * 60 + parseInt(m[2], 10);
-      };
-      const diff = a.date !== b.date 
-        ? a.date.localeCompare(b.date) 
-        : getMinutes(a.time) - getMinutes(b.time);
-      return apptSortOrder === 'asc' ? diff : -diff;
-    });
-
-    // Pagination for list view
-    const itemsPerPage = 8;
-    const totalPages = Math.ceil(sortedAppts.length / itemsPerPage);
-    const startIndex = (apptCurrentPage - 1) * itemsPerPage;
-    const paginatedAppts = sortedAppts.slice(startIndex, startIndex + itemsPerPage);
-
-    // Time Slots
-    const timeSlots = [
-      "08:00 AM",
-      "09:00 AM",
-      "10:00 AM",
-      "11:00 AM",
-      "12:00 PM",
-      "01:00 PM",
-      "02:00 PM",
-      "03:00 PM",
-      "04:00 PM",
-      "05:00 PM"
-    ];
-
-    // Handle clicking empty calendar slot
-    const handleEmptySlotClick = (dateStr: string, timeSlot: string) => {
-      setFormPatientId(null);
-      setFormDate(dateStr);
-      setFormTime(timeSlot);
-      setFormDoctor("Dr. Lan Mandragoran");
-      setFormDept("General Medicine");
-      setFormNotes("");
-      setIsNewApptDrawerOpen(true);
-    };
-
-    return (
-      <div className="space-y-6 animate-fade-in">
-        {/* HEADER SECTION */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-[24px] font-semibold text-text-primary leading-tight flex items-center gap-2">
-              <span>Appointments</span>
-              {appointmentsLoading && (
-                <span className="text-xs font-normal text-text-muted animate-pulse">(Updating...)</span>
-              )}
-            </h2>
-            <p className="text-[14px] text-text-secondary mt-1">
-              {weekAppts.length} active appointments this week · {todayAppts.length} today
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* View Mode Toggle */}
-            <div className="bg-surface-base border border-surface-border/50 p-1 rounded-xl flex items-center shadow-soft">
-              <button
-                type="button"
-                onClick={() => setApptViewMode('calendar')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition duration-150 flex items-center gap-1.5 ${
-                  apptViewMode === 'calendar'
-                    ? 'bg-brand-500 text-white shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <Calendar size={14} />
-                <span>Calendar</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setApptViewMode('list')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition duration-150 flex items-center gap-1.5 ${
-                  apptViewMode === 'list'
-                    ? 'bg-brand-500 text-white shadow-sm'
-                    : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <Activity size={14} />
-                <span>List View</span>
-              </button>
-            </div>
-
-            {/* New Appointment Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setFormPatientId(null);
-                setFormDate("2026-06-23"); // default to today
-                setFormTime("09:00 AM");
-                setFormDoctor("Dr. Lan Mandragoran");
-                setFormDept("General Medicine");
-                setFormNotes("");
-                setIsNewApptDrawerOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl text-sm transition duration-200 shadow-sm"
-            >
-              <Plus size={16} />
-              <span>New Appointment</span>
-            </button>
-          </div>
-        </div>
-
-        {/* DATE NAVIGATION & CONTROLS ROW */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-base p-4 rounded-2xl border border-surface-border/50 shadow-soft">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                const prev = new Date(currentWeekStart);
-                prev.setDate(prev.getDate() - 7);
-                setCurrentWeekStart(prev);
-              }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary transition duration-150"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentWeekStart(new Date('2026-06-22')); // Jump back to current week
-              }}
-              className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-semibold rounded-xl text-xs transition duration-150"
-            >
-              Today
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const next = new Date(currentWeekStart);
-                next.setDate(next.getDate() + 7);
-                setCurrentWeekStart(next);
-              }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary transition duration-150"
-            >
-              <ChevronRight size={16} />
-            </button>
-
-            <span className="text-sm font-bold text-text-primary pl-2">
-              {formatRangeLabel(currentWeekStart)}
-            </span>
-          </div>
-
-          {/* Quick Stats or Sub-filters */}
-          {apptViewMode === 'list' && (
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              {/* Search */}
-              <div className="relative flex-1 md:w-60">
-                <Search size={14} className="absolute left-3 top-3 text-text-muted" />
-                <input
-                  type="text"
-                  placeholder="Search patients..."
-                  value={apptSearchQuery}
-                  onChange={(e) => {
-                    setApptSearchQuery(e.target.value);
-                    setApptCurrentPage(1);
-                  }}
-                  className="w-full pl-9 pr-4 py-1.5 text-xs bg-surface-subtle border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-medium"
-                />
-              </div>
-
-              {/* Doctor filter */}
-              <select
-                value={apptDoctorFilter}
-                onChange={(e) => {
-                  setApptDoctorFilter(e.target.value);
-                  setApptCurrentPage(1);
-                }}
-                className="px-3 py-1.5 text-xs bg-surface-subtle border border-surface-border rounded-xl text-text-primary font-medium focus:outline-none"
-              >
-                <option value="all">All Doctors</option>
-                <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-                <option value="Dr. Moiraine Damodred">Dr. Moiraine Damodred</option>
-              </select>
-
-              {/* Status filter */}
-              <select
-                value={apptStatusFilter}
-                onChange={(e) => {
-                  setApptStatusFilter(e.target.value);
-                  setApptCurrentPage(1);
-                }}
-                className="px-3 py-1.5 text-xs bg-surface-subtle border border-surface-border rounded-xl text-text-primary font-medium focus:outline-none"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Pending">Pending</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-
-              {/* Sort order toggle button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setApptSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-                  setApptCurrentPage(1);
-                }}
-                className="px-3 py-1.5 text-xs bg-surface-subtle border border-surface-border rounded-xl text-text-primary font-medium hover:bg-surface-border/30 transition duration-150 focus:outline-none"
-              >
-                Sort: {apptSortOrder === 'asc' ? 'Soonest first' : 'Latest first'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* MAIN VIEWS */}
-        {apptViewMode === 'calendar' ? (
-          <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-x-auto">
-            <div className="min-w-[900px]">
-              {/* Calendar Grid Header */}
-              <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-surface-border/50">
-                {/* Time Label Header */}
-                <div className="p-3 bg-surface-subtle/50 flex items-center justify-center border-r border-surface-border/35">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted">Time</span>
-                </div>
-                {/* Days Headers */}
-                {weekDays.map((day, idx) => {
-                  const dateStr = formatDateString(day);
-                  const isTodayStr = dateStr === "2026-06-23";
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-3 text-center border-r border-surface-border/35 last:border-r-0 flex flex-col items-center justify-center ${
-                        isTodayStr ? 'bg-brand-50/50' : 'bg-surface-subtle/20'
-                      }`}
-                    >
-                      <span className={`text-[11px] font-bold ${isTodayStr ? 'text-brand-600' : 'text-text-secondary'}`}>
-                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                      <span className={`text-base font-extrabold mt-0.5 w-7 h-7 rounded-full flex items-center justify-center ${
-                        isTodayStr ? 'bg-brand-500 text-white shadow-sm' : 'text-text-primary'
-                      }`}>
-                        {day.getDate()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Grid Body */}
-              <div className="divide-y divide-surface-border/35">
-                {timeSlots.map((slot, sIdx) => (
-                  <div key={sIdx} className="grid grid-cols-[80px_repeat(7,1fr)]">
-                    {/* Time Indicator Cell */}
-                    <div className="p-3 bg-surface-subtle/20 border-r border-surface-border/35 flex items-start justify-end pr-4 pt-4">
-                      <span className="text-[11px] font-bold text-text-muted whitespace-nowrap">{slot}</span>
-                    </div>
-
-                    {/* 7 Days Cells */}
-                    {weekDays.map((day, dIdx) => {
-                      const dateStr = formatDateString(day);
-                      const slotAppts = appointments.filter(a => a.date === dateStr && a.time === slot);
-                      return (
-                        <div
-                          key={dIdx}
-                          onClick={() => slotAppts.length === 0 && handleEmptySlotClick(dateStr, slot)}
-                          className={`p-2 border-r border-surface-border/35 last:border-r-0 min-h-[90px] relative group transition-colors ${
-                            slotAppts.length === 0 ? 'hover:bg-brand-50/10 cursor-pointer' : ''
-                          }`}
-                        >
-                          {slotAppts.length === 0 ? (
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <span className="w-7 h-7 bg-brand-50 text-brand-500 rounded-full flex items-center justify-center border border-brand-100 shadow-sm">
-                                <Plus size={14} />
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1.5 h-full justify-start">
-                                                            {slotAppts.map((appt) => {
-                                const isZero = appt.bookedVia === 'zero';
-                                let statusClasses = 'bg-brand-50/50 border-brand-200/50 text-brand-700';
-                                const apptStatus = appt.status?.toLowerCase();
-                                if (apptStatus === 'pending') statusClasses = 'bg-status-warningBg border-status-warning/20 text-status-warning';
-                                else if (apptStatus === 'completed') statusClasses = 'bg-status-successBg border-status-success/20 text-status-success';
-                                else if (apptStatus === 'cancelled') statusClasses = 'bg-status-dangerBg/30 border-status-danger/10 text-text-muted line-through opacity-70';
-
-                                return (
-                                  <div
-                                    key={appt.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedAppointmentId(appt.id);
-                                    }}
-                                    className={`p-2.5 rounded-xl border ${statusClasses} text-[11px] leading-tight font-semibold shadow-soft cursor-pointer hover:shadow-soft-md hover:scale-[1.01] transition-all flex flex-col justify-between h-full select-none`}
-                                  >
-                                    <div className="flex items-start justify-between gap-1.5">
-                                      <span className="truncate block font-bold text-text-primary">{appt.patientName ?? ''}</span>
-                                      {isZero && (
-                                        <span className="flex-shrink-0 w-2 h-2 rounded-full bg-ai-500 inline-block" title="Booked via Zero AI"></span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center justify-between mt-2.5 text-[10px] text-text-secondary font-medium font-semibold">
-                                      <span>{(appt.doctor ?? '').split(' ')[1] || ''}</span>
-                                      <span className="opacity-80 text-[9px] px-1.5 py-0.5 rounded-md bg-white/60 border border-surface-border/5">{appt.visitType ?? ''}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-hidden">
-            {/* Table layout */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-surface-border/50 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-surface-subtle/30">
-                    <th className="p-4 pl-6">Patient</th>
-                    <th className="p-4">Date & Time</th>
-                    <th className="p-4">Doctor</th>
-                    <th className="p-4">Department / Type</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Booking Source</th>
-                    <th className="p-4 text-right pr-6">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-border/30 text-xs">
-                  {paginatedAppts.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-8 text-center text-text-secondary">
-                        No appointments found matching current filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedAppts.map((appt) => {
-                      const isZero = appt.bookedVia === 'zero';
-                      return (
-                        <tr key={appt.id} className="hover:bg-surface-subtle/30 transition duration-150 font-medium">
-                          {/* Patient info */}
-                          <td className="p-4 pl-6">
-                            <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0">
-                                {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
-                              </div>
-                              <div>
-                                <span className="font-bold text-text-primary block">{appt.patientName ?? ''}</span>
-                                <span className="text-[10px] text-text-secondary font-medium">{appt.patientPhone ?? ''}</span>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Date & Time */}
-                          <td className="p-4">
-                            <div className="space-y-0.5">
-                              <span className="font-semibold text-text-primary block">
-                                {new Date(appt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </span>
-                              <span className="text-[10px] text-text-secondary font-medium flex items-center gap-1">
-                                <Clock size={10} />
-                                {appt.time}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Doctor */}
-                          <td className="p-4 text-text-primary font-semibold">{appt.doctor}</td>
-
-                          {/* Department */}
-                                                    <td className="p-4">
-                            <span className="px-2 py-1 rounded-lg bg-surface-subtle border border-surface-border/40 text-[10px] text-text-secondary">
-                              {appt.visitType ?? ''}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                                                    <td className="p-4">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                              appt.status?.toLowerCase() === 'confirmed'
-                                ? 'bg-status-successBg text-status-success border border-status-success/15'
-                                : appt.status?.toLowerCase() === 'pending'
-                                ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                                : appt.status?.toLowerCase() === 'completed'
-                                ? 'bg-brand-50 text-brand-500 border border-brand-100'
-                                : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
-                            }`}>
-                              {appointmentStatusLabels[appt.status?.toLowerCase() as AppointmentStatus] || appt.status}
-                            </span>
-                          </td>
-
-                          {/* Booking Source */}
-                          <td className="p-4">
-                            {isZero ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-ai-50 text-ai-600 border border-ai-100/50 font-semibold">
-                                <span>via Zero</span>
-                              </span>
-                            ) : (
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-surface-subtle text-text-secondary border border-surface-border">
-                                Manual
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Action */}
-                          <td className="p-4 text-right pr-6">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAppointmentId(appt.id)}
-                              className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-[10px] transition duration-150"
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-surface-border/30 bg-surface-subtle/10 flex items-center justify-between text-xs">
-                <span className="text-text-secondary font-medium">
-                  Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, sortedAppts.length)} of {sortedAppts.length}
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={apptCurrentPage === 1}
-                    onClick={() => setApptCurrentPage(prev => prev - 1)}
-                    className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary rounded-xl font-bold transition duration-150 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-text-primary font-semibold">
-                    {apptCurrentPage} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={apptCurrentPage === totalPages}
-                    onClick={() => setApptCurrentPage(prev => prev + 1)}
-                    className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary rounded-xl font-bold transition duration-150 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const handleTakeOver = async (convId: string) => {
     try {
@@ -4335,397 +3882,45 @@ if (!isOnboarded) {
 
       {currentRoute === 'appointments' && (
         <>
-          {/* APPOINTMENT DETAIL SIDE DRAWER */}
-          {selectedAppointmentId !== null && (() => {
-            const appt = appointments.find(a => a.id === selectedAppointmentId);
-            if (!appt) return null;
-            return (
-              <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
-                <div
-                  className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
-                  onClick={() => {
-                    setSelectedAppointmentId(null);
-                    setIsRescheduling(false);
-                  }}
-                ></div>
+          <AppointmentDetailDrawer
+            selectedAppointmentId={selectedAppointmentId}
+            appointments={appointments}
+            isRescheduling={isRescheduling}
+            setIsRescheduling={setIsRescheduling}
+            rescheduleDate={rescheduleDate}
+            setRescheduleDate={setRescheduleDate}
+            rescheduleTime={rescheduleTime}
+            setRescheduleTime={setRescheduleTime}
+            formatTime12h={formatTime12h}
+            convertTo24Hour={convertTo24Hour}
+            onClose={() => {
+              setSelectedAppointmentId(null);
+              setIsRescheduling(false);
+            }}
+            onUpdated={() => loadAppointmentsRange(currentWeekStart)}
+          />
 
-                <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans">
-                  <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
-                    {/* Close Button Row */}
-                    <div className="flex justify-end mb-4">
-                      <button
-                        onClick={() => {
-                          setSelectedAppointmentId(null);
-                          setIsRescheduling(false);
-                        }}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
+          <NewAppointmentDrawer
+            isOpen={isNewApptDrawerOpen}
+            onClose={() => setIsNewApptDrawerOpen(false)}
+            onSubmit={handleCreateAppointment}
+            patients={patients}
+            formPatientId={formPatientId}
+            setFormPatientId={setFormPatientId}
+            formDate={formDate}
+            setFormDate={setFormDate}
+            formTime={formTime}
+            setFormTime={setFormTime}
+            formDoctor={formDoctor}
+            setFormDoctor={setFormDoctor}
+            formDept={formDept}
+            setFormDept={setFormDept}
+            formNotes={formNotes}
+            setFormNotes={setFormNotes}
+            newApptError={newApptError}
+            newApptLoading={newApptLoading}
+          />
 
-                                        {/* Patient Information Row */}
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-500 font-bold text-base flex items-center justify-center border border-brand-100 flex-shrink-0">
-                        {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-text-primary leading-snug">{appt.patientName ?? ''}</h3>
-                        <p className="text-xs text-text-secondary mt-0.5">{appt.patientPhone ?? ''}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Drawer Content */}
-                  <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-                    <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Appointment Info</span>
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                          appt.status?.toLowerCase() === 'confirmed'
-                            ? 'bg-status-successBg text-status-success border border-status-success/15'
-                            : appt.status?.toLowerCase() === 'pending'
-                            ? 'bg-status-warningBg text-status-warning border border-status-warning/15'
-                            : appt.status?.toLowerCase() === 'completed'
-                            ? 'bg-brand-50 text-brand-500 border border-brand-100'
-                            : 'bg-status-dangerBg text-status-danger border border-status-danger/15'
-                        }`}>
-                          {appointmentStatusLabels[appt.status?.toLowerCase() as AppointmentStatus] || appt.status}
-                        </span>
-                      </div>
-
-                      {/* Display Info Table */}
-                      <div className="bg-surface-subtle/50 rounded-xl p-4 border border-surface-border/10 space-y-3.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary font-semibold">Doctor</span>
-                          <span className="font-bold text-text-primary">{appt.doctor}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-text-secondary font-semibold">Department</span>
-                          <span className="font-bold text-text-primary">{appt.visitType ?? ''}</span>
-                        </div>
-                        {!isRescheduling ? (
-                          <>
-                            <div className="flex justify-between">
-                              <span className="text-text-secondary font-semibold">Date</span>
-                              <span className="font-bold text-text-primary">
-                                {new Date(appt.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-text-secondary font-semibold">Time Slot</span>
-                              <span className="font-bold text-text-primary flex items-center gap-1">
-                                <Clock size={12} className="text-text-muted" />
-                                {appt.time}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="pt-2 border-t border-surface-border/20 space-y-3">
-                            <span className="text-[10px] font-bold text-brand-600 uppercase tracking-wide block">Reschedule Appointment</span>
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-text-secondary block">New Date</label>
-                              <input
-                                type="date"
-                                value={rescheduleDate}
-                                onChange={(e) => setRescheduleDate(e.target.value)}
-                                className="w-full p-2 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-text-secondary block">New Time Slot</label>
-                              <select
-                                value={rescheduleTime}
-                                onChange={(e) => setRescheduleTime(e.target.value)}
-                                className="w-full p-2 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none"
-                              >
-                                {[
-                                  "08:00 AM",
-                                  "09:00 AM",
-                                  "10:00 AM",
-                                  "11:00 AM",
-                                  "12:00 PM",
-                                  "01:00 PM",
-                                  "02:00 PM",
-                                  "03:00 PM",
-                                  "04:00 PM",
-                                  "05:00 PM"
-                                ].map(slot => (
-                                  <option key={slot} value={slot}>{slot}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex gap-2 pt-1.5">
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (rescheduleDate) {
-                                    try {
-                                      await api.appointments.update(appt.id, {
-                                        date: rescheduleDate,
-                                        time: convertTo24Hour(rescheduleTime)
-                                      });
-                                      setIsRescheduling(false);
-                                      setSelectedAppointmentId(null);
-                                      await loadAppointmentsRange(currentWeekStart);
-                                    } catch (err) {
-                                      console.error("Failed to reschedule appointment:", err);
-                                    }
-                                  }
-                                }}
-                                className="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-xs transition duration-150"
-                              >
-                                Save Time
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setIsRescheduling(false)}
-                                className="flex-1 py-2 border border-surface-border hover:bg-surface-subtle text-text-secondary font-bold rounded-lg text-xs transition duration-150"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Notes / Visit details */}
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Notes</span>
-                        <div className="bg-white border border-surface-border/30 rounded-xl p-3.5 text-xs text-text-primary leading-relaxed font-semibold">
-                          {appt.notes || "No additional visit notes provided."}
-                        </div>
-                      </div>
-
-                      {/* Booking source details */}
-                      <div className="pt-2 border-t border-surface-border/10 space-y-1.5">
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Booking Attribution</span>
-                        <div className="flex items-center gap-2 text-xs">
-                          {appt.bookedVia === 'zero' ? (
-                            <>
-                              <span className="w-2.5 h-2.5 rounded-full bg-ai-500 flex-shrink-0"></span>
-                              <span className="font-bold text-ai-600">Booked via Zero AI (WhatsApp Agent)</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="w-2.5 h-2.5 rounded-full bg-text-secondary flex-shrink-0"></span>
-                              <span className="font-bold text-text-secondary">Booked manually by clinic staff</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Drawer Footer Actions */}
-                  {!isRescheduling && (
-                    <div className="px-6 pt-6 pb-8 border-t border-surface-border/20 bg-surface-subtle/20 flex flex-col gap-2.5 flex-shrink-0">
-                                            <div className="flex gap-3">
-                        {appt.status?.toLowerCase() !== 'completed' && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await api.appointments.update(appt.id, { status: "completed" });
-                                setSelectedAppointmentId(null);
-                                await loadAppointmentsRange(currentWeekStart);
-                              } catch (err) {
-                                console.error("Failed to complete appointment:", err);
-                              }
-                            }}
-                            className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
-                          >
-                            Mark Complete
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRescheduleDate(appt.date);
-                            setRescheduleTime(formatTime12h(appt.time));
-                            setIsRescheduling(true);
-                          }}
-                          className="flex-1 py-2.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-xs transition duration-150"
-                        >
-                          Reschedule
-                        </button>
-                      </div>
-                      {appt.status?.toLowerCase() !== 'cancelled' && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await api.appointments.update(appt.id, { status: "cancelled" });
-                              setSelectedAppointmentId(null);
-                              await loadAppointmentsRange(currentWeekStart);
-                            } catch (err) {
-                              console.error("Failed to cancel appointment:", err);
-                            }
-                          }}
-                          className="w-full py-2.5 border border-status-danger/30 hover:bg-status-dangerBg text-status-danger font-bold rounded-xl text-xs transition duration-150"
-                        >
-                          Cancel Appointment
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* NEW APPOINTMENT SIDE DRAWER */}
-          {isNewApptDrawerOpen && (
-            <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
-              <div
-                className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
-                onClick={() => setIsNewApptDrawerOpen(false)}
-              ></div>
-
-              <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans">
-                {/* Header */}
-                <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
-                  <h3 className="text-base font-bold text-text-primary">New Appointment</h3>
-                  <button
-                    onClick={() => setIsNewApptDrawerOpen(false)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {/* Form Body */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleCreateAppointment();
-                  }}
-                  className="p-6 space-y-5 flex-1 overflow-y-auto text-xs font-semibold"
-                >
-                  {/* Patient select */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient</label>
-                    <select
-                      value={formPatientId || ''}
-                      onChange={(e) => setFormPatientId(e.target.value)}
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="">Select a patient...</option>
-                      {patients.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.phone})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Date picker */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Date</label>
-                    <input
-                      type="date"
-                      value={formDate}
-                      onChange={(e) => setFormDate(e.target.value)}
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    />
-                  </div>
-
-                  {/* Time slot select */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Time Slot</label>
-                    <select
-                      value={formTime}
-                      onChange={(e) => setFormTime(e.target.value)}
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      {[
-                        "08:00 AM",
-                        "09:00 AM",
-                        "10:00 AM",
-                        "11:00 AM",
-                        "12:00 PM",
-                        "01:00 PM",
-                        "02:00 PM",
-                        "03:00 PM",
-                        "04:00 PM",
-                        "05:00 PM"
-                      ].map(slot => (
-                        <option key={slot} value={slot}>{slot}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Doctor select */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor</label>
-                    <select
-                      value={formDoctor}
-                      onChange={(e) => setFormDoctor(e.target.value)}
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-                      <option value="Dr. Moiraine Damodred">Dr. Moiraine Damodred</option>
-                    </select>
-                  </div>
-
-                  {/* Visit Type / Department */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Visit Type / Department</label>
-                    <select
-                      value={formDept}
-                      onChange={(e) => setFormDept(e.target.value)}
-                      required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="General Medicine">General Medicine</option>
-                      <option value="Cardiology">Cardiology</option>
-                      <option value="Neurology">Neurology</option>
-                      <option value="Prenatal">Prenatal</option>
-                      <option value="Dermatology">Dermatology</option>
-                      <option value="Pediatrics">Pediatrics</option>
-                    </select>
-                  </div>
-
-                  {/* Notes */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Notes</label>
-                    <textarea
-                      value={formNotes}
-                      onChange={(e) => setFormNotes(e.target.value)}
-                      placeholder="Add any specific clinical notes or reason for visit..."
-                      className="w-full min-h-[100px] p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans leading-relaxed resize-none font-semibold"
-                    />
-                  </div>
-
-                  {newApptError && (
-                    <div className="p-3 bg-status-dangerBg border border-status-danger/20 rounded-xl text-status-danger text-xs font-semibold">
-                      {newApptError}
-                    </div>
-                  )}
-
-                  {/* Form Actions Footer */}
-                  <div className="pt-4 flex gap-3">
-                    <button
-                      type="submit"
-                      disabled={newApptLoading}
-                      className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
-                    >
-                      {newApptLoading ? "Booking..." : "Book Appointment"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsNewApptDrawerOpen(false)}
-                      className="flex-1 py-2.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-xs transition duration-150"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
