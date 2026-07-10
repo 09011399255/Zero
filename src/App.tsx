@@ -1,23 +1,18 @@
-import { useState, useEffect, useRef, Component, ReactNode, ErrorInfo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid,
-  Timer,
   Calendar,
   MessageSquare,
   Users,
   TrendingUp,
-  Settings,
   Download,
   AlertTriangle,
   Clock,
   CheckCircle2,
   Activity,
-  LogOut,
-  HelpCircle,
-  Bell,
   ArrowUpRight,
   ShieldAlert,
   ChevronRight,
@@ -37,53 +32,10 @@ import {
   mockAppointments,
   mockPatients
 } from './mockData';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ClinicErrorBoundary caught an error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex flex-col items-center justify-center p-8 bg-status-dangerBg/20 border border-status-danger/10 rounded-2xl text-center space-y-4 max-w-lg mx-auto my-12">
-          <div className="w-12 h-12 rounded-full bg-status-dangerBg text-status-danger flex items-center justify-center border border-status-danger/20">
-            <AlertTriangle size={24} />
-          </div>
-          <h2 className="text-base font-bold text-text-primary">Something went wrong</h2>
-          <p className="text-xs text-text-secondary max-w-sm">
-            {this.state.error?.message || "An unexpected error occurred while rendering this section."}
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
-          >
-            Try Again
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { Sidebar } from './components/layout/Sidebar';
+import { Topbar } from './components/layout/Topbar';
+import { NotificationItem } from './components/layout/NotificationsDropdown';
 
 const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   id: apt.id,
@@ -99,23 +51,8 @@ const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   notes: apt.notes
 }));
 import logoBlue from './assets/logo-blue.svg';
-import logoWhite from './assets/logo-white.svg';
 
 
-
-interface NotificationItem {
-  id: string;
-  type: 'escalation' | 'recall' | 'no-show';
-  title: string;
-  description: string;
-  time: string;
-  read: boolean;
-  linkData: {
-    route: string;
-    patientId?: string;
-    tab?: string;
-  };
-}
 
 interface QueueEntry {
   id: string;
@@ -400,7 +337,17 @@ const statusToTab: Record<string, string> = {
 
 
 function App() {
-  const [currentRoute, setCurrentRoute] = useState<'dashboard' | string>('dashboard');
+  // Real URL-based routing bridge: `currentRoute` is derived from the actual
+  // browser URL (so back/forward and refresh-on-any-route work), and
+  // `setCurrentRoute` navigates to it — every existing `currentRoute === 'x'`
+  // check and `setCurrentRoute('x')` call elsewhere in this file keeps
+  // working unchanged. This is intentionally a thin bridge, not a full
+  // <Routes> tree — that emerges naturally as each feature gets extracted
+  // into its own routed page component in later migration phases.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentRoute = location.pathname === '/' ? 'dashboard' : location.pathname.slice(1);
+  const setCurrentRoute = (route: string) => navigate('/' + route);
   const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
   const [queueLoaded, setQueueLoaded] = useState(false);
   const [appointmentsLoadedThisSession, setAppointmentsLoadedThisSession] = useState(false);
@@ -511,9 +458,12 @@ function App() {
 
   // Session Check on App Load
   useEffect(() => {
-    // Check if we are on the verify-email page
+    // currentRoute is derived from the URL now, so it's already correct on
+    // these two routes without calling setCurrentRoute — doing so would
+    // navigate() and strip the ?token= query string (and combined with
+    // StrictMode's double-invoke of this effect, that self-corrupts the
+    // second read below into thinking the token is missing).
     if (window.location.pathname === '/verify-email') {
-      setCurrentRoute('verify-email');
       setSessionChecked(true);
       return;
     }
@@ -523,7 +473,6 @@ function App() {
       const token = new URLSearchParams(window.location.search).get('token');
       setResetPasswordToken(token);
       setResetPasswordState(token ? 'form' : 'missing');
-      setCurrentRoute('reset-password');
       setSessionChecked(true);
       return;
     }
@@ -4988,298 +4937,27 @@ if (!isOnboarded) {
 
   return (
     <div className="flex min-h-screen bg-surface-subtle">
-      {/* 1. SIDEBAR */}
-      <aside className="w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 select-none shadow-lg">
-        <div>
-          {/* Logo Section */}
-          <div className="p-6 pb-4 flex items-center gap-2.5">
-            <img src={logoWhite} className="h-6 w-auto object-contain" alt="Zero Logo" />
-            <div className="h-4 w-px bg-white/20"></div>
-            <span className="text-[10px] text-brand-100/60 uppercase tracking-widest font-semibold">Clinic OS</span>
-          </div>
-
-          {/* Sidebar Nav Sections */}
-          <nav className="px-4 py-3 space-y-6">
-            {/* OPERATIONS SECTION */}
-            <div>
-              <div className="px-3 text-[11px] font-semibold text-brand-100/40 uppercase tracking-widest mb-2">
-                Operations
-              </div>
-              <ul className="space-y-1">
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('dashboard')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'dashboard'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <LayoutGrid size={16} />
-                    <span>Dashboard</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('live-queue')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'live-queue'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Timer size={16} />
-                    <span>Live Queue</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('appointments')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'appointments'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Calendar size={16} />
-                    <span>Appointments</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('zero-chat')}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'zero-chat'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <MessageSquare size={16} />
-                      <span>ZeroChat</span>
-                    </div>
-                    {conversationCounts.needs_review > 0 && (
-                      <span className="bg-status-danger text-white rounded-full px-1.5 py-0.5 text-[9px] font-bold font-sans">
-                        {conversationCounts.needs_review}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* PATIENTS SECTION */}
-            <div>
-              <div className="px-3 text-[11px] font-semibold text-brand-100/40 uppercase tracking-widest mb-2">
-                Patients
-              </div>
-              <ul className="space-y-1">
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('patients')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'patients'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Users size={16} />
-                    <span>Patients</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* INSIGHTS SECTION */}
-            <div>
-              <div className="px-3 text-[11px] font-semibold text-brand-100/40 uppercase tracking-widest mb-2">
-                Insights
-              </div>
-              <ul className="space-y-1">
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('analytics')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'analytics'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <TrendingUp size={16} />
-                    <span>Analytics</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* SETUP SECTION */}
-            <div>
-              <div className="px-3 text-[11px] font-semibold text-brand-100/40 uppercase tracking-widest mb-2">
-                Setup
-              </div>
-              <ul className="space-y-1">
-                <li>
-                  <button
-                    onClick={() => setCurrentRoute('settings')}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
-                      currentRoute === 'settings'
-                        ? 'bg-ai-50 text-brand-500 font-semibold'
-                        : 'text-brand-100/70 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Settings size={16} />
-                    <span>Settings</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </nav>
-        </div>
-
-        {/* User / Footer Info */}
-        <div className="border-t border-white/10 p-4 space-y-2">
-          {/* User Profile */}
-          <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/5 transition duration-150 cursor-pointer">
-            <div className="w-9 h-9 bg-brand-700 rounded-full flex items-center justify-center font-bold text-sm border border-brand-500">
-              {isOnboarded ? (onboardingAdminName.trim().split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'AD') : 'AD'}
-            </div>
-            <div className="overflow-hidden">
-              <div className="text-[13px] font-semibold text-white truncate">{isOnboarded ? onboardingAdminName || 'Apex Clinic Admin' : 'Apex Clinic Admin'}</div>
-              <div className="text-[10px] text-brand-100/60 truncate">{isOnboarded ? onboardingEmail || 'admin@apexclinic.com' : 'admin@apexclinic.com'}</div>
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-col gap-1">
-            <button
-              onClick={() => alert('Support module is coming soon!')}
-              className="flex items-center gap-3 w-full text-left px-2 py-1.5 rounded-lg text-xs text-brand-100/60 hover:text-white hover:bg-white/5 transition duration-150"
-            >
-              <HelpCircle size={14} />
-              <span>Support</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full text-left px-2 py-1.5 rounded-lg text-xs text-brand-100/60 hover:text-white hover:bg-white/5 transition duration-150"
-            >
-              <LogOut size={14} />
-              <span>Log out</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <Sidebar
+        currentRoute={currentRoute}
+        onNavigate={setCurrentRoute}
+        needsReviewCount={conversationCounts.needs_review}
+        adminName={onboardingAdminName}
+        adminEmail={onboardingEmail}
+        onLogout={handleLogout}
+      />
 
       {/* MAIN CONTAINER */}
       <div className="flex-1 pl-[260px] min-h-screen flex flex-col">
-        {/* 2. TOPBAR */}
-        <header className="h-16 bg-surface-base border-b border-surface-border/50 flex items-center justify-between px-8 sticky top-0 z-20">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-text-secondary font-medium">{isOnboarded ? settingsClinicName : 'Apex Family Clinic'}</span>
-            <ChevronRight size={14} className="text-text-muted" />
-            <span className="text-text-primary font-semibold capitalize">
-              {currentRoute === 'dashboard' ? 'Dashboard' : currentRoute.replace('-', ' ')}
-            </span>
-          </div>
-
-          {/* Connection Status & Notification Badge */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-status-successBg border border-status-success/10 rounded-full">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-status-success"></span>
-              </span>
-              <span className="text-xs text-status-success font-medium">Connected</span>
-            </div>
-
-            <div className="relative">
-              <button
-                id="notification-bell-btn"
-                onClick={() => setIsNotificationsDropdownOpen(!isNotificationsDropdownOpen)}
-                className={`relative w-9 h-9 flex items-center justify-center rounded-xl transition duration-150 border ${
-                  isNotificationsDropdownOpen
-                    ? 'bg-brand-50 border-brand-200 text-brand-600'
-                    : 'text-text-secondary hover:bg-surface-subtle border-surface-border/30'
-                }`}
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-status-danger text-white rounded-full border border-surface-base text-[9px] font-extrabold flex items-center justify-center shadow-sm">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* DROPDOWN PANEL */}
-              {isNotificationsDropdownOpen && (
-                <div
-                  id="notification-dropdown-panel"
-                  className="absolute right-0 mt-2 w-80 bg-surface-base rounded-2xl shadow-soft border border-surface-border/60 py-3 z-50 animate-fade-in text-xs"
-                >
-                  <div className="px-4 pb-2 border-b border-surface-border/30 flex items-center justify-between">
-                    <span className="font-bold text-text-primary text-xs">Notifications</span>
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      disabled={unreadCount === 0}
-                      className={`font-bold transition duration-150 text-[11px] ${
-                        unreadCount > 0
-                          ? 'text-brand-500 hover:text-brand-600 cursor-pointer'
-                          : 'text-text-muted cursor-not-allowed'
-                      }`}
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
-
-                  <div className="max-h-64 overflow-y-auto divide-y divide-surface-border/10">
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-text-muted">
-                        You're all caught up!
-                      </div>
-                    ) : (
-                      notifications.map((notif) => {
-                        const isUnread = !notif.read;
-                        return (
-                          <div
-                            key={notif.id}
-                            onClick={() => handleNotificationClick(notif)}
-                            className={`px-4 py-3 cursor-pointer transition duration-150 flex items-start gap-3 hover:bg-surface-subtle/50 ${
-                              isUnread ? 'bg-brand-50/20' : ''
-                            }`}
-                          >
-                            {/* Color-coded dot */}
-                            <span
-                              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                                notif.type === 'escalation'
-                                  ? notif.description.includes('dispute')
-                                    ? 'bg-status-warning'
-                                    : 'bg-status-danger'
-                                  : notif.type === 'recall'
-                                  ? 'bg-status-warning'
-                                  : 'bg-status-danger'
-                              }`}
-                            />
-                            
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-[11px] leading-relaxed text-text-primary ${isUnread ? 'font-bold' : 'font-medium'}`}>
-                                {notif.description}
-                              </p>
-                              <span className="text-[10px] text-text-muted mt-1 block">
-                                {notif.time}
-                              </span>
-                            </div>
-
-                            {isUnread && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 flex-shrink-0" />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <Topbar
+          clinicName={settingsClinicName}
+          currentRoute={currentRoute}
+          isNotificationsOpen={isNotificationsDropdownOpen}
+          onToggleNotifications={() => setIsNotificationsDropdownOpen(!isNotificationsDropdownOpen)}
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAllRead={handleMarkAllAsRead}
+          onNotificationClick={handleNotificationClick}
+        />
 
                 {/* 3. MAIN CONTENT AREA */}
         <main className="p-8 flex-1 space-y-6 w-full">
