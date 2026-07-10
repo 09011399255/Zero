@@ -39,6 +39,8 @@ import { AppointmentsPage } from './features/appointments/AppointmentsPage';
 import { AppointmentDetailDrawer } from './features/appointments/AppointmentDetailDrawer';
 import { NewAppointmentDrawer } from './features/appointments/NewAppointmentDrawer';
 import { ZeroChatPage } from './features/zero-chat/ZeroChatPage';
+import { VerifyEmailPage } from './features/auth/VerifyEmailPage';
+import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 
 const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   id: apt.id,
@@ -1612,340 +1614,53 @@ function App() {
   );
 
   // Render Onboarding Wizard Screen
-    const renderVerifyEmailScreen = () => {
-    return (
-      <div className="w-full max-w-md bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
-            <div className="h-4 w-px bg-brand-200"></div>
-            <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
-              Clinic OS
-            </span>
-          </div>
-        </div>
+  const renderVerifyEmailScreen = () => (
+    <VerifyEmailPage
+      verificationState={verificationState}
+      onboardingEmail={onboardingEmail}
+      setOnboardingEmail={setOnboardingEmail}
+      resendCooldown={resendCooldown}
+      onResendVerification={handleResendVerification}
+      onContinueAfterSuccess={async () => {
+        const token = localStorage.getItem("zero_token");
+        if (token) {
+          await checkSession();
+        } else {
+          setCurrentRoute('dashboard');
+          setIsOnboarded(false);
+          setOnboardingStep(1);
+          setOnboardingAuthMode('login');
+        }
+      }}
+      onBackToLogin={() => {
+        setCurrentRoute('dashboard');
+        setIsOnboarded(false);
+        setOnboardingStep(1);
+        setOnboardingAuthMode('login');
+      }}
+    />
+  );
 
-        {verificationState === 'loading' && (
-          <div className="text-center py-6 space-y-4">
-            <RefreshCw className="animate-spin text-brand-500 mx-auto" size={32} />
-            <p className="text-sm font-medium text-text-secondary">Verifying your email... Please wait.</p>
-          </div>
-        )}
-
-        {verificationState === 'success' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
-              <CheckCircle2 size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">Email Verified!</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Email verified! You can now continue setting up your clinic.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                const token = localStorage.getItem("zero_token");
-                if (token) {
-                  await checkSession();
-                } else {
-                  setCurrentRoute('dashboard');
-                  setIsOnboarded(false);
-                  setOnboardingStep(1);
-                  setOnboardingAuthMode('login');
-                }
-              }}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
-            >
-              Continue to Setup
-            </button>
-          </div>
-        )}
-
-        {verificationState === 'expired' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">This link has expired.</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                The email verification link has expired. You can request a new verification email below.
-              </p>
-            </div>
-            <div className="space-y-3 pt-2">
-              <div className="space-y-1.5 flex flex-col text-left">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email Address</label>
-                <input
-                  type="email"
-                  value={onboardingEmail}
-                  onChange={(e) => setOnboardingEmail(e.target.value)}
-                  placeholder="name@clinic.com"
-                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
-                />
-              </div>
-              <button
-                type="button"
-                disabled={resendCooldown > 0 || !onboardingEmail.trim()}
-                onClick={() => handleResendVerification(onboardingEmail)}
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
-              >
-                {resendCooldown > 0 ? `Resend email (${resendCooldown}s)` : "Resend email"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentRoute('dashboard');
-                  setIsOnboarded(false);
-                  setOnboardingStep(1);
-                  setOnboardingAuthMode('login');
-                }}
-                className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
-              >
-                Back to Login
-              </button>
-            </div>
-          </div>
-        )}
-
-        {verificationState === 'invalid' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">This verification link isn't valid.</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                This verification link isn't valid. It may be broken or tampered with. Please log in and request a fresh verification link from your settings.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentRoute('dashboard');
-                setIsOnboarded(false);
-                setOnboardingStep(1);
-                setOnboardingAuthMode('login');
-              }}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
-            >
-              Back to Login
-            </button>
-          </div>
-        )}
-
-        {verificationState === 'missing' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">Missing Verification Token</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                No verification token was provided in the link. Please check your email again or return to sign up.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentRoute('dashboard');
-                setIsOnboarded(false);
-                setOnboardingStep(1);
-                setOnboardingAuthMode('login');
-              }}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
-            >
-              Back to Login
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderResetPasswordScreen = () => {
-    const backToLogin = () => {
-      window.history.replaceState({}, '', '/');
-      setCurrentRoute('dashboard');
-      setIsOnboarded(false);
-      setOnboardingStep(1);
-      setOnboardingAuthMode('login');
-    };
-
-    return (
-      <div className="w-full max-w-md bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 p-8 space-y-6">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <img src={logoBlue} className="h-7 w-auto object-contain" alt="Zero Logo" />
-            <div className="h-4 w-px bg-brand-200"></div>
-            <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">
-              Clinic OS
-            </span>
-          </div>
-        </div>
-
-        {resetPasswordState === 'missing' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">Missing Reset Token</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                No reset token was provided in the link. Please check your email again or request a new one.
-              </p>
-            </div>
-            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
-              Back to Login
-            </button>
-          </div>
-        )}
-
-        {resetPasswordState === 'invalid' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">This reset link isn't valid.</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                It may be broken or already used. Please request a fresh password reset link.
-              </p>
-            </div>
-            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
-              Back to Login
-            </button>
-          </div>
-        )}
-
-        {resetPasswordState === 'expired' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-dangerBg text-status-danger rounded-full flex items-center justify-center mx-auto border border-status-danger/20 shadow-sm">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">This link has expired.</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Password reset links expire after 1 hour. Please request a new one from the login screen.
-              </p>
-            </div>
-            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
-              Back to Login
-            </button>
-          </div>
-        )}
-
-        {resetPasswordState === 'success' && (
-          <div className="text-center py-4 space-y-6">
-            <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
-              <CheckCircle2 size={32} />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-base font-bold text-text-primary">Password updated</h3>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                Your password has been reset successfully. Log in with your new password.
-              </p>
-            </div>
-            <button type="button" onClick={backToLogin} className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150">
-              Back to Login
-            </button>
-          </div>
-        )}
-
-        {(resetPasswordState === 'form' || resetPasswordState === 'submitting') && (
-          <form
-            className="space-y-4"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setResetPasswordError(null);
-
-              if (resetPasswordValue.length < 8) {
-                setResetPasswordError('Password must be at least 8 characters.');
-                return;
-              }
-              if (resetPasswordValue !== resetPasswordConfirm) {
-                setResetPasswordError('Passwords do not match.');
-                return;
-              }
-              if (!resetPasswordToken) {
-                setResetPasswordState('missing');
-                return;
-              }
-
-              try {
-                setResetPasswordState('submitting');
-                await api.auth.resetPassword({ token: resetPasswordToken, password: resetPasswordValue });
-                setResetPasswordState('success');
-              } catch (err: any) {
-                if (err.code === 'TOKEN_EXPIRED') {
-                  setResetPasswordState('expired');
-                } else if (err.code === 'INVALID_TOKEN') {
-                  setResetPasswordState('invalid');
-                } else {
-                  setResetPasswordState('form');
-                  setResetPasswordError(err.message || 'Could not reset password. Please try again.');
-                }
-              }
-            }}
-          >
-            <div className="text-center space-y-2 pb-2">
-              <h3 className="text-base font-bold text-text-primary">Set a new password</h3>
-              <p className="text-xs text-text-secondary">Choose a new password for your account.</p>
-            </div>
-
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">New Password</label>
-              <input
-                type="password"
-                value={resetPasswordValue}
-                onChange={(e) => setResetPasswordValue(e.target.value)}
-                required
-                minLength={8}
-                placeholder="••••••••"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            </div>
-
-            <div className="space-y-1.5 flex flex-col">
-              <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Confirm Password</label>
-              <input
-                type="password"
-                value={resetPasswordConfirm}
-                onChange={(e) => setResetPasswordConfirm(e.target.value)}
-                required
-                minLength={8}
-                placeholder="••••••••"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            </div>
-
-            {resetPasswordError && (
-              <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-center gap-2">
-                <AlertTriangle size={14} className="flex-shrink-0" />
-                <span>{resetPasswordError}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={resetPasswordState === 'submitting'}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
-            >
-              {resetPasswordState === 'submitting' ? (
-                <>
-                  <RefreshCw className="animate-spin" size={14} />
-                  <span>Updating...</span>
-                </>
-              ) : (
-                <span>Update Password</span>
-              )}
-            </button>
-          </form>
-        )}
-      </div>
-    );
-  };
+  const renderResetPasswordScreen = () => (
+    <ResetPasswordPage
+      resetPasswordState={resetPasswordState}
+      setResetPasswordState={setResetPasswordState}
+      resetPasswordToken={resetPasswordToken}
+      resetPasswordValue={resetPasswordValue}
+      setResetPasswordValue={setResetPasswordValue}
+      resetPasswordConfirm={resetPasswordConfirm}
+      setResetPasswordConfirm={setResetPasswordConfirm}
+      resetPasswordError={resetPasswordError}
+      setResetPasswordError={setResetPasswordError}
+      onBackToLogin={() => {
+        window.history.replaceState({}, '', '/');
+        setCurrentRoute('dashboard');
+        setIsOnboarded(false);
+        setOnboardingStep(1);
+        setOnboardingAuthMode('login');
+      }}
+    />
+  );
 
 const renderOnboardingWizard = () => {
     if (isTransitioningStep) {
