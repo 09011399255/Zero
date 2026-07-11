@@ -196,6 +196,7 @@ export const api = {
   clinic: {
     get: () => request<any>("GET", "/api/clinic"),
     update: (body: any) => request<any>("PATCH", "/api/clinic", body),
+    completeOnboarding: () => request<any>("POST", "/api/clinic/complete-onboarding"),
   },
   staff: {
     list: () => request<any[]>("GET", "/api/staff"),

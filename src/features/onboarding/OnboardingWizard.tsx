@@ -101,7 +101,6 @@ interface OnboardingWizardProps {
   previewMessages: PreviewMessage[];
   previewTyping: boolean;
   setCurrentRoute: (route: string) => void;
-  clinicId: string | null;
 }
 
 export function OnboardingWizard({
@@ -166,7 +165,6 @@ export function OnboardingWizard({
   previewMessages,
   previewTyping,
   setCurrentRoute,
-  clinicId,
 }: OnboardingWizardProps) {
   if (isTransitioningStep) {
     const statusTexts = [
@@ -1083,8 +1081,12 @@ export function OnboardingWizard({
               This is Zero, working for {onboardingClinicName.trim() || 'your clinic'}.
             </p>
             <button
-              onClick={() => {
-                if (clinicId) localStorage.setItem(`zero_onboarding_seen_${clinicId}`, 'true');
+              onClick={async () => {
+                try {
+                  await api.clinic.completeOnboarding();
+                } catch (err) {
+                  console.error('Failed to mark onboarding complete:', err);
+                }
                 setIsOnboarded(true);
                 setCurrentRoute('dashboard');
               }}

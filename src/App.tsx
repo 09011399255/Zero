@@ -385,18 +385,11 @@ function App() {
       // the user verified on a different device).
       setIsVerificationPending(false);
 
-      // Clinic setup (address/services/staff) is not a hard gate on every
-      // login — once a clinic has been through the wizard once, later
-      // logins always go straight to the dashboard, regardless of whether
-      // they ever added a 2nd staff member. But a brand-new clinic that
-      // has NEVER seen the wizard should still walk through it once,
-      // right after email verification, rather than landing on an empty
-      // unconfigured dashboard.
-      const onboardingSeenKey = clinic?.id ? `zero_onboarding_seen_${clinic.id}` : null;
-      const hasSeenOnboarding = onboardingSeenKey ? localStorage.getItem(onboardingSeenKey) === 'true' : false;
-
-      if (hasSeenOnboarding || res.onboardingComplete) {
-        if (onboardingSeenKey) localStorage.setItem(onboardingSeenKey, 'true');
+      // onboardingComplete is now tracked server-side (Clinic.onboardingCompletedAt),
+      // set once the wizard's "Go to Dashboard" step calls api.clinic.completeOnboarding().
+      // That makes it sync across devices — a clinic that finished the wizard on desktop
+      // won't see it again logging in from a phone that never touched it locally.
+      if (res.onboardingComplete) {
         setIsOnboarded(true);
         setCurrentRoute("dashboard");
       } else {
@@ -1695,7 +1688,6 @@ const renderOnboardingWizard = () => (
     previewMessages={previewMessages}
     previewTyping={previewTyping}
     setCurrentRoute={setCurrentRoute}
-    clinicId={clinicId}
   />
 );
 
