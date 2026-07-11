@@ -101,6 +101,7 @@ interface OnboardingWizardProps {
   previewMessages: PreviewMessage[];
   previewTyping: boolean;
   setCurrentRoute: (route: string) => void;
+  clinicId: string | null;
 }
 
 export function OnboardingWizard({
@@ -165,6 +166,7 @@ export function OnboardingWizard({
   previewMessages,
   previewTyping,
   setCurrentRoute,
+  clinicId,
 }: OnboardingWizardProps) {
   if (isTransitioningStep) {
     const statusTexts = [
@@ -1082,6 +1084,7 @@ export function OnboardingWizard({
             </p>
             <button
               onClick={() => {
+                if (clinicId) localStorage.setItem(`zero_onboarding_seen_${clinicId}`, 'true');
                 setIsOnboarded(true);
                 setCurrentRoute('dashboard');
               }}

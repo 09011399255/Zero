@@ -331,6 +331,20 @@ function App() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  // Poll for email verification while on the "Check your email" screen —
+  // if the link gets clicked on a different device/tab, this tab has no
+  // other way to find out. checkSession() clears isVerificationPending
+  // once the backend reports the account as verified, which stops this
+  // poll and (per checkSession's own logic) redirects to onboarding/
+  // dashboard automatically, with no manual refresh needed.
+  useEffect(() => {
+    if (!isVerificationPending) return;
+    const interval = setInterval(() => {
+      checkSession();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isVerificationPending]);
+
   const handleResendVerification = async (email: string) => {
     if (resendCooldown > 0) return;
     try {
@@ -366,11 +380,29 @@ function App() {
         return;
       }
 
-      // Once the email is verified, go straight to the dashboard —
-      // clinic setup (address/services/staff) is no longer a hard
-      // gate on login, just a settings task the admin can finish later.
-      setIsOnboarded(true);
-      setCurrentRoute("dashboard");
+      // Verified — stop polling / clear the pending flag in case we got
+      // here from the auto-poll on the "check your email" screen (e.g.
+      // the user verified on a different device).
+      setIsVerificationPending(false);
+
+      // Clinic setup (address/services/staff) is not a hard gate on every
+      // login — once a clinic has been through the wizard once, later
+      // logins always go straight to the dashboard, regardless of whether
+      // they ever added a 2nd staff member. But a brand-new clinic that
+      // has NEVER seen the wizard should still walk through it once,
+      // right after email verification, rather than landing on an empty
+      // unconfigured dashboard.
+      const onboardingSeenKey = clinic?.id ? `zero_onboarding_seen_${clinic.id}` : null;
+      const hasSeenOnboarding = onboardingSeenKey ? localStorage.getItem(onboardingSeenKey) === 'true' : false;
+
+      if (hasSeenOnboarding || res.onboardingComplete) {
+        if (onboardingSeenKey) localStorage.setItem(onboardingSeenKey, 'true');
+        setIsOnboarded(true);
+        setCurrentRoute("dashboard");
+      } else {
+        setOnboardingStep(2);
+        setIsOnboarded(false);
+      }
     } catch (err: any) {
       if (err.status === 401) {
         localStorage.removeItem("zero_token");
@@ -1663,6 +1695,7 @@ const renderOnboardingWizard = () => (
     previewMessages={previewMessages}
     previewTyping={previewTyping}
     setCurrentRoute={setCurrentRoute}
+    clinicId={clinicId}
   />
 );
 
