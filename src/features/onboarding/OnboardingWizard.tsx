@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, RefreshCw, X } from 'lucide-react';
 import { api } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
+import { PasswordInput } from '../../components/shared/PasswordInput';
+import { validatePassword } from '../../lib/password';
 
 const PRESET_SERVICES = [
   'Cardiology',
@@ -398,6 +400,11 @@ export function OnboardingWizard({
               key="signup-form"
               onSubmit={async (e) => {
                 e.preventDefault();
+                const pwCheck = validatePassword(onboardingPassword);
+                if (!pwCheck.ok) {
+                  setSignUpError(pwCheck.message || "Please choose a stronger password.");
+                  return;
+                }
                 try {
                   setIsLoading(true);
                   setSignUpError(null);
@@ -423,7 +430,7 @@ export function OnboardingWizard({
               className="space-y-4"
             >
               <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Admin Full Name</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Admin Full Name <span className="text-status-danger">*</span></label>
                 <input
                   key="signup-name"
                   type="text"
@@ -436,7 +443,7 @@ export function OnboardingWizard({
               </div>
 
               <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Work Email <span className="text-status-danger">*</span></label>
                 <input
                   key="signup-email"
                   type="email"
@@ -449,16 +456,16 @@ export function OnboardingWizard({
               </div>
 
               <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
-                <input
-                  key="signup-password"
-                  type="password"
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password <span className="text-status-danger">*</span></label>
+                <PasswordInput
                   value={onboardingPassword}
-                  onChange={(e) => setOnboardingPassword(e.target.value)}
+                  onChange={setOnboardingPassword}
                   required
-                  placeholder="••••••••"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  minLength={8}
+                  autoComplete="new-password"
+                  showStrength
                 />
+                <p className="text-[10px] text-text-muted">At least 8 characters, including a letter and a number.</p>
               </div>
 
               {signUpError && (
@@ -506,7 +513,7 @@ export function OnboardingWizard({
               className="space-y-4"
             >
               <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email</label>
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Email <span className="text-status-danger">*</span></label>
                 <input
                   key="login-email"
                   type="email"
@@ -519,15 +526,12 @@ export function OnboardingWizard({
               </div>
 
               <div className="space-y-1.5 flex flex-col">
-                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password</label>
-                <input
-                  key="login-password"
-                  type="password"
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Password <span className="text-status-danger">*</span></label>
+                <PasswordInput
                   value={onboardingPassword}
-                  onChange={(e) => setOnboardingPassword(e.target.value)}
+                  onChange={setOnboardingPassword}
                   required
-                  placeholder="••••••••"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  autoComplete="current-password"
                 />
               </div>
 

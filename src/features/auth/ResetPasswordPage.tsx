@@ -1,6 +1,8 @@
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { api } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
+import { PasswordInput } from '../../components/shared/PasswordInput';
+import { validatePassword } from '../../lib/password';
 
 type ResetPasswordState = 'form' | 'submitting' | 'success' | 'invalid' | 'expired' | 'missing';
 
@@ -116,8 +118,9 @@ export function ResetPasswordPage({
             e.preventDefault();
             setResetPasswordError(null);
 
-            if (resetPasswordValue.length < 8) {
-              setResetPasswordError('Password must be at least 8 characters.');
+            const pwCheck = validatePassword(resetPasswordValue);
+            if (!pwCheck.ok) {
+              setResetPasswordError(pwCheck.message || 'Please choose a stronger password.');
               return;
             }
             if (resetPasswordValue !== resetPasswordConfirm) {
@@ -151,28 +154,26 @@ export function ResetPasswordPage({
           </div>
 
           <div className="space-y-1.5 flex flex-col">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">New Password</label>
-            <input
-              type="password"
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">New Password <span className="text-status-danger">*</span></label>
+            <PasswordInput
               value={resetPasswordValue}
-              onChange={(e) => setResetPasswordValue(e.target.value)}
+              onChange={setResetPasswordValue}
               required
               minLength={8}
-              placeholder="••••••••"
-              className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              autoComplete="new-password"
+              showStrength
             />
+            <p className="text-[10px] text-text-muted">At least 8 characters, including a letter and a number.</p>
           </div>
 
           <div className="space-y-1.5 flex flex-col">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Confirm Password</label>
-            <input
-              type="password"
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Confirm Password <span className="text-status-danger">*</span></label>
+            <PasswordInput
               value={resetPasswordConfirm}
-              onChange={(e) => setResetPasswordConfirm(e.target.value)}
+              onChange={setResetPasswordConfirm}
               required
               minLength={8}
-              placeholder="••••••••"
-              className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              autoComplete="new-password"
             />
           </div>
 

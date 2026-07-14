@@ -31,6 +31,7 @@ import { VerifyEmailPage } from './features/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { useToast } from './components/shared/Toast';
 
 const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   id: apt.id,
@@ -272,6 +273,7 @@ function App() {
   // into its own routed page component in later migration phases.
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const currentRoute = location.pathname === '/' ? 'dashboard' : location.pathname.slice(1);
   const setCurrentRoute = (route: string) => navigate('/' + route);
   const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
@@ -1331,7 +1333,7 @@ function App() {
   };
 
   const handleApproveOutreach = (patientId: string) => {
-    alert("Recall outreach approved & sent via WhatsApp!");
+    toast.success("Recall outreach approved & sent via WhatsApp!");
     setPatients(prev => prev.map(p => {
       if (p.id === patientId) {
         return {

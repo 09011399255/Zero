@@ -1,5 +1,6 @@
 import { AlertTriangle, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { api, Patient } from '../../api';
+import { useToast } from '../../components/shared/Toast';
 
 export interface QueueEntry {
   id: string;
@@ -85,6 +86,7 @@ export function LiveQueuePage({
   walkInLoading,
   setWalkInLoading,
 }: LiveQueuePageProps) {
+  const toast = useToast();
   const waitingCount = queue.filter(q => statusToTab[q.status] === 'waiting').length;
   const withDoctorCount = queue.filter(q => statusToTab[q.status] === 'with_doctor').length;
   const completedCount = queue.filter(q => statusToTab[q.status] === 'completed').length;
@@ -428,7 +430,7 @@ export function LiveQueuePage({
 
                 if (walkInType === 'registered') {
                   if (!walkInPatientId) {
-                    alert("Please select a patient.");
+                    toast.error("Please select a patient.");
                     return;
                   }
                   const patient = patients.find(p => p.id === walkInPatientId);
@@ -437,11 +439,11 @@ export function LiveQueuePage({
                   patientPhone = patient.phone;
                 } else {
                   if (!walkInNewPatientName.trim()) {
-                    alert("Please enter patient name.");
+                    toast.error("Please enter patient name.");
                     return;
                   }
                   if (!walkInNewPatientPhone.trim()) {
-                    alert("Please enter phone number.");
+                    toast.error("Please enter phone number.");
                     return;
                   }
                   patientName = walkInNewPatientName.trim();
@@ -459,8 +461,10 @@ export function LiveQueuePage({
                   });
                   setIsNewWalkInDrawerOpen(false);
                   await loadQueue();
+                  toast.success(`${patientName} added to the queue.`);
                 } catch (err) {
                   console.error("Failed to add walk-in:", err);
+                  toast.error("Couldn't add walk-in. Please try again.");
                 } finally {
                   setWalkInLoading(false);
                 }

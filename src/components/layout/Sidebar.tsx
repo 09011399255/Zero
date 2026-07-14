@@ -10,6 +10,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import logoWhite from '../../assets/logo-white.svg';
+import { useToast } from '../shared/Toast';
 
 interface SidebarProps {
   currentRoute: string;
@@ -28,6 +29,7 @@ const navButtonClass = (active: boolean) =>
   }`;
 
 export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName, adminEmail, onLogout }: SidebarProps) {
+  const toast = useToast();
   return (
     <aside className="w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 select-none shadow-lg">
       <div>
@@ -149,7 +151,7 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
 
         <div className="pt-2 flex flex-col gap-1">
           <button
-            onClick={() => alert('Support module is coming soon!')}
+            onClick={() => toast.info('Support module is coming soon!')}
             className="flex items-center gap-3 w-full text-left px-2 py-1.5 rounded-lg text-xs text-brand-100/60 hover:text-white hover:bg-white/5 transition duration-150"
           >
             <HelpCircle size={14} />

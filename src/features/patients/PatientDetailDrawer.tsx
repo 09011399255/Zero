@@ -1,5 +1,6 @@
 import { RefreshCw, X } from 'lucide-react';
 import { Conversation, Patient } from '../../api';
+import { useToast } from '../../components/shared/Toast';
 
 const recallStatusLabels: Record<string, string> = {
   UP_TO_DATE: 'Up to date',
@@ -32,6 +33,7 @@ export function PatientDetailDrawer({
   onClose,
   onSendMessage,
 }: PatientDetailDrawerProps) {
+  const toast = useToast();
   if (!selectedPatientId) return null;
 
   return (
@@ -275,7 +277,7 @@ export function PatientDetailDrawer({
 
             <div className="px-6 pt-6 pb-8 border-t border-surface-border/20 bg-surface-subtle/20 flex gap-3 flex-shrink-0">
               <button
-                onClick={() => alert(`Booking flow triggered for ${selectedPatient.name}`)}
+                onClick={() => toast.info(`Booking flow triggered for ${selectedPatient.name}`)}
                 className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200 font-sans"
               >
                 Book Appointment

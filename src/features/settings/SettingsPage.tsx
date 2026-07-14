@@ -1,4 +1,5 @@
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { useToast } from '../../components/shared/Toast';
 
 export interface StaffListItem {
   id: string;
@@ -67,6 +68,7 @@ export function SettingsPage({
   notificationNoShow, setNotificationNoShow,
   notificationSummary, setNotificationSummary,
 }: SettingsPageProps) {
+  const toast = useToast();
   const isDirty =
     settingsClinicName !== savedClinicName ||
     settingsAddress !== savedAddress ||
@@ -79,13 +81,13 @@ export function SettingsPage({
     setSavedAddress(settingsAddress);
     setSavedHours(settingsHours);
     setSavedServices(settingsServices);
-    alert("Clinic settings saved successfully!");
+    toast.success("Clinic settings saved successfully!");
   };
 
   const handleAddStaff = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStaffName.trim() || !newStaffEmail.trim()) {
-      alert("Please fill in Name and Email.");
+      toast.error("Please fill in Name and Email.");
       return;
     }
     const nextId = crypto.randomUUID();
@@ -103,11 +105,13 @@ export function SettingsPage({
     setNewStaffName('');
     setNewStaffEmail('');
     setIsAddStaffOpen(false);
+    toast.success("Staff member added.");
   };
 
   const handleRemoveStaff = (id: string) => {
     if (confirm("Are you sure you want to remove this staff member?")) {
       setStaffList(prev => prev.filter(s => s.id !== id));
+      toast.success("Staff member removed.");
     }
   };
 
@@ -234,7 +238,7 @@ export function SettingsPage({
 
         <div className="flex justify-end pt-1">
           <button
-            onClick={() => alert("Verification status refreshed: Still reviewing. Meta verification typically takes 1-3 business days.")}
+            onClick={() => toast.info("Verification status: Still reviewing. Meta verification typically takes 1-3 business days.")}
             className="inline-flex items-center gap-1.5 px-4 py-2 border border-surface-border text-text-secondary hover:bg-surface-subtle font-bold rounded-xl text-xs transition duration-150"
           >
             <RefreshCw size={12} className="animate-spin" style={{ animationDuration: '4s' }} />
@@ -474,7 +478,7 @@ export function SettingsPage({
 
             <div className="pt-4 flex justify-end">
               <button
-                onClick={() => alert("Billing management dashboard link clicked (Stripe customer portal interface in mockup mode).")}
+                onClick={() => toast.info("Billing management is in mockup mode (Stripe customer portal coming soon).")}
                 className="px-4 py-2 border border-surface-border text-text-secondary hover:bg-surface-subtle font-bold rounded-xl text-xs transition duration-150"
               >
                 Manage Billing

@@ -1,5 +1,6 @@
 import { ArrowUpRight, CheckCircle2, ChevronDown, Clock, Download, RefreshCw, ShieldAlert, AlertTriangle, TrendingUp, Users } from 'lucide-react';
 import { Appointment, AppointmentStatus, Conversation } from '../../api';
+import { useToast } from '../../components/shared/Toast';
 
 const statusToTab: Record<string, string> = {
   WAITING: 'waiting',
@@ -51,6 +52,7 @@ export function DashboardPage({
   mockClinicInfo,
   mockAIStats,
 }: DashboardPageProps) {
+  const toast = useToast();
   return (
     <>
       {/* GREETING HEADER */}
@@ -67,7 +69,7 @@ export function DashboardPage({
           </p>
         </div>
         <button
-          onClick={() => alert('Report download started...')}
+          onClick={() => toast.info('Report download started — check your downloads shortly.')}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-brand-500 text-brand-500 hover:bg-brand-50 font-medium rounded-xl text-sm transition duration-200"
         >
           <Download size={16} />
