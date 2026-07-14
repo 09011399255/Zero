@@ -271,7 +271,7 @@ export function SettingsPage({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <input
                 type="text"
-                placeholder="Full Name"
+                placeholder="Full Name *"
                 required
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
@@ -279,7 +279,7 @@ export function SettingsPage({
               />
               <input
                 type="email"
-                placeholder="Email Address"
+                placeholder="Email Address *"
                 required
                 value={newStaffEmail}
                 onChange={(e) => setNewStaffEmail(e.target.value)}

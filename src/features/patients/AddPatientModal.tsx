@@ -84,7 +84,7 @@ export function AddPatientModal({
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Full Name *</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Full Name <span className="text-status-danger">*</span></label>
             <input
               type="text"
               required
@@ -96,7 +96,7 @@ export function AddPatientModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Phone Number *</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Phone Number <span className="text-status-danger">*</span></label>
             <input
               type="tel"
               required

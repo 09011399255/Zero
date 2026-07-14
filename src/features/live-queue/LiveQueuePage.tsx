@@ -510,7 +510,7 @@ export function LiveQueuePage({
               {/* Registered Patient Select */}
               {walkInType === 'registered' ? (
                 <div className="space-y-1.5 flex flex-col">
-                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Select Patient</label>
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Select Patient <span className="text-status-danger">*</span></label>
                   <select
                     value={walkInPatientId || ''}
                     onChange={(e) => setWalkInPatientId(e.target.value)}
@@ -526,7 +526,7 @@ export function LiveQueuePage({
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Full Name</label>
+                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Full Name <span className="text-status-danger">*</span></label>
                     <input
                       type="text"
                       value={walkInNewPatientName}
@@ -537,7 +537,7 @@ export function LiveQueuePage({
                     />
                   </div>
                   <div className="space-y-1.5 flex flex-col">
-                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Phone Number</label>
+                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient Phone Number <span className="text-status-danger">*</span></label>
                     <input
                       type="text"
                       value={walkInNewPatientPhone}

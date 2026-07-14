@@ -76,7 +76,7 @@ export function NewAppointmentDrawer({
         >
           {/* Patient select */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Patient <span className="text-status-danger">*</span></label>
             <select
               value={formPatientId || ''}
               onChange={(e) => setFormPatientId(e.target.value)}
@@ -92,7 +92,7 @@ export function NewAppointmentDrawer({
 
           {/* Date picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Date</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Date <span className="text-status-danger">*</span></label>
             <input
               type="date"
               value={formDate}
@@ -104,7 +104,7 @@ export function NewAppointmentDrawer({
 
           {/* Time slot select */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Time Slot</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Time Slot <span className="text-status-danger">*</span></label>
             <select
               value={formTime}
               onChange={(e) => setFormTime(e.target.value)}
@@ -130,7 +130,7 @@ export function NewAppointmentDrawer({
 
           {/* Doctor select */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Doctor <span className="text-status-danger">*</span></label>
             <select
               value={formDoctor}
               onChange={(e) => setFormDoctor(e.target.value)}
@@ -144,7 +144,7 @@ export function NewAppointmentDrawer({
 
           {/* Visit Type / Department */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Visit Type / Department</label>
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Visit Type / Department <span className="text-status-danger">*</span></label>
             <select
               value={formDept}
               onChange={(e) => setFormDept(e.target.value)}
