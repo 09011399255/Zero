@@ -701,7 +701,9 @@ function App() {
   const [draftMessageText, setDraftMessageText] = useState('');
 
   const [patientsLoading, setPatientsLoading] = useState(false);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
   const [recallLoading, setRecallLoading] = useState(false);
+  const [recallError, setRecallError] = useState<string | null>(null);
   const [recallPatients, setRecallPatients] = useState<Patient[]>([]);
 
   // Add Patient Form states
@@ -724,10 +726,12 @@ function App() {
   const loadPatients = async () => {
     try {
       setPatientsLoading(true);
+      setPatientsError(null);
       const data = await api.patients.list();
       setPatients(data);
     } catch (err) {
       console.error("Failed to load patients:", err);
+      setPatientsError("Couldn't load patients.");
     } finally {
       setPatientsLoading(false);
     }
@@ -737,10 +741,12 @@ function App() {
   const loadRecallPatients = async () => {
     try {
       setRecallLoading(true);
+      setRecallError(null);
       const data = await api.patients.list({ recall: true });
       setRecallPatients(data);
     } catch (err) {
       console.error("Failed to load recall patients:", err);
+      setRecallError("Couldn't load recall list.");
     } finally {
       setRecallLoading(false);
     }
@@ -824,6 +830,7 @@ function App() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [isNewApptDrawerOpen, setIsNewApptDrawerOpen] = useState(false);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [appointmentsError, setAppointmentsError] = useState<string | null>(null);
   const [newApptLoading, setNewApptLoading] = useState(false);
   const [newApptError, setNewApptError] = useState<string | null>(null);
 
@@ -862,6 +869,7 @@ function App() {
   // ZeroChat screen states
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [conversationsError, setConversationsError] = useState<string | null>(null);
   const [conversationCounts, setConversationCounts] = useState<{ needs_review: number; ai_handling: number; resolved: number }>({ needs_review: 0, ai_handling: 0, resolved: 0 });
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -981,6 +989,7 @@ function App() {
   const loadAppointmentsRange = async (start: Date) => {
     try {
       setAppointmentsLoading(true);
+      setAppointmentsError(null);
       const weekStart = new Date(start);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6); // Sunday
@@ -997,6 +1006,7 @@ function App() {
       setAppointmentsLoadedThisSession(true);
     } catch (err) {
       console.error("Failed to load appointments:", err);
+      setAppointmentsError("Couldn't load appointments.");
     } finally {
       setAppointmentsLoading(false);
     }
@@ -1011,6 +1021,7 @@ function App() {
   const loadConversations = async () => {
     try {
       setConversationsLoading(true);
+      setConversationsError(null);
       const [needsReview, aiHandling, resolved] = await Promise.all([
         api.conversations.list({ status: "NEEDS_REVIEW" }),
         api.conversations.list({ status: "AI_HANDLING" }),
@@ -1022,6 +1033,7 @@ function App() {
       return { needsReview, aiHandling, resolved, allConversations };
     } catch (err) {
       console.error("Failed to load conversations:", err);
+      setConversationsError("Couldn't load conversations.");
       return null;
     } finally {
       setConversationsLoading(false);
@@ -1406,6 +1418,10 @@ function App() {
       setCurrentPage={setCurrentPage}
       patientsLoading={patientsLoading}
       recallLoading={recallLoading}
+      patientsError={patientsError}
+      recallError={recallError}
+      onRetryPatients={loadPatients}
+      onRetryRecall={loadRecallPatients}
       onSelectPatient={(patientId) => setSelectedPatientId(patientId)}
       onOpenAddPatientModal={() => setAddPatientModalOpen(true)}
       onExpandOutreach={(patientId, draft) => {
@@ -1455,6 +1471,8 @@ function App() {
     <AppointmentsPage
       appointments={appointments}
       appointmentsLoading={appointmentsLoading}
+      appointmentsError={appointmentsError}
+      onRetryAppointments={() => loadAppointmentsRange(currentWeekStart)}
       currentWeekStart={currentWeekStart}
       setCurrentWeekStart={setCurrentWeekStart}
       apptViewMode={apptViewMode}
@@ -1559,6 +1577,8 @@ function App() {
     <ZeroChatPage
       conversations={conversations}
       conversationsLoading={conversationsLoading}
+      conversationsError={conversationsError}
+      onRetryConversations={loadConversations}
       activeConversation={activeConversation}
       setActiveConversation={setActiveConversation}
       setConversations={setConversations}

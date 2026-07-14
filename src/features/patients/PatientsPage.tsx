@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { Patient } from '../../api';
+import { ErrorState } from '../../components/shared/ErrorState';
 
 const recallStatusLabels: Record<string, string> = {
   UP_TO_DATE: 'Up to date',
@@ -18,6 +19,10 @@ interface PatientsPageProps {
   setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
   patientsLoading: boolean;
   recallLoading: boolean;
+  patientsError: string | null;
+  recallError: string | null;
+  onRetryPatients: () => void;
+  onRetryRecall: () => void;
   onSelectPatient: (patientId: string) => void;
   onOpenAddPatientModal: () => void;
   onExpandOutreach: (patientId: string, draft: string) => void;
@@ -34,11 +39,17 @@ export function PatientsPage({
   setCurrentPage,
   patientsLoading,
   recallLoading,
+  patientsError,
+  recallError,
+  onRetryPatients,
+  onRetryRecall,
   onSelectPatient,
   onOpenAddPatientModal,
   onExpandOutreach,
 }: PatientsPageProps) {
   const currentList = patientsTab === 'recall' ? recallPatients : patients;
+  const activeError = patientsTab === 'recall' ? recallError : patientsError;
+  const activeLoading = patientsTab === 'recall' ? recallLoading : patientsLoading;
 
   const filteredPatients = currentList.filter(patient => {
     const query = searchQuery.toLowerCase().trim();
@@ -158,11 +169,16 @@ export function PatientsPage({
       {/* TABLE CONTAINER */}
       <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 overflow-hidden flex flex-col justify-between min-h-[500px]">
         <div className="overflow-x-auto">
-          {patientsLoading || recallLoading ? (
+          {activeLoading ? (
             <div className="flex flex-col items-center justify-center py-40 text-center">
               <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
               <p className="text-sm font-semibold text-text-primary">Loading patients...</p>
             </div>
+          ) : activeError ? (
+            <ErrorState
+              message={activeError}
+              onRetry={patientsTab === 'recall' ? onRetryRecall : onRetryPatients}
+            />
           ) : paginatedPatients.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">

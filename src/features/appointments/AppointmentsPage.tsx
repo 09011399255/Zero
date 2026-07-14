@@ -1,5 +1,6 @@
 import { Activity, Calendar, ChevronLeft, ChevronRight, Clock, Plus, Search } from 'lucide-react';
 import { Appointment, AppointmentStatus } from '../../api';
+import { ErrorState } from '../../components/shared/ErrorState';
 
 const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   pending: "Pending",
@@ -12,6 +13,8 @@ const appointmentStatusLabels: Record<AppointmentStatus, string> = {
 interface AppointmentsPageProps {
   appointments: Appointment[];
   appointmentsLoading: boolean;
+  appointmentsError: string | null;
+  onRetryAppointments: () => void;
   currentWeekStart: Date;
   setCurrentWeekStart: (date: Date) => void;
   apptViewMode: 'calendar' | 'list';
@@ -36,6 +39,8 @@ interface AppointmentsPageProps {
 export function AppointmentsPage({
   appointments,
   appointmentsLoading,
+  appointmentsError,
+  onRetryAppointments,
   currentWeekStart,
   setCurrentWeekStart,
   apptViewMode,
@@ -281,7 +286,11 @@ export function AppointmentsPage({
       </div>
 
       {/* MAIN VIEWS */}
-      {apptViewMode === 'calendar' ? (
+      {appointmentsError && appointments.length === 0 ? (
+        <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft">
+          <ErrorState message={appointmentsError} onRetry={onRetryAppointments} />
+        </div>
+      ) : apptViewMode === 'calendar' ? (
         <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-x-auto">
           <div className="min-w-[900px]">
             {/* Calendar Grid Header */}

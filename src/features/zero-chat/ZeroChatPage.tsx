@@ -1,6 +1,7 @@
 import { AlertTriangle, ChevronDown, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
 import { api, Conversation } from '../../api';
 import { ConversationRow } from './ConversationRow';
+import { ErrorState } from '../../components/shared/ErrorState';
 
 interface ExpandedSections {
   needs_review: boolean;
@@ -11,6 +12,8 @@ interface ExpandedSections {
 interface ZeroChatPageProps {
   conversations: Conversation[];
   conversationsLoading: boolean;
+  conversationsError: string | null;
+  onRetryConversations: () => void;
   activeConversation: Conversation | null;
   setActiveConversation: React.Dispatch<React.SetStateAction<Conversation | null>>;
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
@@ -35,6 +38,8 @@ interface ZeroChatPageProps {
 export function ZeroChatPage({
   conversations,
   conversationsLoading,
+  conversationsError,
+  onRetryConversations,
   activeConversation,
   setActiveConversation,
   setConversations,
@@ -127,6 +132,8 @@ export function ZeroChatPage({
               <RefreshCw size={18} className="animate-spin text-brand-500" />
               <span className="text-[11px] font-medium font-sans">Loading chats...</span>
             </div>
+          ) : conversationsError && conversations.length === 0 ? (
+            <ErrorState message={conversationsError} onRetry={onRetryConversations} />
           ) : (
             <>
               {/* Needs Review Section */}
