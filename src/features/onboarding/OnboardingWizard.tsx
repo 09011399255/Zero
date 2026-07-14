@@ -3,6 +3,7 @@ import { api } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
 import { PasswordInput } from '../../components/shared/PasswordInput';
 import { validatePassword } from '../../lib/password';
+import { formatAuthError } from '../../lib/authErrors';
 
 const PRESET_SERVICES = [
   'Cardiology',
@@ -327,7 +328,7 @@ export function OnboardingWizard({
                   await api.auth.forgotPassword({ email: forgotPasswordEmail });
                   setForgotPasswordSent(true);
                 } catch (err: any) {
-                  setForgotPasswordError(err.message || "Could not send reset email. Please try again.");
+                  setForgotPasswordError(formatAuthError(err, "Could not send reset email. Please try again."));
                 } finally {
                   setIsLoading(false);
                 }
@@ -422,7 +423,7 @@ export function OnboardingWizard({
                   }
                   setIsVerificationPending(true);
                 } catch (err: any) {
-                  setSignUpError(err.message || "Registration failed. Please try again.");
+                  setSignUpError(formatAuthError(err, "Registration failed. Please try again."));
                 } finally {
                   setIsLoading(false);
                 }
@@ -505,7 +506,7 @@ export function OnboardingWizard({
                   localStorage.setItem("zero_token", res.token);
                   await onCheckSession();
                 } catch (err: any) {
-                  setLoginError(err.message || "Invalid email or password.");
+                  setLoginError(formatAuthError(err, "Invalid email or password."));
                 } finally {
                   setIsLoading(false);
                 }

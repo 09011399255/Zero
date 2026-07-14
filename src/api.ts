@@ -34,11 +34,18 @@ async function request<T>(
     if (requiresAuth && res.status === 401) {
       window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     }
+    // On a 429 the rate limiter reports seconds-until-reset. With
+    // legacyHeaders off the standard `RateLimit-Reset` carries it; keep
+    // `Retry-After` as a fallback. Surfaced so callers can show "try again
+    // in X". (Both are CORS-exposed by the backend, else fetch hides them.)
+    const resetHeader = res.headers.get("Retry-After") || res.headers.get("RateLimit-Reset");
+    const retryAfter = resetHeader ? parseInt(resetHeader, 10) : undefined;
     throw {
       status: res.status,
       message: responseBody.error || responseBody.message || res.statusText,
       code: responseBody.code,
       details: responseBody.details,
+      retryAfter: Number.isFinite(retryAfter) ? retryAfter : undefined,
     };
   }
   return res.json();

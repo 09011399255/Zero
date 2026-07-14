@@ -32,6 +32,7 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { useToast } from './components/shared/Toast';
+import { formatAuthError } from './lib/authErrors';
 
 const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
   id: apt.id,
@@ -352,8 +353,10 @@ function App() {
     try {
       setResendCooldown(30);
       await api.auth.resendVerification({ email });
-    } catch (err) {
+      toast.success("Verification email sent. Check your inbox.");
+    } catch (err: any) {
       console.error("Failed to resend verification:", err);
+      toast.error(formatAuthError(err, "Couldn't resend the verification email. Please try again."));
     }
   };
 

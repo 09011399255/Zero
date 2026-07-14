@@ -3,6 +3,7 @@ import { api } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
 import { PasswordInput } from '../../components/shared/PasswordInput';
 import { validatePassword } from '../../lib/password';
+import { formatAuthError } from '../../lib/authErrors';
 
 type ResetPasswordState = 'form' | 'submitting' | 'success' | 'invalid' | 'expired' | 'missing';
 
@@ -143,7 +144,7 @@ export function ResetPasswordPage({
                 setResetPasswordState('invalid');
               } else {
                 setResetPasswordState('form');
-                setResetPasswordError(err.message || 'Could not reset password. Please try again.');
+                setResetPasswordError(formatAuthError(err, 'Could not reset password. Please try again.'));
               }
             }
           }}
