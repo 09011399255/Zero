@@ -1,5 +1,6 @@
 import { Clock, X } from 'lucide-react';
 import { api, Appointment, AppointmentStatus } from '../../api';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   pending: "Pending",
@@ -38,6 +39,7 @@ export function AppointmentDetailDrawer({
   onClose,
   onUpdated,
 }: AppointmentDetailDrawerProps) {
+  const panelRef = useModalA11y<HTMLDivElement>(selectedAppointmentId !== null, onClose);
   if (selectedAppointmentId === null) return null;
   const appt = appointments.find(a => a.id === selectedAppointmentId);
   if (!appt) return null;
@@ -49,12 +51,19 @@ export function AppointmentDetailDrawer({
         onClick={onClose}
       ></div>
 
-      <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Appointment details"
+        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
+      >
         <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
           {/* Close Button Row */}
           <div className="flex justify-end mb-4">
             <button
               onClick={onClose}
+              aria-label="Close"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
             >
               <X size={16} />

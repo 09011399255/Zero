@@ -1,6 +1,7 @@
 import { AlertTriangle, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { api, Patient } from '../../api';
 import { useToast } from '../../components/shared/Toast';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 export interface QueueEntry {
   id: string;
@@ -87,6 +88,7 @@ export function LiveQueuePage({
   setWalkInLoading,
 }: LiveQueuePageProps) {
   const toast = useToast();
+  const walkInPanelRef = useModalA11y<HTMLDivElement>(isNewWalkInDrawerOpen, () => setIsNewWalkInDrawerOpen(false));
   const waitingCount = queue.filter(q => statusToTab[q.status] === 'waiting').length;
   const withDoctorCount = queue.filter(q => statusToTab[q.status] === 'with_doctor').length;
   const completedCount = queue.filter(q => statusToTab[q.status] === 'completed').length;
@@ -409,12 +411,19 @@ export function LiveQueuePage({
             onClick={() => setIsNewWalkInDrawerOpen(false)}
           ></div>
 
-          <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans text-xs font-semibold">
+          <div
+            ref={walkInPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add walk-in patient"
+            className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans text-xs font-semibold"
+          >
             {/* Header */}
             <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
               <h3 className="text-base font-bold text-text-primary">Add Walk-in Patient</h3>
               <button
                 onClick={() => setIsNewWalkInDrawerOpen(false)}
+                aria-label="Close"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
               >
                 <X size={16} />

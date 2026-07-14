@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { Patient } from '../../api';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface PatientOutreachDrawerProps {
   patients: Patient[];
@@ -26,6 +27,7 @@ export function PatientOutreachDrawer({
   onApprove,
   onSaveAndApprove,
 }: PatientOutreachDrawerProps) {
+  const panelRef = useModalA11y<HTMLDivElement>(expandedOutreachId !== null, onClose);
   if (expandedOutreachId === null) return null;
   const p = patients.find(patient => patient.id === expandedOutreachId);
   if (!p || !p.aiOutreachDraft) return null;
@@ -38,7 +40,13 @@ export function PatientOutreachDrawer({
         onClick={onClose}
       ></div>
 
-      <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col justify-between z-10 animate-slide-in">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Recall outreach"
+        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col justify-between z-10 animate-slide-in"
+      >
         {/* HEADER */}
         <div className="p-6 border-b border-surface-border/20 flex items-center justify-between">
           <div className="overflow-hidden">
@@ -48,6 +56,7 @@ export function PatientOutreachDrawer({
 
           <button
             onClick={onClose}
+            aria-label="Close"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30 flex-shrink-0"
           >
             <X size={16} />

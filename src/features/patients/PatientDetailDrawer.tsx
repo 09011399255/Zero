@@ -1,6 +1,7 @@
 import { RefreshCw, X } from 'lucide-react';
 import { Conversation, Patient } from '../../api';
 import { useToast } from '../../components/shared/Toast';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const recallStatusLabels: Record<string, string> = {
   UP_TO_DATE: 'Up to date',
@@ -34,6 +35,7 @@ export function PatientDetailDrawer({
   onSendMessage,
 }: PatientDetailDrawerProps) {
   const toast = useToast();
+  const panelRef = useModalA11y<HTMLDivElement>(!!selectedPatientId, onClose);
   if (!selectedPatientId) return null;
 
   return (
@@ -43,12 +45,19 @@ export function PatientDetailDrawer({
         onClick={onClose}
       ></div>
 
-      <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Patient details"
+        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden"
+      >
         <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
           {/* Close Button Row */}
           <div className="flex justify-end mb-4">
             <button
               onClick={onClose}
+              aria-label="Close"
               className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
             >
               <X size={16} />

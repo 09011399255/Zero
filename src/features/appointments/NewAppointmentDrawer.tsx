@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { Patient } from '../../api';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface NewAppointmentDrawerProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export function NewAppointmentDrawer({
   newApptError,
   newApptLoading,
 }: NewAppointmentDrawerProps) {
+  const panelRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   return (
@@ -45,12 +47,19 @@ export function NewAppointmentDrawer({
         onClick={onClose}
       ></div>
 
-      <div className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="New appointment"
+        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
+      >
         {/* Header */}
         <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
           <h3 className="text-base font-bold text-text-primary">New Appointment</h3>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
           >
             <X size={16} />
