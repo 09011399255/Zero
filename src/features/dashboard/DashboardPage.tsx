@@ -53,6 +53,35 @@ export function DashboardPage({
   const toast = useToast();
   const ai = summary?.aiActivity;
   const autonomy = summary?.aiAutonomy;
+
+  const todaysUpcoming = [...appointments]
+    .filter(a => a && a.date && (a.status?.toLowerCase() ?? '') !== 'cancelled')
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const getMinutes = (t: string) => {
+        if (!t) return 0;
+        const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+        if (!m) return 0;
+        let h = parseInt(m[1], 10);
+        const mins = parseInt(m[2], 10);
+        if (m[3]) {
+          const ampm = m[3].toUpperCase();
+          if (ampm === "PM" && h < 12) h += 12;
+          if (ampm === "AM" && h === 12) h = 0;
+        }
+        return h * 60 + mins;
+      };
+      return getMinutes(a.time) - getMinutes(b.time);
+    })
+    .slice(0, 8);
+
+  const miniStatusBadgeClasses = (status?: string) =>
+    status === 'confirmed'
+      ? 'bg-status-successBg text-status-success'
+      : status === 'pending'
+      ? 'bg-status-warningBg text-status-warning'
+      : 'bg-status-dangerBg text-status-danger';
+
   return (
     <>
       {/* GREETING HEADER */}
@@ -96,98 +125,114 @@ export function DashboardPage({
           </div>
         </div>
 
-        {/* Stat Row */}
-        <div className="grid grid-cols-3 border-t border-surface-border/60 pt-6">
+        {/* Stat Row — compact horizontal rows on mobile (value alongside label,
+            divided by hairlines), centered stacked blocks from sm up. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 border-t border-surface-border/60 pt-3 sm:pt-6 divide-y sm:divide-y-0 sm:divide-x divide-surface-border/60">
           {/* Conversations Handled Today */}
-          <div className="flex flex-col items-center justify-center text-center py-1">
-            <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {ai?.conversationsHandledToday ?? 0}
-            </span>
-            <span className="text-[12px] text-text-secondary mt-1.5">
+          <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center text-center py-2.5 sm:py-1">
+            <span className="text-[12px] text-text-secondary sm:mt-1.5 sm:order-2">
               Conversations handled today
+            </span>
+            <span className="text-[20px] sm:text-[24px] font-semibold text-text-primary leading-none sm:order-1">
+              {ai?.conversationsHandledToday ?? 0}
             </span>
           </div>
 
           {/* Escalated to Staff */}
-          <div className="flex flex-col items-center justify-center text-center py-1 border-x border-surface-border/60">
-            <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {ai?.escalatedToStaff ?? 0}
-            </span>
-            <span className="text-[12px] text-text-secondary mt-1.5">
+          <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center text-center py-2.5 sm:py-1">
+            <span className="text-[12px] text-text-secondary sm:mt-1.5 sm:order-2">
               Escalated to staff
+            </span>
+            <span className="text-[20px] sm:text-[24px] font-semibold text-text-primary leading-none sm:order-1">
+              {ai?.escalatedToStaff ?? 0}
             </span>
           </div>
 
           {/* Avg Response Time */}
-          <div className="flex flex-col items-center justify-center text-center py-1">
-            <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {ai ? `${ai.avgResponseTimeSeconds}s` : '—'}
-            </span>
-            <span className="text-[12px] text-text-secondary mt-1.5">
+          <div className="flex items-center justify-between sm:flex-col sm:items-center sm:justify-center text-center py-2.5 sm:py-1">
+            <span className="text-[12px] text-text-secondary sm:mt-1.5 sm:order-2">
               Avg response time
+            </span>
+            <span className="text-[20px] sm:text-[24px] font-semibold text-text-primary leading-none sm:order-1">
+              {ai ? `${ai.avgResponseTimeSeconds}s` : '—'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* STAT ROW (3 Compact Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
+      {/* STAT ROW (3 Compact Cards) — 2-up compact grid on mobile (smaller
+          icon, tighter layout) rather than a shrunk version of the desktop card */}
+      {(() => {
+        const cards = [
           {
             label: "Patients Waiting",
             count: queue.filter(q => statusToTab[q.status] === 'waiting').length,
             change: "Live count",
-            type: "waiting"
+            type: "waiting" as const,
           },
           {
             label: "With Doctor",
             count: queue.filter(q => statusToTab[q.status] === 'with_doctor').length,
             change: "Live count",
-            type: "withDoctor"
+            type: "withDoctor" as const,
           },
           {
             label: "Completed Today",
             count: queue.filter(q => statusToTab[q.status] === 'completed').length,
             change: "Live count",
-            type: "completed"
-          }
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-surface-base rounded-2xl p-6 shadow-soft hover:shadow-soft-md transition duration-200 border border-surface-border/20 flex items-center justify-between"
-          >
-            <div>
-              <span className="text-xs text-text-secondary font-medium tracking-wide block uppercase">
-                {card.label}
-              </span>
-              <span className="text-3xl font-bold text-text-primary block mt-1.5">
-                {card.count}
-              </span>
-              <span className={`text-xs font-semibold inline-block mt-2 px-2.5 py-0.5 rounded-full ${
-                card.type === 'waiting'
-                  ? 'bg-status-warningBg text-status-warning'
-                  : card.type === 'withDoctor'
-                  ? 'bg-brand-50 text-brand-600'
-                  : 'bg-status-successBg text-status-success'
-              }`}>
-                {card.change}
-              </span>
+            type: "completed" as const,
+          },
+        ];
+        const iconBg = (t: typeof cards[number]['type']) =>
+          t === 'waiting' ? 'bg-status-warningBg text-status-warning' : t === 'withDoctor' ? 'bg-brand-50 text-brand-500' : 'bg-status-successBg text-status-success';
+        const pillBg = (t: typeof cards[number]['type']) =>
+          t === 'waiting' ? 'bg-status-warningBg text-status-warning' : t === 'withDoctor' ? 'bg-brand-50 text-brand-600' : 'bg-status-successBg text-status-success';
+        const icon = (t: typeof cards[number]['type'], size: number) =>
+          t === 'waiting' ? <Clock size={size} /> : t === 'withDoctor' ? <Users size={size} /> : <CheckCircle2 size={size} />;
+        return (
+          <>
+            {/* Mobile: compact 2-up grid */}
+            <div className="grid grid-cols-2 gap-3 sm:hidden">
+              {cards.map((card) => (
+                <div key={card.label} className="bg-surface-base rounded-xl p-3 shadow-soft border border-surface-border/20 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${iconBg(card.type)}`}>
+                      {icon(card.type, 14)}
+                    </div>
+                    <span className="text-xl font-bold text-text-primary leading-none">{card.count}</span>
+                  </div>
+                  <span className="text-[10px] text-text-secondary font-semibold uppercase tracking-wide leading-tight">{card.label}</span>
+                </div>
+              ))}
             </div>
 
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              card.type === 'waiting'
-                ? 'bg-status-warningBg text-status-warning'
-                : card.type === 'withDoctor'
-                ? 'bg-brand-50 text-brand-500'
-                : 'bg-status-successBg text-status-success'
-            }`}>
-              {card.type === 'waiting' && <Clock size={22} />}
-              {card.type === 'withDoctor' && <Users size={22} />}
-              {card.type === 'completed' && <CheckCircle2 size={22} />}
+            {/* Tablet/desktop: original wide card */}
+            <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-6">
+              {cards.map((card) => (
+                <div
+                  key={card.label}
+                  className="bg-surface-base rounded-2xl p-6 shadow-soft hover:shadow-soft-md transition duration-200 border border-surface-border/20 flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs text-text-secondary font-medium tracking-wide block uppercase">
+                      {card.label}
+                    </span>
+                    <span className="text-3xl font-bold text-text-primary block mt-1.5">
+                      {card.count}
+                    </span>
+                    <span className={`text-xs font-semibold inline-block mt-2 px-2.5 py-0.5 rounded-full ${pillBg(card.type)}`}>
+                      {card.change}
+                    </span>
+                  </div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg(card.type)}`}>
+                    {icon(card.type, 22)}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        ))}
-      </div>
+          </>
+        );
+      })()}
 
       {/* TWO COLUMN ROW */}
       <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
@@ -205,7 +250,33 @@ export function DashboardPage({
               </button>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile: compact card list instead of a 5-column table */}
+            <div className="md:hidden space-y-2">
+              {todaysUpcoming.length === 0 ? (
+                <p className="text-xs text-text-secondary py-4 text-center">No appointments today.</p>
+              ) : (
+                todaysUpcoming.map((apt) => {
+                  const aptStatus = apt.status?.toLowerCase();
+                  return (
+                    <div key={apt.id} className="flex items-center gap-3 p-3 rounded-xl border border-surface-border/20">
+                      <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                        {apt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-semibold text-text-primary block truncate">{apt.patientName ?? ''}</span>
+                        <span className="text-[10px] text-text-secondary block truncate">{apt.time} · {apt.doctor}</span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider flex-shrink-0 ${miniStatusBadgeClasses(aptStatus)}`}>
+                        {appointmentStatusLabels[aptStatus as AppointmentStatus] || apt.status}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop/tablet: full table with inline Accept/Reject actions */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-surface-border/30 text-left">
@@ -217,27 +288,7 @@ export function DashboardPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-border/20">
-                  {[...appointments]
-                    .filter(a => a && a.date && (a.status?.toLowerCase() ?? '') !== 'cancelled')
-                    .sort((a, b) => {
-                      if (a.date !== b.date) return a.date.localeCompare(b.date);
-                      const getMinutes = (t: string) => {
-                        if (!t) return 0;
-                        const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-                        if (!m) return 0;
-                        let h = parseInt(m[1], 10);
-                        const mins = parseInt(m[2], 10);
-                        if (m[3]) {
-                          const ampm = m[3].toUpperCase();
-                          if (ampm === "PM" && h < 12) h += 12;
-                          if (ampm === "AM" && h === 12) h = 0;
-                        }
-                        return h * 60 + mins;
-                      };
-                      return getMinutes(a.time) - getMinutes(b.time);
-                    })
-                    .slice(0, 8)
-                    .map((apt) => {
+                  {todaysUpcoming.map((apt) => {
                       const aptStatus = apt.status?.toLowerCase();
                       return (
                         <tr key={apt.id} className="hover:bg-surface-subtle/50 transition duration-150">

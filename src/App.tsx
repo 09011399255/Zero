@@ -275,6 +275,9 @@ function App() {
   const toast = useToast();
   const currentRoute = location.pathname === '/' ? 'dashboard' : location.pathname.slice(1);
   const setCurrentRoute = (route: string) => navigate('/' + route);
+  // Mobile sidebar drawer (hamburger). Always-open on lg+ via CSS.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  useEffect(() => { setIsSidebarOpen(false); }, [currentRoute]);
   const [dismissedAttentionIds, setDismissedAttentionIds] = useState<string[]>([]);
   const [queueLoaded, setQueueLoaded] = useState(false);
   const [appointmentsLoadedThisSession, setAppointmentsLoadedThisSession] = useState(false);
@@ -1955,10 +1958,18 @@ if (!isOnboarded) {
         adminName={onboardingAdminName}
         adminEmail={onboardingEmail}
         onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* MAIN CONTAINER */}
-      <div className="flex-1 pl-[260px] min-h-screen flex flex-col">
+      {/* min-w-0 is required here: as a flex item of the sidebar row, this
+          container's automatic min-width defaults to its content's intrinsic
+          width, which lets any wide descendant (e.g. the calendar's
+          min-w-[900px] grid) blow out the whole page even though it's wrapped
+          in its own overflow-x-auto — the overflow-x-auto only takes effect
+          once this flex item is allowed to actually shrink. */}
+      <div className="flex-1 lg:pl-[260px] min-h-screen flex flex-col min-w-0">
         <Topbar
           clinicName={settingsClinicName}
           currentRoute={currentRoute}
@@ -1968,10 +1979,12 @@ if (!isOnboarded) {
           unreadCount={unreadCount}
           onMarkAllRead={handleMarkAllAsRead}
           onNotificationClick={handleNotificationClick}
+          isSidebarOpen={isSidebarOpen}
+          onToggleSidebar={() => setIsSidebarOpen((v) => !v)}
         />
 
                 {/* 3. MAIN CONTENT AREA */}
-        <main className="p-8 flex-1 space-y-6 w-full">
+        <main className="p-4 md:p-8 flex-1 space-y-6 w-full max-w-full overflow-x-hidden">
           <ErrorBoundary>
             {currentRoute === 'patients' ? (
             renderPatientsScreen()

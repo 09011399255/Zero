@@ -176,7 +176,7 @@ export function OnboardingWizard({
       "Almost ready..."
     ];
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center max-w-[460px] bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 w-full animate-fade-in space-y-8">
+      <div className="flex flex-col items-center justify-center p-6 sm:p-12 text-center max-w-[460px] bg-surface-base rounded-3xl shadow-[0_15px_45px_-8px_rgba(0,0,0,0.06),0_10px_20px_-10px_rgba(0,0,0,0.03)] border border-surface-border/30 w-full animate-fade-in space-y-8">
         <div className="relative flex h-32 w-32 items-center justify-center">
           {/* Layered Pulsing Glow Rings */}
           <span className="animate-ring-1 absolute inline-flex h-full w-full rounded-full bg-ai-500/10"></span>

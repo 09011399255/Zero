@@ -50,7 +50,7 @@ export function PatientDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Patient details"
-        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden"
       >
         <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
           {/* Close Button Row */}

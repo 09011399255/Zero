@@ -233,7 +233,7 @@ export function SettingsPage({
 
       {/* SECTION 3: STAFF */}
       <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4 flex items-center justify-between">
+        <div className="border-b border-surface-border/30 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-text-primary">Staff Management</h3>
             <p className="text-text-secondary mt-0.5">Configure access roles for clinic practitioners and admins</p>
@@ -241,7 +241,7 @@ export function SettingsPage({
 
           <button
             onClick={() => setIsAddStaffOpen(!isAddStaffOpen)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 border border-brand-500 text-brand-500 hover:bg-brand-50 font-bold rounded-xl text-xs transition duration-150"
+            className="inline-flex items-center justify-center gap-1 px-3 py-1.5 border border-brand-500 text-brand-500 hover:bg-brand-50 font-bold rounded-xl text-xs transition duration-150 self-start sm:self-auto"
           >
             <Plus size={14} />
             <span>Add Staff</span>
@@ -299,8 +299,29 @@ export function SettingsPage({
           </form>
         )}
 
-        {/* Staff List Table */}
-        <div className="border border-surface-border/20 rounded-xl overflow-hidden">
+        {/* Staff List — cards on mobile, table on tablet/desktop */}
+        <div className="md:hidden space-y-2">
+          {staffList.map((staff) => (
+            <div key={staff.id} className="flex items-center gap-3 p-3 border border-surface-border/20 rounded-xl">
+              <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-bold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                {staff.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-text-primary text-xs block truncate">{staff.name}</span>
+                <span className="text-[10px] text-text-secondary block truncate">{staff.role} · {staff.email}</span>
+              </div>
+              <button
+                onClick={() => handleRemoveStaff(staff.id)}
+                className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-dangerBg/50 rounded-lg transition duration-150 flex-shrink-0"
+                title="Remove Staff"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block border border-surface-border/20 rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">

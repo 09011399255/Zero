@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, MessageSquare, RefreshCw, Search, Send } from 'lucide-react';
 import { api, Conversation } from '../../api';
 import { ConversationRow } from './ConversationRow';
 import { ErrorState } from '../../components/shared/ErrorState';
@@ -109,8 +109,8 @@ export function ZeroChatPage({
 
   return (
     <div className="flex bg-surface-base rounded-2xl border border-surface-border/25 shadow-soft overflow-hidden h-[calc(100vh-170px)] animate-fade-in">
-      {/* CONVERSATION LIST (LEFT PANEL) */}
-      <div className="w-[320px] border-r border-surface-border/25 flex flex-col bg-surface-base h-full flex-shrink-0">
+      {/* CONVERSATION LIST (LEFT PANEL) — full-width on mobile, hidden there once a thread is open */}
+      <div className={`w-full lg:w-[320px] border-r border-surface-border/25 flex-col bg-surface-base h-full flex-shrink-0 ${selectedChatId ? 'hidden lg:flex' : 'flex'}`}>
         {/* List Search Header */}
         <div className="p-4 border-b border-surface-border/15">
           <div className="relative">
@@ -228,13 +228,21 @@ export function ZeroChatPage({
         </div>
       </div>
 
-      {/* ACTIVE THREAD (RIGHT PANEL) */}
-      <div className="flex-1 flex flex-col bg-surface-subtle/15 h-full min-w-0">
+      {/* ACTIVE THREAD (RIGHT PANEL) — full-screen on mobile once a thread is open, hidden there otherwise */}
+      <div className={`flex-1 flex-col bg-surface-subtle/15 h-full min-w-0 ${selectedChatId ? 'flex' : 'hidden lg:flex'}`}>
         {selectedConv ? (
           <>
             {/* Thread Header */}
             <div className="p-4 border-b border-surface-border/20 bg-surface-base flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedChatId('')}
+                  aria-label="Back to conversations"
+                  className="lg:hidden flex-shrink-0 w-8 h-8 -ml-1 rounded-lg flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150"
+                >
+                  <ArrowLeft size={18} />
+                </button>
                 <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0 font-sans">
                   {getInitials(selectedConv.patientName)}
                 </div>

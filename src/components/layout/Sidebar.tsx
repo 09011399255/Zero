@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import logoWhite from '../../assets/logo-white.svg';
 import { useToast } from '../shared/Toast';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface SidebarProps {
   currentRoute: string;
@@ -19,6 +20,10 @@ interface SidebarProps {
   adminName: string;
   adminEmail: string;
   onLogout: () => void;
+  // Mobile drawer control. On lg+ the sidebar is always visible and these
+  // are effectively no-ops (the CSS pins it open via lg:translate-x-0).
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const navButtonClass = (active: boolean) =>
@@ -28,10 +33,25 @@ const navButtonClass = (active: boolean) =>
       : 'text-brand-100/70 hover:text-white hover:bg-white/5'
   }`;
 
-export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName, adminEmail, onLogout }: SidebarProps) {
+export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName, adminEmail, onLogout, isOpen, onClose }: SidebarProps) {
   const toast = useToast();
+  const panelRef = useModalA11y<HTMLElement>(isOpen, onClose);
+  // Navigating closes the mobile drawer (harmless no-op on desktop).
+  const go = (route: string) => { onNavigate(route); onClose(); };
   return (
-    <aside className="w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-30 select-none shadow-lg">
+    <>
+      {/* Mobile backdrop — only when the drawer is open, below lg */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+    <aside
+      ref={panelRef}
+      className={`w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 select-none shadow-lg transition-transform duration-300 ease-out pt-16 lg:pt-0 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+    >
       <div>
         {/* Logo Section */}
         <div className="p-6 pb-4 flex items-center gap-2.5">
@@ -49,26 +69,26 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
             </div>
             <ul className="space-y-1">
               <li>
-                <button onClick={() => onNavigate('dashboard')} className={navButtonClass(currentRoute === 'dashboard')}>
+                <button onClick={() => go('dashboard')} className={navButtonClass(currentRoute === 'dashboard')}>
                   <LayoutGrid size={16} />
                   <span>Dashboard</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('live-queue')} className={navButtonClass(currentRoute === 'live-queue')}>
+                <button onClick={() => go('live-queue')} className={navButtonClass(currentRoute === 'live-queue')}>
                   <Timer size={16} />
                   <span>Live Queue</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => onNavigate('appointments')} className={navButtonClass(currentRoute === 'appointments')}>
+                <button onClick={() => go('appointments')} className={navButtonClass(currentRoute === 'appointments')}>
                   <Calendar size={16} />
                   <span>Appointments</span>
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('zero-chat')}
+                  onClick={() => go('zero-chat')}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition duration-150 ${
                     currentRoute === 'zero-chat'
                       ? 'bg-ai-50 text-brand-500 font-semibold'
@@ -96,7 +116,7 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
             </div>
             <ul className="space-y-1">
               <li>
-                <button onClick={() => onNavigate('patients')} className={navButtonClass(currentRoute === 'patients')}>
+                <button onClick={() => go('patients')} className={navButtonClass(currentRoute === 'patients')}>
                   <Users size={16} />
                   <span>Patients</span>
                 </button>
@@ -111,7 +131,7 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
             </div>
             <ul className="space-y-1">
               <li>
-                <button onClick={() => onNavigate('analytics')} className={navButtonClass(currentRoute === 'analytics')}>
+                <button onClick={() => go('analytics')} className={navButtonClass(currentRoute === 'analytics')}>
                   <TrendingUp size={16} />
                   <span>Analytics</span>
                 </button>
@@ -126,7 +146,7 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
             </div>
             <ul className="space-y-1">
               <li>
-                <button onClick={() => onNavigate('settings')} className={navButtonClass(currentRoute === 'settings')}>
+                <button onClick={() => go('settings')} className={navButtonClass(currentRoute === 'settings')}>
                   <Settings size={16} />
                   <span>Settings</span>
                 </button>
@@ -167,5 +187,6 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
         </div>
       </div>
     </aside>
+    </>
   );
 }

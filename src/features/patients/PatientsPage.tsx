@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Plus, RefreshCw, Search, Table2, X } from 'lucide-react';
+import { useState } from 'react';
 import { Patient } from '../../api';
 import { ErrorState } from '../../components/shared/ErrorState';
 
@@ -47,6 +48,10 @@ export function PatientsPage({
   onOpenAddPatientModal,
   onExpandOutreach,
 }: PatientsPageProps) {
+  // Desktop/tablet card-vs-table preference (Part 4). Mobile always shows
+  // cards regardless of this — see the md:hidden / hidden md:block split below.
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+
   const currentList = patientsTab === 'recall' ? recallPatients : patients;
   const activeError = patientsTab === 'recall' ? recallError : patientsError;
   const activeLoading = patientsTab === 'recall' ? recallLoading : patientsLoading;
@@ -76,6 +81,96 @@ export function PatientsPage({
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
+
+  // Recall status pill — shared by the table and the card view.
+  const recallBadge = (patient: Patient) => {
+    const status = (patient.recallStatus || '').toUpperCase();
+    const color =
+      status === 'UP_TO_DATE' ? 'success' : status === 'DUE_SOON' ? 'warning' : status === 'OVERDUE' ? 'danger' : 'muted';
+    const classes: Record<string, string> = {
+      success: 'bg-status-successBg text-status-success',
+      warning: 'bg-status-warningBg text-status-warning',
+      danger: 'bg-status-dangerBg text-status-danger',
+      muted: 'bg-surface-subtle text-text-muted',
+    };
+    const dotClasses: Record<string, string> = {
+      success: 'bg-status-success',
+      warning: 'bg-status-warning',
+      danger: 'bg-status-danger',
+      muted: 'bg-text-muted',
+    };
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${classes[color]}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${dotClasses[color]}`}></span>
+        {recallStatusLabels[status] || patient.recallStatus || '—'}
+      </span>
+    );
+  };
+
+  // One patient card — used both for the always-cards mobile view and the
+  // desktop/tablet "card" view mode (Part 4: same card design in both places).
+  const renderPatientCard = (patient: Patient) => (
+    <div
+      key={patient.id}
+      onClick={() => onSelectPatient(patient.id)}
+      className="p-4 flex flex-col gap-3 border border-surface-border/20 rounded-2xl bg-surface-base hover:shadow-soft active:bg-surface-subtle/50 transition duration-150 cursor-pointer"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+            {patient.initials}
+          </div>
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-text-primary block truncate">{patient.name}</span>
+            <span className="text-[10px] text-text-secondary mt-0.5 block truncate">{patient.phone}</span>
+          </div>
+        </div>
+        {recallBadge(patient)}
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+        <div>
+          <span className="text-text-muted">Last Visit</span>
+          <div className="text-text-secondary font-medium truncate">{patient.lastVisit || '—'}</div>
+        </div>
+        <div>
+          <span className="text-text-muted">Next Appt.</span>
+          <div className="text-text-secondary font-medium truncate">{patient.nextAppointment || '—'}</div>
+        </div>
+        {patientsTab === 'recall' && (
+          <div className="col-span-2">
+            <span className="text-text-muted">Recall Reason</span>
+            <div className="text-text-secondary font-medium truncate">{patient.recallReason || '—'}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+        {patientsTab === 'recall' ? (
+          patient.aiOutreachDraft ? (
+            <button
+              onClick={() => onExpandOutreach(patient.id, patient.aiOutreachDraft || '')}
+              className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border border-ai-100 bg-ai-50 text-ai-600 hover:bg-ai-100/50 transition duration-150 font-sans"
+            >
+              Draft Ready
+            </button>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-status-successBg text-status-success border border-status-success/15 font-sans">
+              Sent
+            </span>
+          )
+        ) : (
+          <span className="text-[11px] text-text-secondary font-medium">{patient.conversationsCount} conversations</span>
+        )}
+        <button
+          onClick={() => onSelectPatient(patient.id)}
+          className="px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
+        >
+          View
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 relative animate-fade-in">
@@ -115,6 +210,30 @@ export function PatientsPage({
                 <X size={14} />
               </button>
             )}
+          </div>
+
+          {/* Card/Table view toggle — desktop/tablet only; mobile always shows cards */}
+          <div className="hidden md:flex bg-surface-base border border-surface-border/50 p-1 rounded-xl items-center shadow-soft flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              aria-label="Table view"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition duration-150 flex items-center gap-1.5 ${
+                viewMode === 'table' ? 'bg-brand-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <Table2 size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('card')}
+              aria-label="Card view"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition duration-150 flex items-center gap-1.5 ${
+                viewMode === 'card' ? 'bg-brand-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <LayoutGrid size={14} />
+            </button>
           </div>
 
           {/* Add Patient Button */}
@@ -166,31 +285,46 @@ export function PatientsPage({
         </button>
       </div>
 
-      {/* TABLE CONTAINER */}
+      {/* TABLE / CARD CONTAINER */}
       <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 overflow-hidden flex flex-col justify-between min-h-[500px]">
-        <div className="overflow-x-auto">
-          {activeLoading ? (
-            <div className="flex flex-col items-center justify-center py-40 text-center">
-              <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
-              <p className="text-sm font-semibold text-text-primary">Loading patients...</p>
+        {activeLoading ? (
+          <div className="flex flex-col items-center justify-center py-40 text-center">
+            <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
+            <p className="text-sm font-semibold text-text-primary">Loading patients...</p>
+          </div>
+        ) : activeError ? (
+          <ErrorState
+            message={activeError}
+            onRetry={patientsTab === 'recall' ? onRetryRecall : onRetryPatients}
+          />
+        ) : paginatedPatients.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">
+              <Search size={22} />
             </div>
-          ) : activeError ? (
-            <ErrorState
-              message={activeError}
-              onRetry={patientsTab === 'recall' ? onRetryRecall : onRetryPatients}
-            />
-          ) : paginatedPatients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">
-                <Search size={22} />
-              </div>
-              <p className="text-sm font-semibold text-text-primary">No patients found</p>
-              <p className="text-xs text-text-secondary mt-1 max-w-xs">
-                We couldn't find any results matching "{searchQuery}". Check the spelling or try a different term.
-              </p>
+            <p className="text-sm font-semibold text-text-primary">No patients found</p>
+            <p className="text-xs text-text-secondary mt-1 max-w-xs">
+              We couldn't find any results matching "{searchQuery}". Check the spelling or try a different term.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile/tablet: always cards, regardless of the desktop toggle */}
+            <div className="md:hidden divide-y divide-surface-border/20">
+              {paginatedPatients.map((patient) => (
+                <div key={patient.id} className="p-2">{renderPatientCard(patient)}</div>
+              ))}
             </div>
-          ) : (
-            <table className="w-full">
+
+            {/* Desktop/tablet: table or card grid, per the view toggle */}
+            <div className="hidden md:block">
+              {viewMode === 'card' ? (
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 p-4">
+                  {paginatedPatients.map((patient) => renderPatientCard(patient))}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                <table className="w-full">
               <thead>
                 <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">
                   <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Patient</th>
@@ -228,26 +362,7 @@ export function PatientsPage({
                       <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">{patient.lastVisit}</td>
                       <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">{patient.nextAppointment}</td>
                        <td className="py-3.5 px-6">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                          (patient.recallStatus || '').toUpperCase() === 'UP_TO_DATE'
-                            ? 'bg-status-successBg text-status-success'
-                            : (patient.recallStatus || '').toUpperCase() === 'DUE_SOON'
-                            ? 'bg-status-warningBg text-status-warning'
-                            : (patient.recallStatus || '').toUpperCase() === 'OVERDUE'
-                            ? 'bg-status-dangerBg text-status-danger'
-                            : 'bg-surface-subtle text-text-muted'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            (patient.recallStatus || '').toUpperCase() === 'UP_TO_DATE'
-                              ? 'bg-status-success'
-                              : (patient.recallStatus || '').toUpperCase() === 'DUE_SOON'
-                              ? 'bg-status-warning'
-                              : (patient.recallStatus || '').toUpperCase() === 'OVERDUE'
-                              ? 'bg-status-danger'
-                              : 'bg-text-muted'
-                          }`}></span>
-                          {recallStatusLabels[(patient.recallStatus || '').toUpperCase()] || patient.recallStatus || '—'}
-                        </span>
+                        {recallBadge(patient)}
                       </td>
 
                       {patientsTab === 'recall' && (
@@ -285,9 +400,12 @@ export function PatientsPage({
                   );
                 })}
               </tbody>
-            </table>
-          )}
-        </div>
+                </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* PAGINATION PANEL */}
         {filteredPatients.length > 0 && (

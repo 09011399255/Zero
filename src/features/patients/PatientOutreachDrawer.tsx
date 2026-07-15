@@ -45,7 +45,7 @@ export function PatientOutreachDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Recall outreach"
-        className="relative w-full max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col justify-between z-10 animate-slide-in"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col justify-between z-10 animate-slide-in"
       >
         {/* HEADER */}
         <div className="p-6 border-b border-surface-border/20 flex items-center justify-between">
