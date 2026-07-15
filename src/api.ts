@@ -192,6 +192,15 @@ export interface DashboardSummary {
   };
 }
 
+// Mirrors the Prisma WhatsAppStatus enum in zero-ai.
+export type WhatsAppStatus = 'NOT_CONNECTED' | 'VERIFICATION_PENDING' | 'CONNECTED' | 'SANDBOX';
+
+export interface WhatsAppStatusResponse {
+  whatsappStatus: WhatsAppStatus;
+  phoneNumber: string | null;
+  phoneNumberId: string | null;
+}
+
 export interface StaffMemberDTO {
   id: string;
   fullName: string;
@@ -234,6 +243,20 @@ export const api = {
     get: () => request<any>("GET", "/api/clinic"),
     update: (body: any) => request<any>("PATCH", "/api/clinic", body),
     completeOnboarding: () => request<any>("POST", "/api/clinic/complete-onboarding"),
+    whatsappStatus: () => request<WhatsAppStatusResponse>("GET", "/api/clinic/whatsapp-status"),
+    // Hands Meta's Embedded Signup result to the backend, which exchanges the
+    // short-lived `code` for a permanent token, stores it against the clinic,
+    // and subscribes the WABA to our webhook. Path/shape match the backend's
+    // connectWhatsApp handler (zero-ai src/modules/clinic/handlers.ts) exactly —
+    // code, phoneNumberId, wabaId are all required there.
+    connectWhatsapp: (body: {
+      code: string;
+      phoneNumberId: string;
+      wabaId: string;
+      phoneNumber?: string;
+    }) => request<WhatsAppStatusResponse>("POST", "/api/clinic/connect-whatsapp", body),
+    disconnectWhatsapp: () =>
+      request<{ success: boolean; whatsappStatus: WhatsAppStatus }>("POST", "/api/clinic/disconnect-whatsapp"),
   },
   staff: {
     list: () => request<StaffMemberDTO[]>("GET", "/api/staff"),

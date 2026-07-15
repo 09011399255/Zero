@@ -1,9 +1,11 @@
-import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, RefreshCw, X } from 'lucide-react';
-import { api } from '../../api';
+import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, MessageSquare, RefreshCw, X } from 'lucide-react';
+import { useState } from 'react';
+import { api, WhatsAppStatus } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
 import { PasswordInput } from '../../components/shared/PasswordInput';
 import { validatePassword } from '../../lib/password';
 import { formatAuthError } from '../../lib/authErrors';
+import { isWhatsAppSignupConfigured, launchWhatsAppSignup } from '../../lib/whatsappSignup';
 
 const PRESET_SERVICES = [
   'Cardiology',
@@ -169,6 +171,52 @@ export function OnboardingWizard({
   previewTyping,
   setCurrentRoute,
 }: OnboardingWizardProps) {
+  // --- Step 3 (Connect WhatsApp) local state ---------------------------------
+  // Transient to this step and not needed anywhere else in the app, so it lives
+  // here rather than being threaded through App as more props.
+  //
+  // usesExistingWA: answer to "Does your clinic currently use WhatsApp Business?"
+  // numberChoice:   which number to connect. Answering "no" implies 'new'; the
+  //                 "yes" branch makes the user pick explicitly after the warning.
+  const [usesExistingWA, setUsesExistingWA] = useState<'yes' | 'no' | null>(null);
+  const [numberChoice, setNumberChoice] = useState<'new' | 'migrate' | null>(null);
+  const [waStatus, setWaStatus] = useState<WhatsAppStatus>('NOT_CONNECTED');
+  const [waNumber, setWaNumber] = useState<string | null>(null);
+  const [waConnecting, setWaConnecting] = useState(false);
+  const [waError, setWaError] = useState<string | null>(null);
+
+  const isWAConnected = waStatus === 'CONNECTED';
+  // The Connect button only appears once the branch is resolved: "no" is
+  // self-resolving ('new'), "yes" requires an explicit new-vs-migrate choice.
+  const resolvedChoice: 'new' | 'migrate' | null =
+    usesExistingWA === 'no' ? 'new' : usesExistingWA === 'yes' ? numberChoice : null;
+
+  const handleConnectWhatsApp = async () => {
+    if (!resolvedChoice) return;
+    setWaError(null);
+    setWaConnecting(true);
+    try {
+      const result = await launchWhatsAppSignup();
+      // The backend requires all three; Meta returns phoneNumberId/wabaId via
+      // the popup's FINISH message. If it finished without them, fail with a
+      // clear message rather than firing a request the backend will reject.
+      if (!result.phoneNumberId || !result.wabaId) {
+        throw new Error("WhatsApp didn't return the number details. Please try connecting again.");
+      }
+      const status = await api.clinic.connectWhatsapp({
+        code: result.code,
+        phoneNumberId: result.phoneNumberId,
+        wabaId: result.wabaId,
+      });
+      setWaStatus(status.whatsappStatus);
+      setWaNumber(status.phoneNumber);
+    } catch (err: any) {
+      setWaError(err?.message || "Couldn't connect WhatsApp. Please try again.");
+    } finally {
+      setWaConnecting(false);
+    }
+  };
+
   if (isTransitioningStep) {
     const statusTexts = [
       "Reading your clinic's services...",
@@ -823,55 +871,165 @@ export function OnboardingWizard({
             <p className="text-text-secondary">Deploy Zero directly onto your official business number.</p>
           </div>
 
-          {/* Honest Status Pattern */}
-          <div className="p-4 bg-status-warningBg border border-status-warning/10 rounded-2xl space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-status-warning flex items-center gap-1.5">
-                <Clock size={14} /> Verification Pending
-              </span>
-              <span className="text-[10px] font-bold text-text-muted bg-surface-base px-2 py-0.5 rounded-md border border-surface-border/30">Meta API Review</span>
+          {isWAConnected ? (
+            /* --- Connected -------------------------------------------------- */
+            <div className="text-center py-4 space-y-6">
+              <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
+                <CheckCircle2 size={32} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-base font-bold text-text-primary">Connected ✓</h3>
+                <p className="text-[11px] text-text-secondary leading-relaxed">
+                  {waNumber
+                    ? <>Zero is now live on <strong className="text-text-primary">{waNumber}</strong>. Your patients can book, get reminders, and reach your clinic 24/7 — right from WhatsApp.</>
+                    : <>Zero is now live on your WhatsApp number. Your patients can book, get reminders, and reach your clinic 24/7 — right from WhatsApp.</>}
+                </p>
+              </div>
+              <button
+                onClick={() => setOnboardingStep(4)}
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs"
+              >
+                Continue to Staff Setup
+              </button>
             </div>
-            <p className="text-[11px] text-text-secondary leading-relaxed">
-              Once verified, your patients will be able to book, get reminders, and reach your clinic 24/7 — right from WhatsApp, with no app to download.
-            </p>
-          </div>
+          ) : (
+            <>
+              {/* --- Q1: does the clinic already use WhatsApp Business? -------- */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                  Does your clinic currently use WhatsApp Business?
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setUsesExistingWA('yes'); setNumberChoice(null); setWaError(null); }}
+                    className={`py-2.5 rounded-xl border text-xs font-bold transition duration-150 ${
+                      usesExistingWA === 'yes'
+                        ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                        : 'bg-surface-base border-surface-border text-text-secondary hover:bg-surface-subtle'
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setUsesExistingWA('no'); setNumberChoice(null); setWaError(null); }}
+                    className={`py-2.5 rounded-xl border text-xs font-bold transition duration-150 ${
+                      usesExistingWA === 'no'
+                        ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                        : 'bg-surface-base border-surface-border text-text-secondary hover:bg-surface-subtle'
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
 
-          {/* Checklist */}
-          <div className="space-y-3">
-            <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Meta Integration Steps</h4>
-            <div className="space-y-2 bg-surface-subtle p-4 rounded-xl">
-              <div className="flex items-center gap-2.5 text-text-secondary">
-                <CheckCircle2 size={14} className="text-status-success" />
-                <span className="line-through font-medium text-text-muted">Create Meta Developer Account</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-text-secondary">
-                <CheckCircle2 size={14} className="text-status-success" />
-                <span className="line-through font-medium text-text-muted">Link Business Manager Portfolio</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-text-secondary">
-                <Clock size={14} className="text-status-warning animate-pulse" />
-                <span className="font-bold text-text-primary">Meta Business Verification (In Review)</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-text-muted">
-                <div className="w-3.5 h-3.5 rounded-full border border-surface-border flex items-center justify-center text-[8px] font-bold">4</div>
-                <span>Phone Number Registration</span>
-              </div>
-            </div>
-          </div>
+              {/* --- "No" branch: nothing to lose, we just provision a number -- */}
+              {usesExistingWA === 'no' && (
+                <div className="bg-brand-50/50 border border-brand-100 p-4 rounded-xl flex gap-3 animate-fade-in">
+                  <span className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] text-brand-600 font-bold flex-shrink-0">i</span>
+                  <p className="text-[11px] text-brand-700 leading-relaxed">
+                    Great. We'll set up a new number for you.
+                  </p>
+                </div>
+              )}
 
-          <div className="bg-brand-50/50 border border-brand-100 p-4 rounded-xl flex gap-3">
-            <span className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] text-brand-600 font-bold flex-shrink-0">i</span>
-            <p className="text-[11px] text-brand-700 leading-relaxed">
-              <strong>Sandbox active:</strong> While Meta verifies your business details, we have pre-configured a Sandbox environment so you can experience Zero's patient interaction immediately.
-            </p>
-          </div>
+              {/* --- "Yes" branch: destructive-change warning + explicit choice - */}
+              {usesExistingWA === 'yes' && (
+                <div className="space-y-4 animate-fade-in">
+                  <div className="p-4 bg-status-warningBg border border-status-warning/20 rounded-2xl flex gap-3">
+                    <AlertTriangle size={16} className="text-status-warning flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-status-warning">Heads up</p>
+                      <p className="text-[11px] text-text-secondary leading-relaxed">
+                        Connecting to Zero will permanently disconnect your current WhatsApp Business app. Your chat history won't transfer. You can use a new number instead if you prefer.
+                      </p>
+                    </div>
+                  </div>
 
-          <button
-            onClick={() => setOnboardingStep(4)}
-            className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
-          >
-            Continue to Staff Setup
-          </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setNumberChoice('new'); setWaError(null); }}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition duration-150 ${
+                        numberChoice === 'new'
+                          ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                          : 'bg-surface-base border-surface-border text-text-secondary hover:bg-surface-subtle'
+                      }`}
+                    >
+                      Use new number
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setNumberChoice('migrate'); setWaError(null); }}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition duration-150 ${
+                        numberChoice === 'migrate'
+                          ? 'bg-brand-500 border-brand-500 text-white shadow-sm'
+                          : 'bg-surface-base border-surface-border text-text-secondary hover:bg-surface-subtle'
+                      }`}
+                    >
+                      Migrate existing number
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* --- Connect ---------------------------------------------------- */}
+              {resolvedChoice && (
+                <div className="space-y-3 animate-fade-in">
+                  {!isWhatsAppSignupConfigured() ? (
+                    <div className="p-4 bg-status-warningBg border border-status-warning/20 rounded-xl flex gap-3">
+                      <AlertTriangle size={14} className="text-status-warning flex-shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-text-secondary leading-relaxed">
+                        WhatsApp connection isn't configured on this environment yet. You can skip this for now and connect later from Settings.
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleConnectWhatsApp}
+                      disabled={waConnecting}
+                      className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs flex items-center justify-center gap-2"
+                    >
+                      {waConnecting ? (
+                        <>
+                          <RefreshCw className="animate-spin" size={14} />
+                          <span>Waiting for WhatsApp…</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare size={14} />
+                          <span>Connect WhatsApp</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {waConnecting && (
+                    <p className="text-[10px] text-text-muted text-center leading-relaxed">
+                      Finish signing in and verify your number in the Meta window. Keep this tab open.
+                    </p>
+                  )}
+
+                  {waError && (
+                    <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-start gap-2">
+                      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                      <span>{waError}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Onboarding must never dead-end on an external dependency. */}
+              <button
+                onClick={() => setOnboardingStep(4)}
+                className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+              >
+                Skip for now
+              </button>
+            </>
+          )}
         </div>
       )}
 
