@@ -20,16 +20,14 @@ interface SettingsPageProps {
   setSettingsServices: (v: string) => void;
 
   savedClinicName: string;
-  setSavedClinicName: (v: string) => void;
   savedAddress: string;
-  setSavedAddress: (v: string) => void;
   savedHours: string;
-  setSavedHours: (v: string) => void;
   savedServices: string;
-  setSavedServices: (v: string) => void;
+  onSaveClinic: (name: string, address: string, hours: string, services: string) => void;
 
   staffList: StaffListItem[];
-  setStaffList: React.Dispatch<React.SetStateAction<StaffListItem[]>>;
+  onAddStaff: (fullName: string, email: string, title: string) => void;
+  onRemoveStaff: (id: string) => void;
   isAddStaffOpen: boolean;
   setIsAddStaffOpen: (v: boolean) => void;
   newStaffName: string;
@@ -54,11 +52,14 @@ export function SettingsPage({
   settingsAddress, setSettingsAddress,
   settingsHours, setSettingsHours,
   settingsServices, setSettingsServices,
-  savedClinicName, setSavedClinicName,
-  savedAddress, setSavedAddress,
-  savedHours, setSavedHours,
-  savedServices, setSavedServices,
-  staffList, setStaffList,
+  savedClinicName,
+  savedAddress,
+  savedHours,
+  savedServices,
+  onSaveClinic,
+  staffList,
+  onAddStaff,
+  onRemoveStaff,
   isAddStaffOpen, setIsAddStaffOpen,
   newStaffName, setNewStaffName,
   newStaffRole, setNewStaffRole,
@@ -77,11 +78,7 @@ export function SettingsPage({
 
   const handleSaveChanges = (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedClinicName(settingsClinicName);
-    setSavedAddress(settingsAddress);
-    setSavedHours(settingsHours);
-    setSavedServices(settingsServices);
-    toast.success("Clinic settings saved successfully!");
+    onSaveClinic(settingsClinicName, settingsAddress, settingsHours, settingsServices);
   };
 
   const handleAddStaff = (e: React.FormEvent) => {
@@ -90,28 +87,15 @@ export function SettingsPage({
       toast.error("Please fill in Name and Email.");
       return;
     }
-    const nextId = crypto.randomUUID();
-    const initials = newStaffName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'ST';
-    setStaffList(prev => [
-      ...prev,
-      {
-        id: nextId,
-        name: newStaffName.trim(),
-        role: newStaffRole,
-        email: newStaffEmail.trim(),
-        initials
-      }
-    ]);
+    onAddStaff(newStaffName.trim(), newStaffEmail.trim(), newStaffRole);
     setNewStaffName('');
     setNewStaffEmail('');
     setIsAddStaffOpen(false);
-    toast.success("Staff member added.");
   };
 
   const handleRemoveStaff = (id: string) => {
     if (confirm("Are you sure you want to remove this staff member?")) {
-      setStaffList(prev => prev.filter(s => s.id !== id));
-      toast.success("Staff member removed.");
+      onRemoveStaff(id);
     }
   };
 

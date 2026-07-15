@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react';
-import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, Patient, UNAUTHORIZED_EVENT } from './api';
+import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, DashboardSummary, Patient, StaffMemberDTO, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -8,8 +8,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import {
-  mockClinicInfo,
-  mockAIStats,
   mockAppointments,
   mockPatients
 } from './mockData';
@@ -18,7 +16,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { NotificationItem } from './components/layout/NotificationsDropdown';
 import { LiveQueuePage } from './features/live-queue/LiveQueuePage';
-import { SettingsPage } from './features/settings/SettingsPage';
+import { SettingsPage, StaffListItem } from './features/settings/SettingsPage';
 import { PatientsPage } from './features/patients/PatientsPage';
 import { AddPatientModal } from './features/patients/AddPatientModal';
 import { PatientOutreachDrawer } from './features/patients/PatientOutreachDrawer';
@@ -376,6 +374,12 @@ function App() {
       if (clinic?.id) {
         localStorage.setItem("zero_clinic_id", clinic.id);
         setClinicId(clinic.id);
+      }
+      // Seed the clinic name app-wide (header/sidebar) right after login, so it
+      // isn't blank until the user happens to open Settings.
+      if (clinic?.name) {
+        setSettingsClinicName(clinic.name);
+        setSavedClinicName(clinic.name);
       }
 
       if (staff && !staff.emailVerified) {
@@ -1049,6 +1053,125 @@ function App() {
     }
   };
 
+  // Real dashboard analytics from the backend (patients today, doctors on duty,
+  // AI activity, autonomy rate, etc.) — replaces the old hardcoded mock stats.
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
+  const loadDashboard = async () => {
+    try {
+      const data = await api.analytics.dashboard();
+      setDashboardSummary(data);
+    } catch (err) {
+      console.error("Failed to load dashboard summary:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRoute === 'dashboard' && clinicId) {
+      loadDashboard();
+    }
+  }, [currentRoute, clinicId]);
+
+  // Staff — loaded from the backend so Settings shows the clinic's real team
+  // (just the admin, on a fresh account) rather than fabricated defaults.
+  const roleLabel = (role: StaffMemberDTO['role']) =>
+    role === 'ADMIN' ? 'Admin' : role === 'PHYSICIAN' ? 'Physician' : 'Staff';
+  const staffInitials = (name: string) =>
+    name.trim().split(/\s+/).map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'ST';
+  const mapStaff = (s: StaffMemberDTO): StaffListItem => ({
+    id: s.id,
+    name: s.fullName,
+    role: s.specialization || roleLabel(s.role),
+    email: s.email,
+    initials: staffInitials(s.fullName),
+  });
+
+  const loadStaff = async () => {
+    try {
+      const data = await api.staff.list();
+      setStaffList(data.map(mapStaff));
+    } catch (err) {
+      console.error("Failed to load staff:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRoute === 'settings' && clinicId) {
+      loadStaff();
+      loadClinicSettings();
+    }
+  }, [currentRoute, clinicId]);
+
+  // A physician title routes to the PHYSICIAN permission role; everything else
+  // defaults to STAFF. The chosen title is kept verbatim as the specialization
+  // so it displays back exactly as picked.
+  const handleAddStaff = async (fullName: string, email: string, title: string) => {
+    const isPhysician = /physician|practitioner|doctor|surgeon/i.test(title);
+    try {
+      await api.staff.create({
+        fullName,
+        email,
+        role: isPhysician ? 'PHYSICIAN' : 'STAFF',
+        specialization: title,
+      });
+      await loadStaff();
+      toast.success(`Invite sent to ${email}.`);
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't add staff member.");
+    }
+  };
+
+  const handleRemoveStaff = async (id: string) => {
+    try {
+      await api.staff.remove(id);
+      await loadStaff();
+      toast.success("Staff member removed.");
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't remove staff member.");
+    }
+  };
+
+  // Clinic details for Settings — loaded from the backend (GET /api/clinic)
+  // instead of the old "Apex Family Clinic" hardcoded defaults.
+  const loadClinicSettings = async () => {
+    try {
+      const c = await api.clinic.get();
+      const name = c?.name || '';
+      const address = c?.address || '';
+      const services = Array.isArray(c?.servicesOffered) ? c.servicesOffered.join(', ') : '';
+      const oh = c?.operatingHours;
+      const hours = oh && Array.isArray(oh.days) && oh.days.length
+        ? `${oh.days.join(', ')}: ${oh.openTime} - ${oh.closeTime}`
+        : '';
+      setSettingsClinicName(name); setSavedClinicName(name);
+      setSettingsAddress(address); setSavedAddress(address);
+      setSettingsServices(services); setSavedServices(services);
+      setSettingsHours(hours); setSavedHours(hours);
+    } catch (err) {
+      console.error("Failed to load clinic settings:", err);
+    }
+  };
+
+  // Persists name/address/services to the backend. Operating hours is a
+  // freeform text field here and can't be reliably parsed back into the
+  // structured days/openTime/closeTime the API expects, so it's not sent —
+  // structured hours are set during onboarding instead.
+  const handleSaveClinic = async (name: string, address: string, hours: string, services: string) => {
+    try {
+      await api.clinic.update({
+        name,
+        address,
+        servicesOffered: services.split(',').map(s => s.trim()).filter(Boolean),
+      });
+      setSavedClinicName(name);
+      setSavedAddress(address);
+      setSavedHours(hours);
+      setSavedServices(services);
+      toast.success("Clinic settings saved.");
+    } catch (err: any) {
+      toast.error(err?.message || "Couldn't save clinic settings.");
+    }
+  };
+
   const loadConversationThread = async (conversationId: string) => {
     try {
       setThreadLoading(true);
@@ -1258,57 +1381,69 @@ function App() {
       setIsTransitioningStep(false);
       setOnboardingStep(5);
       
-      // Save onboarding info to settings state
-      setSettingsClinicName(onboardingClinicName || 'Apex Family Clinic');
-      setSavedClinicName(onboardingClinicName || 'Apex Family Clinic');
-      setSettingsAddress(onboardingAddress || '123 Eldene Way, Suite 400, Apex City');
-      setSavedAddress(onboardingAddress || '123 Eldene Way, Suite 400, Apex City');
-      setSettingsHours(onboardingHours || 'Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
-      setSavedHours(onboardingHours || 'Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
-      setSettingsServices(onboardingServices || 'Cardiology, Dermatology, Physiotherapy, General Medicine');
-      setSavedServices(onboardingServices || 'Cardiology, Dermatology, Physiotherapy, General Medicine');
-      
-      // Add doctor to staff list if provided
-      if (onboardingDoctorName.trim()) {
-        const initials = onboardingDoctorName.trim().split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'MD';
-        setStaffList(prev => {
-          if (prev.some(s => s.email.toLowerCase() === (onboardingDoctorEmail.trim() || 'doctor@clinic.com').toLowerCase())) {
-            return prev;
+      // Reflect the entered values in Settings immediately (no fake defaults);
+      // the backend fetch on visiting Settings will confirm/replace them.
+      setSettingsClinicName(onboardingClinicName);
+      setSavedClinicName(onboardingClinicName);
+      setSettingsAddress(onboardingAddress);
+      setSavedAddress(onboardingAddress);
+      setSettingsHours(onboardingHours);
+      setSavedHours(onboardingHours);
+      setSettingsServices(onboardingServices);
+      setSavedServices(onboardingServices);
+
+      // Persist the clinic details + invited doctor to the backend so they
+      // survive logout and populate Settings/dashboard for real, rather than
+      // living only in this browser's memory (the old bug: onboarding never
+      // saved address/services, so the DB kept them null).
+      (async () => {
+        try {
+          await api.clinic.update({
+            name: onboardingClinicName || undefined,
+            address: onboardingAddress || undefined,
+            servicesOffered: selectedServices,
+            operatingHours: selectedDays.length
+              ? { days: selectedDays, openTime: convertTo24Hour(openTime), closeTime: convertTo24Hour(closeTime) }
+              : undefined,
+          });
+        } catch (err) {
+          console.error("Failed to save clinic details during onboarding:", err);
+        }
+
+        const doctorEmail = onboardingDoctorEmail.trim();
+        if (onboardingDoctorName.trim() && doctorEmail) {
+          try {
+            await api.staff.create({
+              fullName: onboardingDoctorName.trim(),
+              email: doctorEmail,
+              role: 'PHYSICIAN',
+              specialization: onboardingDoctorRole || undefined,
+            });
+          } catch (err) {
+            console.error("Failed to add doctor during onboarding:", err);
           }
-          const nextId = crypto.randomUUID();
-          return [
-            ...prev,
-            {
-              id: nextId,
-              name: onboardingDoctorName.trim(),
-              role: onboardingDoctorRole,
-              email: onboardingDoctorEmail.trim() || 'doctor@clinic.com',
-              initials
-            }
-          ];
-        });
-      }
+        }
+      })();
     }, 3600);
   };
 
-  // Settings screen states
-  const [settingsClinicName, setSettingsClinicName] = useState('Apex Family Clinic');
-  const [settingsAddress, setSettingsAddress] = useState('123 Eldene Way, Suite 400, Apex City');
-  const [settingsHours, setSettingsHours] = useState('Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
-  const [settingsServices, setSettingsServices] = useState('Cardiology, Dermatology, Physiotherapy, General Medicine');
+  // Settings screen states — loaded from the backend (GET /api/clinic) on
+  // entering Settings; empty until then rather than fake "Apex Family" defaults.
+  const [settingsClinicName, setSettingsClinicName] = useState('');
+  const [settingsAddress, setSettingsAddress] = useState('');
+  const [settingsHours, setSettingsHours] = useState('');
+  const [settingsServices, setSettingsServices] = useState('');
 
   // To track initial/saved values for dirty state comparison
-  const [savedClinicName, setSavedClinicName] = useState('Apex Family Clinic');
-  const [savedAddress, setSavedAddress] = useState('123 Eldene Way, Suite 400, Apex City');
-  const [savedHours, setSavedHours] = useState('Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM');
-  const [savedServices, setSavedServices] = useState('Cardiology, Dermatology, Physiotherapy, General Medicine');
+  const [savedClinicName, setSavedClinicName] = useState('');
+  const [savedAddress, setSavedAddress] = useState('');
+  const [savedHours, setSavedHours] = useState('');
+  const [savedServices, setSavedServices] = useState('');
 
   // Staff list state
-  const [staffList, setStaffList] = useState([
-    { id: "f7e742af-ab57-a0fb-37aa-dba915bce01e", name: 'Dr. Lan Mandragoran', role: 'Lead Physician', email: 'lan.m@apexfamily.com', initials: 'LM' },
-    { id: "c95c6b3c-555b-9d66-dd77-9a1d3215c7bf", name: 'Dr. Moiraine Damodred', role: 'Chief of Staff', email: 'moiraine.d@apexfamily.com', initials: 'MD' },
-    { id: "835e8e96-6a2d-aa7f-9f22-a3798b8f4bb7", name: 'Sarah Sedai', role: 'Clinic Manager', email: 'sarah.s@apexfamily.com', initials: 'SS' }
-  ]);
+  // Real staff loaded from the backend (GET /api/staff). Starts empty — a
+  // brand-new clinic has only the admin who registered, no fabricated defaults.
+  const [staffList, setStaffList] = useState<StaffListItem[]>([]);
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('General Practitioner');
@@ -1729,15 +1864,13 @@ const renderOnboardingWizard = () => (
       settingsServices={settingsServices}
       setSettingsServices={setSettingsServices}
       savedClinicName={savedClinicName}
-      setSavedClinicName={setSavedClinicName}
       savedAddress={savedAddress}
-      setSavedAddress={setSavedAddress}
       savedHours={savedHours}
-      setSavedHours={setSavedHours}
       savedServices={savedServices}
-      setSavedServices={setSavedServices}
+      onSaveClinic={handleSaveClinic}
       staffList={staffList}
-      setStaffList={setStaffList}
+      onAddStaff={handleAddStaff}
+      onRemoveStaff={handleRemoveStaff}
       isAddStaffOpen={isAddStaffOpen}
       setIsAddStaffOpen={setIsAddStaffOpen}
       newStaffName={newStaffName}
@@ -1854,7 +1987,7 @@ if (!isOnboarded) {
             renderPlaceholder(currentRoute)
           ) : (
             <DashboardPage
-              clinicName={isOnboarded ? settingsClinicName : mockClinicInfo.name}
+              clinicName={isOnboarded ? settingsClinicName : (dashboardSummary?.clinicName || settingsClinicName)}
               queue={queue}
               appointments={appointments}
               conversations={conversations}
@@ -1868,8 +2001,7 @@ if (!isOnboarded) {
                 setSelectedChatId(convId);
                 setCurrentRoute('zero-chat');
               }}
-              mockClinicInfo={mockClinicInfo}
-              mockAIStats={mockAIStats}
+              summary={dashboardSummary}
             />
           )}
           </ErrorBoundary>

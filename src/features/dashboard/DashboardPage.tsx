@@ -1,5 +1,5 @@
 import { ArrowUpRight, CheckCircle2, ChevronDown, Clock, Download, RefreshCw, ShieldAlert, AlertTriangle, TrendingUp, Users } from 'lucide-react';
-import { Appointment, AppointmentStatus, Conversation } from '../../api';
+import { Appointment, AppointmentStatus, Conversation, DashboardSummary } from '../../api';
 import { useToast } from '../../components/shared/Toast';
 
 const statusToTab: Record<string, string> = {
@@ -33,8 +33,7 @@ interface DashboardPageProps {
   onStatusChange: (id: string, newStatus: 'Confirmed' | 'Pending' | 'Cancelled') => void;
   onNavigate: (route: string) => void;
   onSelectConversation: (convId: string) => void;
-  mockClinicInfo: { name: string; todayPatients: number; doctorsOnDuty: number };
-  mockAIStats: { handledConversations: number; escalatedConversations: number; avgResponseTime: string };
+  summary: DashboardSummary | null;
 }
 
 export function DashboardPage({
@@ -49,10 +48,11 @@ export function DashboardPage({
   onStatusChange,
   onNavigate,
   onSelectConversation,
-  mockClinicInfo,
-  mockAIStats,
+  summary,
 }: DashboardPageProps) {
   const toast = useToast();
+  const ai = summary?.aiActivity;
+  const autonomy = summary?.aiAutonomy;
   return (
     <>
       {/* GREETING HEADER */}
@@ -62,7 +62,7 @@ export function DashboardPage({
             Good afternoon, {clinicName}
           </h2>
           <p className="text-[14px] text-text-secondary mt-1">
-            {mockClinicInfo.todayPatients} patients today · {mockClinicInfo.doctorsOnDuty} doctors on duty ·{' '}
+            {summary?.patientsToday ?? 0} patients today · {summary?.doctorsOnDuty ?? 0} doctors on duty ·{' '}
             <span className="font-semibold text-status-warning">
               {conversations.filter(c => c.status === 'NEEDS_REVIEW' && !dismissedAttentionIds.includes(c.id)).length} conversations need your attention
             </span>
@@ -85,9 +85,9 @@ export function DashboardPage({
             Zero is working — AI patient care operations
           </span>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-50 text-brand-600 border border-brand-100">
-              <RefreshCw size={10} className="animate-spin" style={{ animationDuration: '3s' }} />
-              Analytics Pending
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-status-successBg text-status-success border border-status-success/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+              Live
             </span>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-status-success animate-pulse"></span>
@@ -101,7 +101,7 @@ export function DashboardPage({
           {/* Conversations Handled Today */}
           <div className="flex flex-col items-center justify-center text-center py-1">
             <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {mockAIStats.handledConversations}
+              {ai?.conversationsHandledToday ?? 0}
             </span>
             <span className="text-[12px] text-text-secondary mt-1.5">
               Conversations handled today
@@ -111,7 +111,7 @@ export function DashboardPage({
           {/* Escalated to Staff */}
           <div className="flex flex-col items-center justify-center text-center py-1 border-x border-surface-border/60">
             <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {mockAIStats.escalatedConversations}
+              {ai?.escalatedToStaff ?? 0}
             </span>
             <span className="text-[12px] text-text-secondary mt-1.5">
               Escalated to staff
@@ -121,7 +121,7 @@ export function DashboardPage({
           {/* Avg Response Time */}
           <div className="flex flex-col items-center justify-center text-center py-1">
             <span className="text-[24px] font-semibold text-text-primary leading-none">
-              {mockAIStats.avgResponseTime === '8 seconds' ? '8s' : mockAIStats.avgResponseTime}
+              {ai ? `${ai.avgResponseTimeSeconds}s` : '—'}
             </span>
             <span className="text-[12px] text-text-secondary mt-1.5">
               Avg response time
@@ -410,44 +410,43 @@ export function DashboardPage({
 
         {/* AI Performance Insights - 30% width */}
         <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 lg:col-span-3 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-4 right-4">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-brand-50 text-brand-600 border border-brand-100">
-              Syncing...
-            </span>
-          </div>
           <div className="space-y-4">
             <span className="text-[11px] font-semibold text-ai-600 uppercase tracking-widest block">
               AI AUTONOMY RATE
             </span>
             <div>
-              <span className="text-4xl font-bold text-text-primary tracking-tight">91.3%</span>
-              <div className="flex items-center gap-1 text-xs text-status-success font-medium mt-1">
+              <span className="text-4xl font-bold text-text-primary tracking-tight">
+                {autonomy ? `${autonomy.autonomyRatePercent}%` : '—'}
+              </span>
+              <div className="flex items-center gap-1 text-xs text-text-muted font-medium mt-1">
                 <TrendingUp size={14} />
-                <span>+2.4% vs last week</span>
+                <span>Today's conversations</span>
               </div>
             </div>
 
             <div className="pt-4 border-t border-surface-border/30 space-y-3.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-text-secondary">Autopilot Sessions</span>
-                <span className="font-bold text-text-primary">103 sessions</span>
+                <span className="font-bold text-text-primary">{autonomy?.autopilotSessions ?? 0} sessions</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-text-secondary">Manual Escalations</span>
-                <span className="font-bold text-text-primary">9 sessions</span>
+                <span className="font-bold text-text-primary">{autonomy?.manualEscalations ?? 0} sessions</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-text-secondary">Recall Success Rate</span>
-                <span className="font-bold text-text-primary">78% response</span>
+                <span className="font-bold text-text-primary">{autonomy?.recallSuccessRatePercent ?? 0}% response</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 bg-ai-50/50 border border-ai-100/50 rounded-xl p-3 flex items-start">
-            <p className="text-[11px] text-ai-600 leading-relaxed font-medium">
-              Zero automated 89% of billing queries this week, lowering escalation rates by 5.4%.
-            </p>
-          </div>
+          {autonomy?.insightLine && (
+            <div className="mt-6 bg-ai-50/50 border border-ai-100/50 rounded-xl p-3 flex items-start">
+              <p className="text-[11px] text-ai-600 leading-relaxed font-medium">
+                {autonomy.insightLine}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </>

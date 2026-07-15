@@ -172,6 +172,36 @@ export interface MeResponse {
   onboardingComplete: boolean;
 }
 
+export interface DashboardSummary {
+  clinicName: string;
+  patientsToday: number;
+  doctorsOnDuty: number;
+  conversationsNeedingAttention: number;
+  aiActivity: {
+    conversationsHandledToday: number;
+    escalatedToStaff: number;
+    avgResponseTimeSeconds: number;
+  };
+  queueSnapshot: { waiting: number; withDoctor: number; completedToday: number };
+  aiAutonomy: {
+    autonomyRatePercent: number;
+    autopilotSessions: number;
+    manualEscalations: number;
+    recallSuccessRatePercent: number;
+    insightLine: string;
+  };
+}
+
+export interface StaffMemberDTO {
+  id: string;
+  fullName: string;
+  email: string;
+  role: 'ADMIN' | 'PHYSICIAN' | 'STAFF';
+  specialization?: string | null;
+  whatsappNumber?: string | null;
+  lastLoginAt?: string | null;
+}
+
 export const api = {
   auth: {
     register: (body: {
@@ -206,9 +236,17 @@ export const api = {
     completeOnboarding: () => request<any>("POST", "/api/clinic/complete-onboarding"),
   },
   staff: {
-    list: () => request<any[]>("GET", "/api/staff"),
-    create: (body: { fullName: string; role: 'ADMIN' | 'PHYSICIAN' | 'STAFF'; email: string }) => 
-      request<any>("POST", "/api/staff", body),
+    list: () => request<StaffMemberDTO[]>("GET", "/api/staff"),
+    create: (body: {
+      fullName: string;
+      email: string;
+      role: 'ADMIN' | 'PHYSICIAN' | 'STAFF';
+      specialization?: string;
+    }) => request<StaffMemberDTO>("POST", "/api/staff", body),
+    remove: (id: string) => request<{ success: boolean }>("DELETE", `/api/staff/${id}`),
+  },
+  analytics: {
+    dashboard: () => request<DashboardSummary>("GET", "/api/analytics/dashboard"),
   },
   patients: {
     list: (params?: { recall?: boolean }) => {
