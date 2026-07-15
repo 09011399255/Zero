@@ -50,7 +50,7 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
       )}
     <aside
       ref={panelRef}
-      className={`w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 select-none shadow-lg transition-transform duration-300 ease-out pt-16 lg:pt-0 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`w-[260px] bg-brand-900 text-white flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 select-none shadow-lg transition-transform duration-300 ease-out pt-16 lg:pt-0 lg:translate-x-0 overflow-y-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       <div>
         {/* Logo Section */}

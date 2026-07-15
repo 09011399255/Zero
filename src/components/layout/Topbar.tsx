@@ -26,8 +26,12 @@ export function Topbar({
   isSidebarOpen,
   onToggleSidebar,
 }: TopbarProps) {
+  // z-[45]: above the mobile sidebar drawer + its backdrop (z-40/z-30) so the
+  // hamburger/X toggle stays visible and clickable while the drawer is open,
+  // but below modals/side-drawers (z-50) so their close buttons aren't
+  // covered when the Topbar and a drawer are both on screen.
   return (
-    <header className="h-16 bg-surface-base border-b border-surface-border/50 flex items-center justify-between px-4 md:px-8 sticky top-0 z-50 gap-3">
+    <header className="h-16 bg-surface-base border-b border-surface-border/50 flex items-center justify-between px-4 md:px-8 sticky top-0 z-[45] gap-3">
       <div className="flex items-center gap-2 text-sm min-w-0">
         <button
           type="button"
