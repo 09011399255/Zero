@@ -1029,11 +1029,26 @@ function App() {
     try {
       setConversationsLoading(true);
       setConversationsError(null);
-      const [needsReview, aiHandling, resolved] = await Promise.all([
+      const [needsReviewRaw, aiHandlingRaw, resolvedRaw] = await Promise.all([
         api.conversations.list({ status: "NEEDS_REVIEW" }),
         api.conversations.list({ status: "AI_HANDLING" }),
         api.conversations.list({ status: "RESOLVED" }),
       ]);
+      // The list endpoint returns Prisma field names (lastMessagePreview,
+      // lastMessageAt); map to the frontend's lastMessage/lastMessageTime so
+      // the list shows the real preview + time instead of "No messages".
+      const normalizeConv = (c: any) => ({
+        ...c,
+        lastMessage: c.lastMessage ?? c.lastMessagePreview ?? '',
+        lastMessageTime:
+          c.lastMessageTime ??
+          (c.lastMessageAt
+            ? new Date(c.lastMessageAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : ''),
+      });
+      const needsReview = needsReviewRaw.map(normalizeConv);
+      const aiHandling = aiHandlingRaw.map(normalizeConv);
+      const resolved = resolvedRaw.map(normalizeConv);
       const allConversations = [...needsReview, ...aiHandling, ...resolved];
       setConversations(allConversations);
       setConversationsLoadedThisSession(true);
@@ -1179,7 +1194,22 @@ function App() {
     try {
       setThreadLoading(true);
       const data = await api.conversations.get(conversationId);
-      setActiveConversation(data);
+      // The backend returns each message with Prisma's field names (content,
+      // sentAt); the frontend's ConversationMessage shape is text/createdAt.
+      // Normalise here so the thread actually renders text and valid times
+      // instead of blank bubbles + "Invalid Date". Kept tolerant of either
+      // shape (?? chain) so a future backend rename won't re-break it.
+      const normalized = {
+        ...(data as any),
+        messages: (((data as any).messages ?? []) as any[]).map((m) => ({
+          id: m.id,
+          role: m.role,
+          text: m.text ?? m.content ?? '',
+          createdAt: m.createdAt ?? m.sentAt ?? new Date().toISOString(),
+          senderName: m.senderName,
+        })),
+      };
+      setActiveConversation(normalized as Conversation);
     } catch (err) {
       console.error("Failed to load conversation thread:", err);
     } finally {
