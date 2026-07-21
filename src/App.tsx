@@ -990,9 +990,26 @@ function App() {
       setSettingsAddress(address); setSavedAddress(address);
       setSettingsServices(services); setSavedServices(services);
       setSettingsHours(hours); setSavedHours(hours);
+      // Notification preferences persist server-side now — reflect the saved
+      // values so the toggles aren't reset to defaults on every reload.
+      if (typeof c?.escalationAlerts === 'boolean') setNotificationEscalation(c.escalationAlerts);
+      if (typeof c?.recallReminders === 'boolean') setNotificationRecall(c.recallReminders);
+      if (typeof c?.noShowAlerts === 'boolean') setNotificationNoShow(c.noShowAlerts);
+      if (typeof c?.dailySummaryEmail === 'boolean') setNotificationSummary(c.dailySummaryEmail);
     } catch (err) {
       console.error("Failed to load clinic settings:", err);
     }
+  };
+
+  // Toggle handler that flips the local switch and persists it. Used by all
+  // four notification switches so they survive a reload instead of resetting.
+  const handleToggleNotification = (
+    key: 'escalationAlerts' | 'recallReminders' | 'noShowAlerts' | 'dailySummaryEmail',
+    setter: (v: boolean) => void,
+    value: boolean,
+  ) => {
+    setter(value);
+    api.clinic.update({ [key]: value }).catch(err => console.error("Failed to save notification setting:", err));
   };
 
   // Persists name/address/services to the backend. Operating hours is a
@@ -1750,13 +1767,13 @@ const renderOnboardingWizard = () => (
       newStaffEmail={newStaffEmail}
       setNewStaffEmail={setNewStaffEmail}
       notificationEscalation={notificationEscalation}
-      setNotificationEscalation={setNotificationEscalation}
+      setNotificationEscalation={(v) => handleToggleNotification('escalationAlerts', setNotificationEscalation, v)}
       notificationRecall={notificationRecall}
-      setNotificationRecall={setNotificationRecall}
+      setNotificationRecall={(v) => handleToggleNotification('recallReminders', setNotificationRecall, v)}
       notificationNoShow={notificationNoShow}
-      setNotificationNoShow={setNotificationNoShow}
+      setNotificationNoShow={(v) => handleToggleNotification('noShowAlerts', setNotificationNoShow, v)}
       notificationSummary={notificationSummary}
-      setNotificationSummary={setNotificationSummary}
+      setNotificationSummary={(v) => handleToggleNotification('dailySummaryEmail', setNotificationSummary, v)}
     />
   );
 
