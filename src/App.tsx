@@ -7,10 +7,6 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react';
-import {
-  mockAppointments,
-  mockPatients
-} from './mockData';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
@@ -32,19 +28,6 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { useToast } from './components/shared/Toast';
 import { formatAuthError } from './lib/authErrors';
 
-const mappedMockAppointments: Appointment[] = mockAppointments.map(apt => ({
-  id: apt.id,
-  patientId: apt.patientId || null,
-  patientName: apt.name,
-  patientPhone: apt.phone,
-  doctor: apt.doctor,
-  date: apt.date,
-  time: apt.time,
-  visitType: apt.department,
-  status: apt.status.toLowerCase() as AppointmentStatus,
-  bookedVia: apt.bookedVia,
-  notes: apt.notes
-}));
 
 
 
@@ -62,203 +45,6 @@ interface QueueEntry {
   status: string;
 }
 
-const initialQueue: QueueEntry[] = [
-  {
-    id: "bf3a302a-50e5-5914-e2a2-da9287b3ca61",
-    patientId: "e58d0777-a222-3615-ef17-9d0b0040e9bd",
-    name: "Min Farshaw",
-    initials: "MF",
-    phone: "+1 (555) 022-7766",
-    arrivalTime: "10:15 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Routine prenatal checkup",
-    waitTime: "~12 min",
-    source: "zero",
-    status: "waiting"
-  },
-  {
-    id: "281e9b0c-43a9-d256-3a44-5b630b1c56d0",
-    patientId: "9741499a-aa80-5af7-3c51-ad75dd3b8094",
-    name: "Matrim Cauthon",
-    initials: "MC",
-    phone: "+1 (555) 018-4321",
-    arrivalTime: "10:07 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Cardiology follow-up",
-    waitTime: "~20 min",
-    source: "zero",
-    status: "waiting"
-  },
-  {
-    id: "d0e4ff40-6728-616d-278e-e55cd537a864",
-    patientId: "740556e2-7ef9-2020-8fc2-e783b6ea888a",
-    name: "Perrin Aybara",
-    initials: "PA",
-    phone: "+1 (555) 017-9876",
-    arrivalTime: "10:02 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Diabetic foot check",
-    waitTime: "~25 min",
-    source: "walk-in",
-    status: "waiting"
-  },
-  {
-    id: "f22de231-a3e8-39a0-d4ab-985809feeee0",
-    patientId: "2e7b1d36-5288-286a-4c63-a70c0c4e529c",
-    name: "Aviendha",
-    initials: "AV",
-    phone: "+1 (555) 023-5544",
-    arrivalTime: "09:55 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Migraine consult",
-    waitTime: "~32 min",
-    source: "zero",
-    status: "waiting"
-  },
-  {
-    id: "78c546e7-3c93-3c9a-7ff9-e681852db45d",
-    patientId: null,
-    name: "Loial Son of Arent",
-    initials: "LS",
-    phone: "+1 (555) 035-1234",
-    arrivalTime: "09:42 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Joint pain examination",
-    waitTime: "~45 min",
-    source: "walk-in",
-    status: "waiting"
-  },
-  {
-    id: "13d66642-f344-766e-33f6-f4b281667471",
-    patientId: "cb1ac7ae-fbcb-d748-82a4-d5f4f99da0a6",
-    name: "Nynaeve al'Meara",
-    initials: "NM",
-    phone: "+1 (555) 019-2834",
-    arrivalTime: "09:30 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Hypertension checkup",
-    waitTime: "~57 min",
-    source: "zero",
-    status: "waiting"
-  },
-  {
-    id: "dd099091-4090-4ed3-07a4-d817834d0ec3",
-    patientId: "9822c35c-fe20-d5a8-1afb-ec00664b51c9",
-    name: "Rand al'Thor",
-    initials: "RT",
-    phone: "+1 (555) 012-3456",
-    arrivalTime: "09:37 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Migraine follow-up check",
-    waitTime: "—",
-    source: "zero",
-    status: "with_doctor"
-  },
-  {
-    id: "0091ecc4-cb31-1659-fb4b-3515bcc26b53",
-    patientId: "bb852bc4-3370-4eac-d311-3a8329dd905c",
-    name: "Egwene al'Vere",
-    initials: "EA",
-    phone: "+1 (555) 015-6789",
-    arrivalTime: "09:32 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Routine blood panel review",
-    waitTime: "—",
-    source: "zero",
-    status: "with_doctor"
-  },
-  {
-    id: "42c22aef-1c75-559c-3d43-9f80e0e32462",
-    patientId: "44437c83-f938-d569-4afb-28b8df23bf97",
-    name: "Elayne Trakand",
-    initials: "ET",
-    phone: "+1 (555) 021-9988",
-    arrivalTime: "08:00 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "General follow-up",
-    waitTime: "—",
-    source: "zero",
-    status: "completed"
-  },
-  {
-    id: "28c8c38b-bb5e-87b3-6cb6-40d1936d8df6",
-    patientId: "adc302cc-323b-428f-e108-6a7852208f98",
-    name: "Thom Merrilin",
-    initials: "TM",
-    phone: "+1 (555) 024-8899",
-    arrivalTime: "08:15 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Throat irritation check",
-    waitTime: "—",
-    source: "walk-in",
-    status: "completed"
-  },
-  {
-    id: "a0dd6f90-56d6-de61-2b25-0a801c5ea504",
-    patientId: "3d355419-986a-0109-6669-c6f315fed274",
-    name: "Birgitte Silverbow",
-    initials: "BS",
-    phone: "+1 (555) 025-1122",
-    arrivalTime: "08:30 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Vision acuity review",
-    waitTime: "—",
-    source: "zero",
-    status: "completed"
-  },
-  {
-    id: "6dea5e39-8b82-81b6-d815-2ae5441afd91",
-    patientId: "6b120d55-6f79-a375-d410-153583664610",
-    name: "Siuan Sanche",
-    initials: "SS",
-    phone: "+1 (555) 026-3344",
-    arrivalTime: "08:45 AM",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Routine screening follow-up",
-    waitTime: "—",
-    source: "zero",
-    status: "completed"
-  },
-  {
-    id: "53cfb6c8-9850-0192-b832-81831d386aa2",
-    patientId: "3ca18d22-e754-620a-6318-8c86281831dc",
-    name: "Gareth Bryne",
-    initials: "GB",
-    phone: "+1 (555) 027-5566",
-    arrivalTime: "09:00 AM",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Physical therapy review",
-    waitTime: "—",
-    source: "zero",
-    status: "completed"
-  },
-  {
-    id: "8abbd8a2-8fbd-ce27-446f-c84ce580f13b",
-    patientId: "2bfffa51-1780-6086-af02-d39518b7300e",
-    name: "Galad Damodred",
-    initials: "GD",
-    phone: "+1 (555) 028-7788",
-    arrivalTime: "—",
-    doctor: "Dr. Lan Mandragoran",
-    reason: "Eye strain checkup",
-    waitTime: "—",
-    source: "zero",
-    status: "no_show"
-  },
-  {
-    id: "05cf9f8c-d6c2-53d5-8b70-ac10ef4d7358",
-    patientId: "71e3e0fa-100c-4482-5796-5ccb9f5be3af",
-    name: "Gawyn Trakand",
-    initials: "GT",
-    phone: "+1 (555) 029-9900",
-    arrivalTime: "—",
-    doctor: "Dr. Moiraine Damodred",
-    reason: "Knee pain evaluation",
-    waitTime: "—",
-    source: "zero",
-    status: "no_show"
-  }
-];
 
 
 
@@ -282,7 +68,7 @@ function App() {
   const [queueLoaded, setQueueLoaded] = useState(false);
   const [appointmentsLoadedThisSession, setAppointmentsLoadedThisSession] = useState(false);
   const [conversationsLoadedThisSession, setConversationsLoadedThisSession] = useState(false);
-    const [appointments, setAppointments] = useState<Appointment[]>(mappedMockAppointments);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
     // Auth & Session States
@@ -561,11 +347,24 @@ function App() {
       }
     );
 
+    // Live bell — the backend emits this whenever createNotification runs.
+    socket.on("notification:new", (payload: any) => {
+      setNotifications(prev => {
+        if (prev.some(n => n.id === payload.id)) return prev;
+        return [mapNotification(payload), ...prev];
+      });
+    });
+
     return () => {
       socket.emit("leave:clinic", clinicId);
       socket.disconnect();
       socketRef.current = null;
     };
+  }, [clinicId]);
+
+  // Initial notifications load once we know the clinic.
+  useEffect(() => {
+    if (clinicId) loadNotifications();
   }, [clinicId]);
 
   // Load Queue from Backend
@@ -599,67 +398,54 @@ function App() {
 
 
   // Notifications State & Logic
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      type: 'escalation',
-      title: 'Escalation Alert',
-      description: "Escalation: patient reported chest tightness — Nynaeve al'Meara",
-      time: '12 min ago',
-      read: false,
-      linkData: {
-        route: 'zero-chat',
-        patientId: "cb1ac7ae-fbcb-d748-82a4-d5f4f99da0a6"
-      }
-    },
-    {
-      id: 'notif-2',
-      type: 'recall',
-      title: 'Recall Reminder',
-      description: 'Recall due: Elayne Trakand (due for 6-month checkup)',
-      time: '1 hour ago',
-      read: false,
-      linkData: {
-        route: 'patients',
-        patientId: "44437c83-f938-d569-4afb-28b8df23bf97",
-        tab: 'recalls'
-      }
-    },
-    {
-      id: 'notif-3',
-      type: 'no-show',
-      title: 'No-show Alert',
-      description: 'No-show: Galad Damodred missed 09:30 AM appointment',
-      time: '2 hours ago',
-      read: false,
-      linkData: {
-        route: 'live-queue',
-        tab: 'no_show'
-      }
-    },
-    {
-      id: 'notif-4',
-      type: 'escalation',
-      title: 'Billing Dispute Escalation',
-      description: "Escalation: billing dispute requires human review — Egwene al'Vere",
-      time: '4 hours ago',
-      read: true,
-      linkData: {
-        route: 'zero-chat',
-        patientId: "9741499a-aa80-5af7-3c51-ad75dd3b8094"
-      }
-    }
-  ]);
+  // Real notifications from the backend (bell icon). The list endpoint returns
+  // unread only; a notification:new socket event prepends live ones.
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotificationsDropdownOpen, setIsNotificationsDropdownOpen] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Maps a backend Notification row to the bell's NotificationItem shape,
+  // deriving the click-through target from its type + metadata.
+  const mapNotification = (n: any): NotificationItem => {
+    const type: NotificationItem['type'] =
+      n.type === 'noshow' || n.type === 'no-show' ? 'no-show' : n.type === 'recall' ? 'recall' : 'escalation';
+    const meta = n.metadata || {};
+    const linkData: NotificationItem['linkData'] =
+      type === 'recall'
+        ? { route: 'patients', tab: 'recalls', patientId: meta.patientId }
+        : type === 'no-show'
+        ? { route: 'live-queue', tab: 'no_show' }
+        : { route: 'zero-chat', patientId: meta.conversationId };
+    const created = n.createdAt ? new Date(n.createdAt) : null;
+    return {
+      id: n.id,
+      type,
+      title: n.title || 'Notification',
+      description: n.body || n.description || '',
+      time: created ? created.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '',
+      read: Boolean(n.isRead),
+      linkData,
+    };
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const data = await api.notifications.list();
+      setNotifications(data.map(mapNotification));
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
+  };
+
   const handleMarkAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    api.notifications.markAllRead().catch(err => console.error("Failed to mark all read:", err));
   };
 
   const handleNotificationClick = (notif: NotificationItem) => {
     setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n));
+    api.notifications.markRead(notif.id).catch(err => console.error("Failed to mark read:", err));
     setIsNotificationsDropdownOpen(false);
 
     if (notif.linkData.route === 'zero-chat') {
@@ -697,7 +483,10 @@ function App() {
   }, [isNotificationsDropdownOpen]);
 
   // Patients screen states
-  const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  // Starts empty — real patients load from the backend. Seeding with mock
+  // fixtures caused a flash of fictional people (and left them on screen
+  // whenever the load failed).
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [patientsTab, setPatientsTab] = useState<'all' | 'recall'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -722,7 +511,7 @@ function App() {
   const [addPatientEmail, setAddPatientEmail] = useState('');
   const [addPatientDob, setAddPatientDob] = useState('');
   const [addPatientGender, setAddPatientGender] = useState('Male');
-  const [addPatientDoctor, setAddPatientDoctor] = useState('Dr. Lan Mandragoran');
+  const [addPatientDoctor, setAddPatientDoctor] = useState('');
   const [addPatientRecallStatus, setAddPatientRecallStatus] = useState('UP_TO_DATE');
   const [addPatientRecallReason, setAddPatientRecallReason] = useState('');
 
@@ -730,12 +519,42 @@ function App() {
   const [patientDetailLoading, setPatientDetailLoading] = useState(false);
 
   // Load Patients from Backend
+  // The backend sends Prisma-ish field names (lastVisitAt, nextAppointmentAt,
+  // conversationCount) and no initials; name can be null for walk-ins created
+  // via WhatsApp before intake finished. The UI renders lastVisit /
+  // nextAppointment / conversationsCount / initials and calls name.toLowerCase()
+  // in the search filter — so without this mapping the table shows blank
+  // columns/avatars and a single null-named patient crashes the whole page.
+  const formatPatientDate = (iso: string | null | undefined) =>
+    iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  const normalizePatient = (p: any): Patient => {
+    const name = p.name || p.phone || 'Unknown patient';
+    return {
+      ...p,
+      name,
+      initials:
+        p.initials ||
+        name.trim().split(/\s+/).map((w: string) => w[0]).join('').toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 2) ||
+        'PT',
+      lastVisit: p.lastVisit ?? formatPatientDate(p.lastVisitAt),
+      nextAppointment: p.nextAppointment ?? formatPatientDate(p.nextAppointmentAt),
+      recallStatus: p.recallStatus || 'NA',
+      conversationsCount: p.conversationsCount ?? p.conversationCount ?? 0,
+      history: Array.isArray(p.history) ? p.history : [],
+      // Backend detail returns conversation *summaries* here, not chat
+      // bubbles — the drawer's Conversations tab uses the clinic-level
+      // conversations state instead, so don't pass summaries through as if
+      // they were messages.
+      conversations: Array.isArray(p.conversations) && p.conversations[0]?.sender ? p.conversations : [],
+    };
+  };
+
   const loadPatients = async () => {
     try {
       setPatientsLoading(true);
       setPatientsError(null);
       const data = await api.patients.list();
-      setPatients(data);
+      setPatients(data.map(normalizePatient));
     } catch (err) {
       console.error("Failed to load patients:", err);
       setPatientsError("Couldn't load patients.");
@@ -750,7 +569,7 @@ function App() {
       setRecallLoading(true);
       setRecallError(null);
       const data = await api.patients.list({ recall: true });
-      setRecallPatients(data);
+      setRecallPatients(data.map(normalizePatient));
     } catch (err) {
       console.error("Failed to load recall patients:", err);
       setRecallError("Couldn't load recall list.");
@@ -764,7 +583,7 @@ function App() {
     try {
       setPatientDetailLoading(true);
       const data = await api.patients.get(patientId);
-      setSelectedPatient(data);
+      setSelectedPatient(normalizePatient(data));
     } catch (err) {
       console.error("Failed to load patient detail:", err);
     } finally {
@@ -821,7 +640,7 @@ function App() {
       setAddPatientEmail('');
       setAddPatientDob('');
       setAddPatientGender('Male');
-      setAddPatientDoctor('Dr. Lan Mandragoran');
+      setAddPatientDoctor(doctorOptions[0]);
       setAddPatientRecallStatus('UP_TO_DATE');
       setAddPatientRecallReason('');
     } catch (err: any) {
@@ -852,7 +671,7 @@ function App() {
   const [formPatientId, setFormPatientId] = useState<string | null>(null);
   const [formDate, setFormDate] = useState('');
   const [formTime, setFormTime] = useState('09:00 AM');
-  const [formDoctor, setFormDoctor] = useState('Dr. Lan Mandragoran');
+  const [formDoctor, setFormDoctor] = useState('');
   const [formDept, setFormDept] = useState('General Medicine');
   const [formNotes, setFormNotes] = useState('');
 
@@ -862,7 +681,7 @@ function App() {
   const [rescheduleTime, setRescheduleTime] = useState('');
 
   // Live Queue states
-  const [queue, setQueue] = useState<QueueEntry[]>(initialQueue);
+  const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [queueTab, setQueueTab] = useState<'waiting' | 'with_doctor' | 'completed' | 'no_show'>('waiting');
   const [isNewWalkInDrawerOpen, setIsNewWalkInDrawerOpen] = useState(false);
   const [walkInType, setWalkInType] = useState<'registered' | 'new'>('registered');
@@ -870,7 +689,7 @@ function App() {
   const [walkInNewPatientName, setWalkInNewPatientName] = useState('');
   const [walkInNewPatientPhone, setWalkInNewPatientPhone] = useState('');
   const [walkInReason, setWalkInReason] = useState('');
-  const [walkInDoctor, setWalkInDoctor] = useState('Dr. Lan Mandragoran');
+  const [walkInDoctor, setWalkInDoctor] = useState('');
   const [queueError, setQueueError] = useState<string | null>(null);
 
   // ZeroChat screen states
@@ -1112,9 +931,15 @@ function App() {
     }
   };
 
+  // Staff loads as soon as we know the clinic (not just on Settings) so the
+  // doctor dropdowns in appointment/patient/walk-in forms list the clinic's
+  // real team instead of hardcoded fictional names.
+  useEffect(() => {
+    if (clinicId) loadStaff();
+  }, [clinicId]);
+
   useEffect(() => {
     if (currentRoute === 'settings' && clinicId) {
-      loadStaff();
       loadClinicSettings();
     }
   }, [currentRoute, clinicId]);
@@ -1305,7 +1130,7 @@ function App() {
       setFormPatientId(null);
       setFormDate('');
       setFormTime('09:00 AM');
-      setFormDoctor('Dr. Lan Mandragoran');
+      setFormDoctor(doctorOptions[0]);
       setFormDept('General Medicine');
       setFormNotes('');
     } catch (err: any) {
@@ -1477,6 +1302,15 @@ function App() {
   // Real staff loaded from the backend (GET /api/staff). Starts empty — a
   // brand-new clinic has only the admin who registered, no fabricated defaults.
   const [staffList, setStaffList] = useState<StaffListItem[]>([]);
+
+  // Names for the doctor dropdowns — the clinic's real team, with a neutral
+  // placeholder for a brand-new clinic that hasn't added anyone yet (so the
+  // dropdown is never empty and never shows fictional defaults).
+  const doctorOptions = (() => {
+    const names = staffList.map(s => s.name).filter(Boolean);
+    return names.length > 0 ? names : ['Unassigned'];
+  })();
+
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffRole, setNewStaffRole] = useState('General Practitioner');
@@ -1542,6 +1376,7 @@ function App() {
   // Render Live Queue Screen
   const renderLiveQueueScreen = () => (
     <LiveQueuePage
+      doctorOptions={doctorOptions}
       queue={queue}
       queueTab={queueTab}
       setQueueTab={setQueueTab}
@@ -1637,6 +1472,7 @@ function App() {
 
   const renderAppointmentsScreen = () => (
     <AppointmentsPage
+      doctorOptions={doctorOptions}
       appointments={appointments}
       appointmentsLoading={appointmentsLoading}
       appointmentsError={appointmentsError}
@@ -1660,7 +1496,7 @@ function App() {
         setFormPatientId(null);
         setFormDate(date);
         setFormTime(time);
-        setFormDoctor("Dr. Lan Mandragoran");
+        setFormDoctor(doctorOptions[0]);
         setFormDept("General Medicine");
         setFormNotes("");
         setIsNewApptDrawerOpen(true);
@@ -2055,6 +1891,7 @@ if (!isOnboarded) {
         <>
           {currentRoute === 'patients' && (
             <AddPatientModal
+              doctorOptions={doctorOptions}
               isOpen={addPatientModalOpen}
               onClose={() => setAddPatientModalOpen(false)}
               onSubmit={handleAddPatient}
@@ -2149,6 +1986,7 @@ if (!isOnboarded) {
           />
 
           <NewAppointmentDrawer
+            doctorOptions={doctorOptions}
             isOpen={isNewApptDrawerOpen}
             onClose={() => setIsNewApptDrawerOpen(false)}
             onSubmit={handleCreateAppointment}

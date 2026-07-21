@@ -58,7 +58,9 @@ export function PatientsPage({
 
   const filteredPatients = currentList.filter(patient => {
     const query = searchQuery.toLowerCase().trim();
-    return patient.name.toLowerCase().includes(query) || patient.phone.includes(query);
+    // name/phone are guarded — a WhatsApp walk-in can exist before intake
+    // captured a name, and one null here used to crash the whole page.
+    return (patient.name || '').toLowerCase().includes(query) || (patient.phone || '').includes(query);
   });
 
   if (patientsTab === 'recall') {

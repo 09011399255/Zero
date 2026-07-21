@@ -23,6 +23,7 @@ interface AddPatientModalProps {
   setAddPatientRecallStatus: (v: string) => void;
   addPatientRecallReason: string;
   setAddPatientRecallReason: (v: string) => void;
+  doctorOptions: string[];
 }
 
 export function AddPatientModal({
@@ -39,6 +40,7 @@ export function AddPatientModal({
   addPatientDoctor, setAddPatientDoctor,
   addPatientRecallStatus, setAddPatientRecallStatus,
   addPatientRecallReason, setAddPatientRecallReason,
+  doctorOptions,
 }: AddPatientModalProps) {
   const panelRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   if (!isOpen) return null;
@@ -146,13 +148,11 @@ export function AddPatientModal({
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Primary Doctor</label>
             <select
-              value={addPatientDoctor}
+              value={addPatientDoctor || doctorOptions[0]}
               onChange={(e) => setAddPatientDoctor(e.target.value)}
               className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
             >
-              <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-              <option value="Dr. Nynaeve al'Meara">Dr. Nynaeve al'Meara</option>
-              <option value="Dr. Elayne Trakand">Dr. Elayne Trakand</option>
+              {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 

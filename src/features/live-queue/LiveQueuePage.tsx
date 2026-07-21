@@ -58,6 +58,7 @@ interface LiveQueuePageProps {
   setWalkInDoctor: (doctor: string) => void;
   walkInLoading: boolean;
   setWalkInLoading: (loading: boolean) => void;
+  doctorOptions: string[];
 }
 
 export function LiveQueuePage({
@@ -86,6 +87,7 @@ export function LiveQueuePage({
   setWalkInDoctor,
   walkInLoading,
   setWalkInLoading,
+  doctorOptions,
 }: LiveQueuePageProps) {
   const toast = useToast();
   const walkInPanelRef = useModalA11y<HTMLDivElement>(isNewWalkInDrawerOpen, () => setIsNewWalkInDrawerOpen(false));
@@ -191,7 +193,7 @@ export function LiveQueuePage({
             setWalkInPatientId(null);
             setWalkInNewPatientName('');
             setWalkInReason('');
-            setWalkInDoctor('Dr. Lan Mandragoran');
+            setWalkInDoctor(doctorOptions[0]);
             setIsNewWalkInDrawerOpen(true);
           }}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-brand-500 text-brand-500 hover:bg-brand-50 font-semibold rounded-xl text-xs transition duration-200"
@@ -605,8 +607,7 @@ export function LiveQueuePage({
                   required
                   className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-                  <option value="Dr. Moiraine Damodred">Dr. Moiraine Damodred</option>
+                  {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
 

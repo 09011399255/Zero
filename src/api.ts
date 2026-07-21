@@ -201,6 +201,17 @@ export interface WhatsAppStatusResponse {
   phoneNumberId: string | null;
 }
 
+// Raw notification row from the backend (Prisma Notification model).
+export interface NotificationDTO {
+  id: string;
+  type: string; // 'escalation' | 'noshow' | 'recall' | ...
+  title: string;
+  body: string;
+  metadata: { conversationId?: string; appointmentId?: string; patientId?: string } | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface StaffMemberDTO {
   id: string;
   fullName: string;
@@ -270,6 +281,11 @@ export const api = {
   },
   analytics: {
     dashboard: () => request<DashboardSummary>("GET", "/api/analytics/dashboard"),
+  },
+  notifications: {
+    list: () => request<NotificationDTO[]>("GET", "/api/notifications"),
+    markRead: (id: string) => request<{ success: boolean }>("PATCH", `/api/notifications/${id}/read`),
+    markAllRead: () => request<{ success: boolean }>("PATCH", "/api/notifications/read-all"),
   },
   patients: {
     list: (params?: { recall?: boolean }) => {

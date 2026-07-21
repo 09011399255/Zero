@@ -21,6 +21,7 @@ interface NewAppointmentDrawerProps {
   setFormNotes: (v: string) => void;
   newApptError: string | null;
   newApptLoading: boolean;
+  doctorOptions: string[];
 }
 
 export function NewAppointmentDrawer({
@@ -36,6 +37,7 @@ export function NewAppointmentDrawer({
   formNotes, setFormNotes,
   newApptError,
   newApptLoading,
+  doctorOptions,
 }: NewAppointmentDrawerProps) {
   const panelRef = useModalA11y<HTMLDivElement>(isOpen, onClose);
   if (!isOpen) return null;
@@ -137,8 +139,7 @@ export function NewAppointmentDrawer({
               required
               className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
             >
-              <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-              <option value="Dr. Moiraine Damodred">Dr. Moiraine Damodred</option>
+              {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
 

@@ -35,6 +35,7 @@ interface AppointmentsPageProps {
   getWeekDays: (start: Date) => Date[];
   formatDateString: (date: Date) => string;
   formatRangeLabel: (start: Date) => string;
+  doctorOptions: string[];
 }
 
 export function AppointmentsPage({
@@ -61,6 +62,7 @@ export function AppointmentsPage({
   getWeekDays,
   formatDateString,
   formatRangeLabel,
+  doctorOptions,
 }: AppointmentsPageProps) {
   // Desktop/tablet card-vs-table preference for List View (Part 4). Mobile
   // always shows cards regardless — see the md:hidden / hidden md:block split.
@@ -448,8 +450,7 @@ export function AppointmentsPage({
                 className="w-full md:w-auto px-3 py-1.5 text-xs bg-surface-subtle border border-surface-border rounded-xl text-text-primary font-medium focus:outline-none"
               >
                 <option value="all">All Doctors</option>
-                <option value="Dr. Lan Mandragoran">Dr. Lan Mandragoran</option>
-                <option value="Dr. Moiraine Damodred">Dr. Moiraine Damodred</option>
+                {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
               </select>
 
               {/* Status filter */}
