@@ -1,7 +1,8 @@
-import { RefreshCw, X } from 'lucide-react';
+import { MessageSquare, RefreshCw, X } from 'lucide-react';
 import { Conversation, Patient } from '../../api';
 import { useToast } from '../../components/shared/Toast';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { EmptyState } from '../../components/shared/EmptyState';
 
 const recallStatusLabels: Record<string, string> = {
   UP_TO_DATE: 'Up to date',
@@ -219,9 +220,12 @@ export function PatientDetailDrawer({
                 const patientConv = conversations.find(c => c.patientId === selectedPatient.id);
                 if (!patientConv) {
                   return (
-                    <div className="text-center py-8 text-xs text-text-secondary font-sans font-medium">
-                      No message exchange log available.
-                    </div>
+                    <EmptyState
+                      icon={MessageSquare}
+                      title="No message exchange log available"
+                      message="This patient hasn't started a WhatsApp conversation yet."
+                      tone="muted"
+                    />
                   );
                 }
                 const messagesToShow = activeConversation && activeConversation.id === patientConv.id
@@ -229,10 +233,17 @@ export function PatientDetailDrawer({
                   : patientConv.messages;
 
                 if (!messagesToShow || messagesToShow.length === 0) {
-                  return (
+                  return threadLoading ? (
                     <div className="text-center py-8 text-xs text-text-secondary font-sans font-medium">
-                      {threadLoading ? "Loading conversation..." : "No messages in this conversation."}
+                      Loading conversation...
                     </div>
+                  ) : (
+                    <EmptyState
+                      icon={MessageSquare}
+                      title="No messages in this conversation"
+                      message="Messages exchanged with this patient will appear here."
+                      tone="muted"
+                    />
                   );
                 }
 

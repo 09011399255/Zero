@@ -2,6 +2,7 @@ import { AlertTriangle, ArrowLeft, ChevronDown, MessageSquare, RefreshCw, Search
 import { api, Conversation } from '../../api';
 import { ConversationRow } from './ConversationRow';
 import { ErrorState } from '../../components/shared/ErrorState';
+import { EmptyState } from '../../components/shared/EmptyState';
 
 interface ExpandedSections {
   needs_review: boolean;
@@ -328,9 +329,13 @@ export function ZeroChatPage({
                   <span className="text-[11px] text-text-muted mt-2 font-sans">Loading thread...</span>
                 </div>
               ) : messagesToShow.length === 0 ? (
-                <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
-                  <MessageSquare size={36} className="text-text-muted mb-2" />
-                  <p className="text-xs text-text-secondary font-sans font-medium">No messages in this thread yet.</p>
+                <div className="flex-grow flex items-center justify-center">
+                  <EmptyState
+                    icon={MessageSquare}
+                    title="No messages in this thread yet"
+                    message="Messages with this patient will show up here as soon as they message your clinic."
+                    tone="muted"
+                  />
                 </div>
               ) : (
                 messagesToShow.map((msg, index) => {
@@ -419,10 +424,13 @@ export function ZeroChatPage({
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-            <MessageSquare size={48} className="text-text-muted mb-4" />
-            <h3 className="text-sm font-semibold text-text-primary">No conversation selected</h3>
-            <p className="text-xs text-text-secondary mt-1">Select a conversation from the left menu to view the chat history.</p>
+          <div className="flex-1 flex items-center justify-center">
+            <EmptyState
+              icon={MessageSquare}
+              title="No conversation selected"
+              message="Select a conversation from the left menu to view the chat history."
+              tone="muted"
+            />
           </div>
         )}
       </div>
