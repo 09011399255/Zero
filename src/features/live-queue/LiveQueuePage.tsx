@@ -10,7 +10,7 @@ export interface QueueEntry {
   initials: string;
   phone: string;
   arrivalTime: string;
-  doctor: string;
+  doctor: string | null;
   reason: string;
   waitTime: string;
   source: 'zero' | 'walk-in' | 'manual';
@@ -417,7 +417,7 @@ export function LiveQueuePage({
                         {item.arrivalTime}
                       </td>
                       <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">
-                        {item.doctor}
+                        {item.doctor || '—'}
                       </td>
                       <td className="py-3.5 px-6 text-xs text-text-secondary font-medium max-w-[200px] truncate">
                         {item.reason}

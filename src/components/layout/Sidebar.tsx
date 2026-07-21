@@ -131,10 +131,20 @@ export function Sidebar({ currentRoute, onNavigate, needsReviewCount, adminName,
             </div>
             <ul className="space-y-1">
               <li>
-                <button onClick={() => go('analytics')} className={navButtonClass(currentRoute === 'analytics')}>
-                  <TrendingUp size={16} />
-                  <span>Analytics</span>
-                </button>
+                {/* Analytics isn't built yet — show it as a roadmap item ("Soon")
+                    rather than a nav link into an "under development" dead page. */}
+                <div
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium text-brand-100/40 cursor-default"
+                  title="Coming soon"
+                >
+                  <div className="flex items-center gap-3">
+                    <TrendingUp size={16} />
+                    <span>Analytics</span>
+                  </div>
+                  <span className="text-[8px] font-bold uppercase tracking-wider bg-white/10 text-brand-100/60 px-1.5 py-0.5 rounded-md">
+                    Soon
+                  </span>
+                </div>
               </li>
             </ul>
           </div>

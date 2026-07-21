@@ -53,11 +53,27 @@ async function request<T>(
 
 export type QueueStatus = "WAITING" | "WITH_DOCTOR" | "COMPLETED" | "NO_SHOW";
 
+// One queue row as the backend formats it (formatQueuePatient).
+export interface QueuePatientDTO {
+  id: string;
+  patientId: string | null;
+  name: string;
+  initials: string;
+  phone: string;
+  queueNumber: number | null;
+  arrivalTime: string;
+  doctor: string | null;
+  reason: string;
+  waitTime: string;
+  status: string;
+  source: 'zero' | 'walk-in';
+}
+
 export interface QueueResponse {
-  waiting: any[];
-  withDoctor: any[];
-  completed: any[];
-  noShow: any[];
+  waiting: QueuePatientDTO[];
+  withDoctor: QueuePatientDTO[];
+  completed: QueuePatientDTO[];
+  noShow: QueuePatientDTO[];
   total?: number;
 }
 
@@ -201,6 +217,36 @@ export interface WhatsAppStatusResponse {
   phoneNumberId: string | null;
 }
 
+// Clinic shape returned by GET /api/clinic (backend formatClinic).
+export interface ClinicDTO {
+  id: string;
+  name: string;
+  address: string | null;
+  servicesOffered: string[];
+  operatingHours: { days: string[]; openTime: string; closeTime: string };
+  whatsappStatus: WhatsAppStatus;
+  phoneNumber: string | null;
+  plan: string;
+  escalationAlerts: boolean;
+  recallReminders: boolean;
+  noShowAlerts: boolean;
+  dailySummaryEmail: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Body accepted by PATCH /api/clinic (backend UpdateClinicSchema).
+export interface ClinicUpdate {
+  name?: string;
+  address?: string;
+  servicesOffered?: string[];
+  operatingHours?: { days?: string[]; openTime?: string; closeTime?: string };
+  escalationAlerts?: boolean;
+  recallReminders?: boolean;
+  noShowAlerts?: boolean;
+  dailySummaryEmail?: boolean;
+}
+
 // Raw notification row from the backend (Prisma Notification model).
 export interface NotificationDTO {
   id: string;
@@ -251,9 +297,9 @@ export const api = {
       request<MeResponse>("GET", "/api/auth/me"),
   },
   clinic: {
-    get: () => request<any>("GET", "/api/clinic"),
-    update: (body: any) => request<any>("PATCH", "/api/clinic", body),
-    completeOnboarding: () => request<any>("POST", "/api/clinic/complete-onboarding"),
+    get: () => request<ClinicDTO>("GET", "/api/clinic"),
+    update: (body: ClinicUpdate) => request<ClinicDTO>("PATCH", "/api/clinic", body),
+    completeOnboarding: () => request<ClinicDTO>("POST", "/api/clinic/complete-onboarding"),
     whatsappStatus: () => request<WhatsAppStatusResponse>("GET", "/api/clinic/whatsapp-status"),
     // Hands Meta's Embedded Signup result to the backend, which exchanges the
     // short-lived `code` for a permanent token, stores it against the clinic,
@@ -342,9 +388,9 @@ export const api = {
       reason: string;
       doctor: string;
       source: "walk-in";
-    }) => request<any>("POST", "/api/queue/walk-in", body),
+    }) => request<QueuePatientDTO>("POST", "/api/queue/walk-in", body),
     updateStatus: (patientId: string, status: QueueStatus) =>
-      request<any>(
+      request<QueuePatientDTO>(
         "PATCH",
         `/api/queue/patients/${patientId}/status`,
         { status }

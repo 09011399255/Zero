@@ -7,6 +7,7 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react';
+import logoBlue from './assets/logo-blue.svg';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
@@ -38,7 +39,7 @@ interface QueueEntry {
   initials: string;
   phone: string;
   arrivalTime: string;
-  doctor: string;
+  doctor: string | null; // null on queue rows — doctor is assigned at appointment level
   reason: string;
   waitTime: string;
   source: 'zero' | 'walk-in' | 'manual';
@@ -1782,10 +1783,17 @@ const renderOnboardingWizard = () => (
 
   if (!sessionChecked) {
     return (
-      <div className="flex min-h-screen bg-surface-subtle items-center justify-center">
-        <div className="text-text-secondary text-sm font-semibold flex items-center gap-2">
-          <RefreshCw className="animate-spin text-brand-500" size={16} />
-          <span>Loading Zero Clinic OS...</span>
+      <div className="flex min-h-screen dot-grid-bg items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-5 animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <img src={logoBlue} className="h-8 w-auto object-contain" alt="Zero" />
+            <div className="h-5 w-px bg-brand-200"></div>
+            <span className="text-[11px] text-brand-600 uppercase tracking-widest font-bold">Clinic OS</span>
+          </div>
+          <div className="flex items-center gap-2 text-text-secondary text-xs font-semibold">
+            <RefreshCw className="animate-spin text-brand-500" size={14} />
+            <span>Getting things ready…</span>
+          </div>
         </div>
       </div>
     );

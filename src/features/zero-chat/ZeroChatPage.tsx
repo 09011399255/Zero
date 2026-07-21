@@ -324,7 +324,7 @@ export function ZeroChatPage({
             <div className="flex-1 overflow-y-auto p-6 space-y-4 flex flex-col justify-start">
               {threadLoading ? (
                 <div className="flex-grow flex flex-col items-center justify-center text-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+                  <RefreshCw className="animate-spin text-brand-500" size={24} />
                   <span className="text-[11px] text-text-muted mt-2 font-sans">Loading thread...</span>
                 </div>
               ) : messagesToShow.length === 0 ? (
