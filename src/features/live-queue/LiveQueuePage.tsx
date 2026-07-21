@@ -1,7 +1,8 @@
-import { AlertTriangle, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { AlertTriangle, Clock, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { api, Patient } from '../../api';
 import { useToast } from '../../components/shared/Toast';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { EmptyState } from '../../components/shared/EmptyState';
 
 export interface QueueEntry {
   id: string;
@@ -306,15 +307,28 @@ export function LiveQueuePage({
             <p className="text-sm font-semibold text-text-primary">Loading live queue...</p>
           </div>
         ) : filteredQueue.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">
-              <Search size={22} />
-            </div>
-            <p className="text-sm font-semibold text-text-primary">No patients in queue</p>
-            <p className="text-xs text-text-secondary mt-1 max-w-xs capitalize">
-              There are no patients currently marked as {queueTab.replace('_', ' ')}.
-            </p>
-          </div>
+          queueTab === 'waiting' ? (
+            <EmptyState
+              icon={Clock}
+              title="Queue is clear"
+              message="No one is waiting right now. Walk-ins and patients who book via Zero on WhatsApp will appear here."
+              action={{ label: 'Add Walk-in', onClick: () => {
+                setWalkInType('registered');
+                setWalkInPatientId(null);
+                setWalkInNewPatientName('');
+                setWalkInReason('');
+                setWalkInDoctor(doctorOptions[0]);
+                setIsNewWalkInDrawerOpen(true);
+              } }}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              tone="muted"
+              title="Nothing here"
+              message={`No patients are currently ${queueTab.replace('_', ' ')}.`}
+            />
+          )
         ) : (
           <>
             {/* Mobile/tablet card list */}

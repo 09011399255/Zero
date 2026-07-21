@@ -2,6 +2,7 @@ import { Activity, Calendar, ChevronDown, ChevronLeft, ChevronRight, Clock, Layo
 import { useState } from 'react';
 import { Appointment, AppointmentStatus } from '../../api';
 import { ErrorState } from '../../components/shared/ErrorState';
+import { EmptyState } from '../../components/shared/EmptyState';
 
 const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   pending: "Pending",
@@ -630,9 +631,12 @@ export function AppointmentsPage({
       ) : (
         <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-hidden">
           {paginatedAppts.length === 0 ? (
-            <div className="p-8 text-center text-text-secondary text-xs">
-              No appointments found matching current filters.
-            </div>
+            <EmptyState
+              icon={Calendar}
+              title="No appointments"
+              message="Nothing matches your current filters. Book one manually, or Zero will add appointments here as patients schedule on WhatsApp."
+              action={{ label: 'New Appointment', onClick: () => onOpenNewAppointment({ date: '2026-06-23', time: '09:00 AM' }) }}
+            />
           ) : (
             <>
               {/* Mobile/tablet: always cards, regardless of the desktop toggle */}

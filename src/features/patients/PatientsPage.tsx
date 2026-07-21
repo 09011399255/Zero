@@ -1,7 +1,8 @@
-import { ChevronLeft, ChevronRight, LayoutGrid, Plus, RefreshCw, Search, Table2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Plus, RefreshCw, Search, Table2, Users, X } from 'lucide-react';
 import { useState } from 'react';
 import { Patient } from '../../api';
 import { ErrorState } from '../../components/shared/ErrorState';
+import { EmptyState } from '../../components/shared/EmptyState';
 
 const recallStatusLabels: Record<string, string> = {
   UP_TO_DATE: 'Up to date',
@@ -300,15 +301,27 @@ export function PatientsPage({
             onRetry={patientsTab === 'recall' ? onRetryRecall : onRetryPatients}
           />
         ) : paginatedPatients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-12 h-12 bg-surface-subtle text-text-secondary rounded-full flex items-center justify-center mb-4">
-              <Search size={22} />
-            </div>
-            <p className="text-sm font-semibold text-text-primary">No patients found</p>
-            <p className="text-xs text-text-secondary mt-1 max-w-xs">
-              We couldn't find any results matching "{searchQuery}". Check the spelling or try a different term.
-            </p>
-          </div>
+          searchQuery.trim() ? (
+            <EmptyState
+              icon={Search}
+              tone="muted"
+              title="No matches"
+              message={`Nothing matches "${searchQuery}". Check the spelling or try a different name or phone number.`}
+            />
+          ) : patientsTab === 'recall' ? (
+            <EmptyState
+              icon={Users}
+              title="No recalls due"
+              message="Patients due or overdue for a follow-up will show up here — Zero flags them automatically."
+            />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="No patients yet"
+              message="Patients appear here automatically as they message your clinic on WhatsApp — or add one manually to get started."
+              action={{ label: 'Add Patient', onClick: onOpenAddPatientModal }}
+            />
+          )
         ) : (
           <>
             {/* Mobile/tablet: always cards, regardless of the desktop toggle */}
