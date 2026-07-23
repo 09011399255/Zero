@@ -16,6 +16,7 @@ import { PatientsPage } from '../features/patients/PatientsPage';
 import { AppointmentsPage } from '../features/appointments/AppointmentsPage';
 import { ZeroChatPage } from '../features/zero-chat/ZeroChatPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { AdminConsole } from '../features/admin/AdminConsole';
 import { AddPatientModal } from '../features/patients/AddPatientModal';
 import { PatientDetailDrawer } from '../features/patients/PatientDetailDrawer';
 import { AppointmentDetailDrawer } from '../features/appointments/AppointmentDetailDrawer';
@@ -132,6 +133,11 @@ export function DesignPreview() {
     name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
   const unreadCount = fx.notifications.filter((n) => !n.read).length;
+
+  // Admin console renders its own full-screen shell (no sidebar/topbar).
+  if (currentRoute === 'admin') {
+    return <AdminConsole onExit={() => setCurrentRoute('dashboard')} />;
+  }
 
   return (
     <div className="flex min-h-screen bg-surface-subtle">

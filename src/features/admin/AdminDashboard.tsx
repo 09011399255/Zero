@@ -137,7 +137,7 @@ export function AdminWhatsApp() {
                 const meta = STATUS_META[c.whatsappStatus];
                 const busy = busyId === c.id;
                 return (
-                  <div key={c.id} className="bg-surface-base border border-surface-border/60 rounded-2xl p-4 space-y-3">
+                  <div key={c.id} className="bg-surface-base border border-surface-border rounded-2xl shadow-card p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-text-primary truncate">{c.name}</p>
@@ -204,7 +204,7 @@ export function AdminWhatsApp() {
                         <button
                           onClick={() => handleSendCode(c.id)}
                           disabled={busy}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white text-xs font-bold transition"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white text-xs font-bold shadow-brand-glow transition"
                         >
                           {busy ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />}
                           Send code
@@ -215,7 +215,7 @@ export function AdminWhatsApp() {
                         <>
                           <button
                             onClick={() => { setConnectingId(c.id); setPhoneNumberIdInput(''); }}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-brand-glow transition"
                           >
                             <CheckCircle2 size={13} /> Mark connected
                           </button>
@@ -258,7 +258,7 @@ export function AdminWhatsApp() {
                           <button
                             onClick={() => handleMarkConnected(c.id)}
                             disabled={busy || phoneNumberIdInput.trim().length < 3}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white text-xs font-bold transition"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white text-xs font-bold shadow-brand-glow transition"
                           >
                             {busy ? <RefreshCw size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                             Confirm connected
@@ -284,7 +284,7 @@ export function AdminWhatsApp() {
                   Connected ({connected.length})
                 </h2>
                 {connected.map((c) => (
-                  <div key={c.id} className="bg-surface-base border border-surface-border/60 rounded-2xl p-4 flex items-center justify-between gap-3">
+                  <div key={c.id} className="bg-surface-base border border-surface-border rounded-2xl shadow-card p-4 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-text-primary truncate">{c.name}</p>
                       <p className="text-[11px] text-text-muted truncate">
