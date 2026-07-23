@@ -5,21 +5,36 @@
 import { useEffect, useState } from 'react';
 import {
   AlertTriangle, ArrowLeft, Ban, Building2, CheckCircle2, CreditCard, LayoutGrid,
-  MessageSquare, RefreshCw, RotateCcw, Search, X,
+  MessageSquare, RefreshCw, RotateCcw, ScrollText, Search, Users, X,
 } from 'lucide-react';
 import {
   api, AdminOverview as OverviewStats, AdminClinicRow, AdminClinicDetail,
-  AdminBilling, PlanTier, WhatsAppStatus,
+  AdminBilling, AdminAuditEntry, AdminStaffMember, PlanTier, WhatsAppStatus,
 } from '../../api';
 import { AdminWhatsApp } from './AdminDashboard';
 
-type View = 'overview' | 'clinics' | 'billing' | 'whatsapp';
+type View = 'overview' | 'clinics' | 'billing' | 'staff' | 'audit' | 'whatsapp';
 
 function planName(p: string) { return p[0] + p.slice(1).toLowerCase(); }
+function roleName(r: string) { return r[0] + r.slice(1).toLowerCase(); }
 function fmtNaira(n: number) { return `₦${n.toLocaleString()}`; }
 function fmtDate(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 }
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+const AUDIT_LABEL: Record<string, string> = {
+  'clinic.suspend': 'Suspended clinic',
+  'clinic.reactivate': 'Reactivated clinic',
+  'clinic.plan_change': 'Changed plan',
+  'whatsapp.send_code': 'Sent WhatsApp code',
+  'whatsapp.mark_connected': 'Marked WhatsApp connected',
+  'whatsapp.reset': 'Reset WhatsApp connection',
+  'staff.deactivate': 'Deactivated staff',
+  'staff.activate': 'Activated staff',
+};
 
 const WA_LABEL: Record<WhatsAppStatus, { label: string; tone: string }> = {
   CONNECTED: { label: 'Live', tone: 'text-status-success' },
@@ -48,6 +63,8 @@ export function AdminConsole({ onExit }: { onExit: () => void }) {
     { key: 'overview', label: 'Overview', icon: LayoutGrid },
     { key: 'clinics', label: 'Clinics', icon: Building2 },
     { key: 'billing', label: 'Billing', icon: CreditCard },
+    { key: 'staff', label: 'Staff', icon: Users },
+    { key: 'audit', label: 'Audit', icon: ScrollText },
     { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
   ];
 
@@ -91,6 +108,8 @@ export function AdminConsole({ onExit }: { onExit: () => void }) {
         {view === 'overview' && <Overview onSeeClinics={() => setView('clinics')} />}
         {view === 'clinics' && <Clinics />}
         {view === 'billing' && <Billing />}
+        {view === 'staff' && <Staff />}
+        {view === 'audit' && <Audit />}
         {view === 'whatsapp' && <AdminWhatsApp />}
       </div>
     </div>
@@ -218,6 +237,158 @@ function Billing() {
 
       <List title="Renewals due (next 14 days)" rows={data.renewalsDue} empty="Nothing due soon." />
       <List title="Expired" rows={data.expired} empty="No expired plans." danger />
+    </div>
+  );
+}
+
+// ── Staff lookup ─────────────────────────────────────────────────────────────
+
+function Staff() {
+  const [rows, setRows] = useState<AdminStaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = async (query = q) => {
+    setLoading(true);
+    try {
+      setRows(await api.admin.staff(query));
+      setError(null);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load staff.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(''); }, []);
+
+  const toggle = async (s: AdminStaffMember) => {
+    setBusyId(s.id);
+    setError(null);
+    try {
+      if (s.isActive) await api.admin.deactivateStaff(s.id);
+      else await api.admin.activateStaff(s.id);
+      await load();
+    } catch (err: any) {
+      setError(err?.message || 'Action failed.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 border border-surface-border rounded-xl px-3 py-2 bg-surface-base">
+          <Search size={15} className="text-text-muted" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search staff by name or email…"
+            className="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-muted focus:outline-none"
+          />
+        </div>
+        <button type="submit" className="px-3 py-2 rounded-xl border border-surface-border bg-surface-base hover:bg-surface-subtle text-text-secondary text-xs font-semibold transition">
+          Search
+        </button>
+      </form>
+
+      {error && (
+        <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-start gap-2">
+          <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="bg-surface-base border border-surface-border/60 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-text-secondary bg-surface-subtle">
+                <th className="py-2.5 px-4 font-semibold">Name</th>
+                <th className="py-2.5 px-2 font-semibold">Clinic</th>
+                <th className="py-2.5 px-2 font-semibold">Role</th>
+                <th className="py-2.5 px-2 font-semibold">Status</th>
+                <th className="py-2.5 px-2 font-semibold">Last login</th>
+                <th className="py-2.5 px-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && rows.length === 0 ? (
+                <tr><td colSpan={6} className="py-10 text-center text-text-muted">Loading…</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={6} className="py-10 text-center text-text-muted">No staff found.</td></tr>
+              ) : rows.map((s) => (
+                <tr key={s.id} className="border-t border-surface-border/60">
+                  <td className="py-2.5 px-4">
+                    <div className="font-bold text-text-primary">{s.fullName}</div>
+                    <div className="text-[11px] text-text-muted">{s.email}</div>
+                  </td>
+                  <td className="py-2.5 px-2 text-text-secondary">{s.clinic?.name || '—'}</td>
+                  <td className="py-2.5 px-2 text-text-secondary">{roleName(s.role)}</td>
+                  <td className="py-2.5 px-2">
+                    {s.isActive
+                      ? <span className="text-status-success font-semibold">Active</span>
+                      : <span className="text-status-danger font-semibold">Disabled</span>}
+                  </td>
+                  <td className="py-2.5 px-2 text-text-secondary">{s.lastLoginAt ? fmtDate(s.lastLoginAt) : 'Never'}</td>
+                  <td className="py-2.5 px-4 text-right">
+                    <button
+                      onClick={() => toggle(s)}
+                      disabled={busyId === s.id}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition disabled:opacity-60 ${
+                        s.isActive
+                          ? 'border-status-danger/30 text-status-danger hover:bg-status-dangerBg'
+                          : 'border-status-success/30 text-status-success hover:bg-status-successBg'
+                      }`}
+                    >
+                      {busyId === s.id ? '…' : s.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Audit log ────────────────────────────────────────────────────────────────
+
+function Audit() {
+  const [rows, setRows] = useState<AdminAuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.admin.audit().then(setRows).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="py-16 text-center text-text-muted text-sm flex items-center justify-center gap-2"><RefreshCw size={16} className="animate-spin" /> Loading…</div>;
+  }
+  if (rows.length === 0) {
+    return <p className="text-sm text-text-muted py-8 text-center">No admin actions recorded yet.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.map((e) => (
+        <div key={e.id} className="flex items-start justify-between gap-3 bg-surface-base border border-surface-border/60 rounded-xl px-4 py-2.5">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-text-primary">
+              {AUDIT_LABEL[e.action] || e.action}{e.detail ? <span className="text-text-secondary font-normal"> · {e.detail}</span> : null}
+            </div>
+            <div className="text-[10px] text-text-muted truncate">
+              {e.clinicName || '—'} · by {e.actorEmail}
+            </div>
+          </div>
+          <span className="text-[10px] text-text-muted whitespace-nowrap flex-shrink-0">{fmtDateTime(e.createdAt)}</span>
+        </div>
+      ))}
     </div>
   );
 }

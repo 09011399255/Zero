@@ -279,6 +279,26 @@ export interface AdminBilling {
   expired: AdminBillingClinic[];
 }
 
+export interface AdminAuditEntry {
+  id: string;
+  actorEmail: string;
+  action: string;
+  clinicId: string | null;
+  clinicName: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
+export interface AdminStaffMember {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  clinic: { id: string; name: string } | null;
+}
+
 // One row in the admin clinics table.
 export interface AdminClinicRow {
   id: string;
@@ -456,6 +476,17 @@ export const api = {
       request<{ id: string; plan: PlanTier; planExpiresAt: string | null }>(
         "POST", `/api/admin/clinics/${id}/plan`, body
       ),
+
+    // Audit log
+    audit: () => request<AdminAuditEntry[]>("GET", "/api/admin/audit"),
+
+    // Staff lookup
+    staff: (q: string) =>
+      request<AdminStaffMember[]>("GET", `/api/admin/staff${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    deactivateStaff: (id: string) =>
+      request<{ id: string; isActive: boolean }>("POST", `/api/admin/staff/${id}/deactivate`),
+    activateStaff: (id: string) =>
+      request<{ id: string; isActive: boolean }>("POST", `/api/admin/staff/${id}/activate`),
 
     // WhatsApp connection pipeline
     whatsappPipeline: () => request<AdminClinic[]>("GET", "/api/admin/whatsapp-pipeline"),
