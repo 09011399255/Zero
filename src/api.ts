@@ -245,6 +245,62 @@ export interface AdminClinic {
   phoneNumberId: string | null;
 }
 
+// ── Admin console shapes ───────────────────────────────────────────────────
+export interface AdminOverview {
+  clinics: number;
+  active: number;
+  suspended: number;
+  whatsappConnected: number;
+  patients: number;
+  conversations: number;
+  staff: number;
+  newThisMonth: number;
+}
+
+// One row in the admin clinics table.
+export interface AdminClinicRow {
+  id: string;
+  name: string;
+  plan: string;
+  whatsappStatus: WhatsAppStatus;
+  suspended: boolean;
+  adminEmail: string | null;
+  patientCount: number;
+  staffCount: number;
+  createdAt: string;
+}
+
+export interface AdminClinicStaff {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  lastLoginAt: string | null;
+}
+
+// Full clinic detail for the admin drawer.
+export interface AdminClinicDetail {
+  id: string;
+  name: string;
+  address: string | null;
+  services: string[];
+  openDays: number[];
+  opensAt: string;
+  closesAt: string;
+  plan: string;
+  planExpiresAt: string | null;
+  whatsappStatus: WhatsAppStatus;
+  phoneNumber: string | null;
+  phoneNumberId: string | null;
+  suspended: boolean;
+  suspendedAt: string | null;
+  onboardingCompletedAt: string | null;
+  createdAt: string;
+  staff: AdminClinicStaff[];
+  counts: { patients: number; appointments: number; conversations: number };
+}
+
 // Clinic shape returned by GET /api/clinic (backend formatClinic).
 export interface ClinicDTO {
   id: string;
@@ -363,7 +419,17 @@ export const api = {
   // Internal Zero-team dashboard. Every call is 403'd by the backend unless the
   // signed-in user's email is in PLATFORM_ADMIN_EMAILS.
   admin: {
-    listClinics: () => request<AdminClinic[]>("GET", "/api/admin/clinics"),
+    // Console
+    overview: () => request<AdminOverview>("GET", "/api/admin/overview"),
+    clinics: () => request<AdminClinicRow[]>("GET", "/api/admin/clinics"),
+    clinic: (id: string) => request<AdminClinicDetail>("GET", `/api/admin/clinics/${id}`),
+    suspend: (id: string) =>
+      request<{ id: string; suspended: boolean }>("POST", `/api/admin/clinics/${id}/suspend`),
+    reactivate: (id: string) =>
+      request<{ id: string; suspended: boolean }>("POST", `/api/admin/clinics/${id}/reactivate`),
+
+    // WhatsApp connection pipeline
+    whatsappPipeline: () => request<AdminClinic[]>("GET", "/api/admin/whatsapp-pipeline"),
     // Team is about to trigger Meta's code send → flips clinic to AWAITING_OTP.
     sendOtp: (id: string) =>
       request<AdminClinic>("POST", `/api/admin/clinics/${id}/send-otp`),

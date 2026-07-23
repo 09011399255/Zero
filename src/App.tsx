@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, DashboardSummary, Patient, StaffMemberDTO, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
@@ -26,8 +26,13 @@ import { VerifyEmailPage } from './features/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import { DashboardPage } from './features/dashboard/DashboardPage';
-import { AdminDashboard } from './features/admin/AdminDashboard';
 import { WhatsAppCodePrompt } from './features/whatsapp/WhatsAppCodePrompt';
+
+// Admin console is platform-admin-only and heavy — code-split so it never ships
+// in a regular clinic's bundle. Loaded on demand when an admin opens /admin.
+const AdminConsole = lazy(() =>
+  import('./features/admin/AdminConsole').then((m) => ({ default: m.AdminConsole }))
+);
 import { useToast } from './components/shared/Toast';
 import { formatAuthError } from './lib/authErrors';
 
@@ -1845,7 +1850,11 @@ const renderOnboardingWizard = () => (
     if (!isPlatformAdmin) {
       return <Navigate to="/dashboard" replace />;
     }
-    return <AdminDashboard onBack={() => setCurrentRoute('dashboard')} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-text-muted text-sm">Loading admin…</div>}>
+        <AdminConsole onExit={() => setCurrentRoute('dashboard')} />
+      </Suspense>
+    );
   }
 
 if (!isOnboarded) {

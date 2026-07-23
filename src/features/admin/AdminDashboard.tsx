@@ -12,14 +12,10 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AlertTriangle, ArrowLeft, CheckCircle2, Clock, Copy,
+  AlertTriangle, CheckCircle2, Clock, Copy,
   RefreshCw, Send, ShieldCheck,
 } from 'lucide-react';
 import { api, AdminClinic, WhatsAppStatus } from '../../api';
-
-interface AdminDashboardProps {
-  onBack: () => void;
-}
 
 const STATUS_META: Record<WhatsAppStatus, { label: string; className: string }> = {
   VERIFICATION_PENDING: { label: 'Pending — needs setup', className: 'bg-status-warningBg text-status-warning border-status-warning/20' },
@@ -40,7 +36,8 @@ function timeAgo(iso: string | null): string {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-export function AdminDashboard({ onBack }: AdminDashboardProps) {
+// Embeddable WhatsApp connection pipeline — rendered as a tab inside AdminConsole.
+export function AdminWhatsApp() {
   const [clinics, setClinics] = useState<AdminClinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +49,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const rows = await api.admin.listClinics();
+      const rows = await api.admin.whatsappPipeline();
       setClinics(rows);
       setError(null);
     } catch (err: any) {
@@ -95,23 +92,9 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const connected = clinics.filter((c) => c.whatsappStatus === 'CONNECTED');
 
   return (
-    <div className="min-h-screen bg-surface-subtle">
-      <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
-        {/* Header */}
+    <div className="space-y-5">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="w-9 h-9 rounded-xl border border-surface-border bg-surface-base hover:bg-surface-subtle flex items-center justify-center text-text-secondary transition"
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft size={16} />
-            </button>
-            <div>
-              <h1 className="text-lg font-bold text-text-primary">WhatsApp Connections</h1>
-              <p className="text-[11px] text-text-muted">Internal — Zero team only</p>
-            </div>
-          </div>
+          <p className="text-[11px] text-text-muted">Clinics moving through the manual WhatsApp connection.</p>
           <button
             onClick={() => load()}
             className="flex items-center gap-2 px-3 py-2 rounded-xl border border-surface-border bg-surface-base hover:bg-surface-subtle text-text-secondary text-xs font-semibold transition"
@@ -317,7 +300,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             )}
           </>
         )}
-      </div>
     </div>
   );
 }
