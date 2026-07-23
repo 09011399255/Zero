@@ -1,4 +1,4 @@
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/shared/Toast';
 import { WhatsAppConnectPanel } from '../whatsapp/WhatsAppConnectPanel';
 

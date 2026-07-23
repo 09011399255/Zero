@@ -1,6 +1,5 @@
-import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, MessageSquare, RefreshCw, ShieldCheck, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { api, WhatsAppStatus } from '../../api';
+import { AlertTriangle, ChevronLeft, Clock, Mail, RefreshCw, X } from 'lucide-react';
+import { api } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
 import { PasswordInput } from '../../components/shared/PasswordInput';
 import { validatePassword } from '../../lib/password';
