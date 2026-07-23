@@ -2,7 +2,7 @@
 import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, DashboardSummary, Patient, StaffMemberDTO, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
   RefreshCw,
@@ -26,6 +26,7 @@ import { VerifyEmailPage } from './features/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { AdminDashboard } from './features/admin/AdminDashboard';
 import { useToast } from './components/shared/Toast';
 import { formatAuthError } from './lib/authErrors';
 
@@ -160,6 +161,8 @@ function App() {
       if (staff?.fullName) {
         setOnboardingAdminName(staff.fullName);
       }
+
+      setIsPlatformAdmin(!!res.isPlatformAdmin);
 
       if (clinic?.id) {
         localStorage.setItem("zero_clinic_id", clinic.id);
@@ -717,6 +720,8 @@ function App() {
 
   // Onboarding Wizard States
   const [isOnboarded, setIsOnboarded] = useState(false);
+  // True when the signed-in user is a Zero platform operator (may open /admin).
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [onboardingAuthMode, setOnboardingAuthMode] = useState<'signup' | 'login' | 'forgot'>('signup');
   
@@ -1832,6 +1837,16 @@ const renderOnboardingWizard = () => (
     );
   }
 
+  // Internal Zero-team admin dashboard. Standalone (no clinic sidebar) and only
+  // for platform operators — anyone else is bounced to their dashboard. The
+  // backend independently 403s the API calls, so this gate is UX, not security.
+  if (currentRoute === 'admin') {
+    if (!isPlatformAdmin) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    return <AdminDashboard onBack={() => setCurrentRoute('dashboard')} />;
+  }
+
 if (!isOnboarded) {
     return (
       <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
@@ -1849,6 +1864,7 @@ if (!isOnboarded) {
         adminName={onboardingAdminName}
         adminEmail={onboardingEmail}
         onLogout={handleLogout}
+        isPlatformAdmin={isPlatformAdmin}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />

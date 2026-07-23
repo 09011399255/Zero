@@ -48,7 +48,7 @@ export function AddPatientModal({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       ></div>
 
@@ -57,15 +57,15 @@ export function AddPatientModal({
         role="dialog"
         aria-modal="true"
         aria-label="Add patient"
-        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
       >
         {/* Header */}
-        <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
-          <h3 className="text-base font-bold text-text-primary">Add Patient</h3>
+        <div className="p-5 border-b border-surface-border flex items-center justify-between flex-shrink-0">
+          <h3 className="text-[17px] font-bold text-text-primary tracking-tightish">Add Patient</h3>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border"
           >
             <X size={16} />
           </button>
@@ -93,7 +93,7 @@ export function AddPatientModal({
               value={addPatientName}
               onChange={(e) => setAddPatientName(e.target.value)}
               placeholder="Rand al'Thor"
-              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
             />
           </div>
 
@@ -105,7 +105,7 @@ export function AddPatientModal({
               value={addPatientPhone}
               onChange={(e) => setAddPatientPhone(e.target.value)}
               placeholder="+1 555-0199"
-              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
             />
           </div>
 
@@ -116,7 +116,7 @@ export function AddPatientModal({
               value={addPatientEmail}
               onChange={(e) => setAddPatientEmail(e.target.value)}
               placeholder="rand@tworivers.net"
-              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
             />
           </div>
 
@@ -127,7 +127,7 @@ export function AddPatientModal({
                 type="date"
                 value={addPatientDob}
                 onChange={(e) => setAddPatientDob(e.target.value)}
-                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold text-text-secondary"
+                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold text-text-secondary"
               />
             </div>
 
@@ -136,7 +136,7 @@ export function AddPatientModal({
               <select
                 value={addPatientGender}
                 onChange={(e) => setAddPatientGender(e.target.value)}
-                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
@@ -150,7 +150,7 @@ export function AddPatientModal({
             <select
               value={addPatientDoctor || doctorOptions[0]}
               onChange={(e) => setAddPatientDoctor(e.target.value)}
-              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+              className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
             >
               {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -162,7 +162,7 @@ export function AddPatientModal({
               <select
                 value={addPatientRecallStatus}
                 onChange={(e) => setAddPatientRecallStatus(e.target.value)}
-                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
               >
                 <option value="UP_TO_DATE">Up to date</option>
                 <option value="DUE_SOON">Due Soon</option>
@@ -177,7 +177,7 @@ export function AddPatientModal({
                 value={addPatientRecallReason}
                 onChange={(e) => setAddPatientRecallReason(e.target.value)}
                 placeholder="6-month cleaning"
-                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+                className="w-full p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-semibold"
               />
             </div>
           </div>
@@ -187,7 +187,7 @@ export function AddPatientModal({
             <button
               type="submit"
               disabled={addPatientLoading}
-              className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-brand-glow transition duration-200 flex items-center justify-center gap-2"
             >
               {addPatientLoading ? (
                 <>

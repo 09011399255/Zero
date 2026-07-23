@@ -1,11 +1,18 @@
-import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, MessageSquare, RefreshCw, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Mail, MessageSquare, RefreshCw, ShieldCheck, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { api, WhatsAppStatus } from '../../api';
 import logoBlue from '../../assets/logo-blue.svg';
 import { PasswordInput } from '../../components/shared/PasswordInput';
 import { validatePassword } from '../../lib/password';
 import { formatAuthError } from '../../lib/authErrors';
 import { isWhatsAppSignupConfigured, launchWhatsAppSignup } from '../../lib/whatsappSignup';
+
+// Meta's self-serve Embedded Signup is parked while our Meta app verification is
+// still pending — the live flow is the manual "concierge" one below (clinic
+// submits their number, our team connects it and relays the OTP). Flip this to
+// `true` once Meta approves us to switch the popup flow back on; the old code
+// path is preserved intact behind it so we won't have to rebuild it.
+const USE_EMBEDDED_SIGNUP = false;
 
 const PRESET_SERVICES = [
   'Cardiology',
@@ -185,12 +192,111 @@ export function OnboardingWizard({
   const [waConnecting, setWaConnecting] = useState(false);
   const [waError, setWaError] = useState<string | null>(null);
 
+  // Manual ("concierge") connection form + progress state.
+  const [waPhoneInput, setWaPhoneInput] = useState('');
+  const [waEmailInput, setWaEmailInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [waBusy, setWaBusy] = useState(false);            // a request is in flight
+  const [waNotice, setWaNotice] = useState<string | null>(null); // small confirmations
+  const [imReadyDone, setImReadyDone] = useState(false);
+  const [otpSubmitted, setOtpSubmitted] = useState(false);
+
   const isWAConnected = waStatus === 'CONNECTED';
-  // The Connect button only appears once the branch is resolved: "no" is
-  // self-resolving ('new'), "yes" requires an explicit new-vs-migrate choice.
+  // The branch is resolved once known: "no" is self-resolving ('new'), "yes"
+  // requires an explicit new-vs-migrate choice.
   const resolvedChoice: 'new' | 'migrate' | null =
     usesExistingWA === 'no' ? 'new' : usesExistingWA === 'yes' ? numberChoice : null;
 
+  // On entering Step 3, load the current status so a returning clinic resumes at
+  // the right screen (pending / enter-code / connected) instead of the form.
+  useEffect(() => {
+    if (onboardingStep !== 3) return;
+    let active = true;
+    api.clinic.whatsappStatus()
+      .then((s) => {
+        if (!active) return;
+        setWaStatus(s.whatsappStatus);
+        if (s.phoneNumber) setWaNumber(s.phoneNumber);
+        if (s.whatsappRequestedNumber) setWaPhoneInput((p) => p || s.whatsappRequestedNumber || '');
+        if (s.whatsappOtpSubmittedAt) setOtpSubmitted(true);
+      })
+      .catch(() => { /* not fatal — they can still submit */ });
+    return () => { active = false; };
+  }, [onboardingStep]);
+
+  // While a connection is in flight, poll so the screen auto-advances the moment
+  // our team acts (sends the code / marks it connected).
+  useEffect(() => {
+    if (onboardingStep !== 3) return;
+    if (waStatus !== 'VERIFICATION_PENDING' && waStatus !== 'AWAITING_OTP') return;
+    const id = setInterval(async () => {
+      try {
+        const s = await api.clinic.whatsappStatus();
+        setWaStatus(s.whatsappStatus);
+        if (s.phoneNumber) setWaNumber(s.phoneNumber);
+        // A fresh code send clears the previous submission — reset our local flag.
+        if (s.whatsappStatus === 'AWAITING_OTP' && !s.whatsappOtpSubmittedAt) setOtpSubmitted(false);
+      } catch { /* transient — keep polling */ }
+    }, 8000);
+    return () => clearInterval(id);
+  }, [onboardingStep, waStatus]);
+
+  // ── Manual flow handlers ──────────────────────────────────────────────────
+
+  // Step 1: clinic submits the number they want connected.
+  const handleRequestWhatsApp = async () => {
+    if (!resolvedChoice) return;
+    setWaError(null);
+    if (waPhoneInput.trim().length < 6) { setWaError('Enter the WhatsApp number you want to connect.'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(waEmailInput.trim())) { setWaError('Enter a valid email so we can update you.'); return; }
+    setWaBusy(true);
+    try {
+      const status = await api.clinic.requestWhatsapp({
+        phoneNumber: waPhoneInput.trim(),
+        email: waEmailInput.trim(),
+        setupChoice: resolvedChoice,
+      });
+      setWaStatus(status.whatsappStatus);
+    } catch (err: any) {
+      setWaError(err?.message || "Couldn't submit your request. Please try again.");
+    } finally {
+      setWaBusy(false);
+    }
+  };
+
+  // "I'm ready to receive my code" — nudges our team to run verification now.
+  const handleImReady = async () => {
+    setWaError(null);
+    setWaBusy(true);
+    try {
+      await api.clinic.whatsappReady();
+      setImReadyDone(true);
+      setWaNotice("Got it — we'll send your code shortly. Keep this tab handy.");
+    } catch (err: any) {
+      setWaError(err?.message || "Couldn't reach us just now. Please try again.");
+    } finally {
+      setWaBusy(false);
+    }
+  };
+
+  // Clinic relays the code Meta texted them.
+  const handleSubmitOtp = async () => {
+    setWaError(null);
+    if (!/^\d{4,8}$/.test(otpInput.trim())) { setWaError('Enter the numeric code Meta sent you.'); return; }
+    setWaBusy(true);
+    try {
+      await api.clinic.submitOtp({ code: otpInput.trim() });
+      setOtpSubmitted(true);
+      setWaNotice("Code received — we're finishing your setup now.");
+    } catch (err: any) {
+      setWaError(err?.message || "Couldn't submit the code. Please try again.");
+    } finally {
+      setWaBusy(false);
+    }
+  };
+
+  // Meta self-serve popup flow — parked behind USE_EMBEDDED_SIGNUP, preserved
+  // for when Meta verification clears. Not reachable while the flag is false.
   const handleConnectWhatsApp = async () => {
     if (!resolvedChoice) return;
     setWaError(null);
@@ -300,7 +406,7 @@ export function OnboardingWizard({
                   type="button"
                   disabled={resendCooldown > 0}
                   onClick={() => onResendVerification(onboardingEmail)}
-                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs shadow-soft transition duration-150"
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl text-xs shadow-brand-glow transition duration-150"
                 >
                   {resendCooldown > 0 ? `Resend email (${resendCooldown}s)` : "Resend email"}
                 </button>
@@ -329,7 +435,7 @@ export function OnboardingWizard({
 
               {/* Sign Up / Log In Toggle */}
               {onboardingAuthMode !== 'forgot' && (
-              <div className="flex bg-surface-subtle p-1 rounded-xl">
+              <div className="flex bg-surface-muted p-1 rounded-xl border border-surface-border/70">
             <button
               type="button"
               onClick={() => {
@@ -340,7 +446,7 @@ export function OnboardingWizard({
               }}
               className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
                 onboardingAuthMode === 'signup'
-                  ? 'bg-surface-base text-brand-600 shadow-sm'
+                  ? 'bg-surface-base text-text-primary shadow-card'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -356,7 +462,7 @@ export function OnboardingWizard({
               }}
               className={`flex-1 py-2 rounded-lg font-bold transition duration-150 ${
                 onboardingAuthMode === 'login'
-                  ? 'bg-surface-base text-brand-600 shadow-sm'
+                  ? 'bg-surface-base text-text-primary shadow-card'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
@@ -403,7 +509,7 @@ export function OnboardingWizard({
                       onChange={(e) => setForgotPasswordEmail(e.target.value)}
                       required
                       placeholder="e.g. admin@yourclinic.com"
-                      className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     />
                   </div>
 
@@ -417,7 +523,7 @@ export function OnboardingWizard({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs mt-2 flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -487,7 +593,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingAdminName(e.target.value)}
                   required
                   placeholder="e.g. Sarah Sedai"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 />
               </div>
 
@@ -500,7 +606,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingEmail(e.target.value)}
                   required
                   placeholder="e.g. admin@yourclinic.com"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 />
               </div>
 
@@ -527,7 +633,7 @@ export function OnboardingWizard({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs mt-2 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -570,7 +676,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingEmail(e.target.value)}
                   required
                   placeholder="e.g. admin@yourclinic.com"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 />
               </div>
 
@@ -610,7 +716,7 @@ export function OnboardingWizard({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs mt-2 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -678,7 +784,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingClinicName(e.target.value)}
                   required
                   placeholder="e.g. Apex Family Clinic"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                 />
               </div>
 
@@ -719,7 +825,7 @@ export function OnboardingWizard({
                     onFocus={() => setIsServiceDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setIsServiceDropdownOpen(false), 200)}
                     placeholder={selectedServices.length === 0 ? "Search or type services..." : "Add another service..."}
-                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                   />
 
                   {/* Dropdown Menu */}
@@ -785,7 +891,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingAddress(e.target.value)}
                   required
                   placeholder="e.g. 123 Eldene Way, Suite 400, Apex City"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                 />
               </div>
 
@@ -830,7 +936,7 @@ export function OnboardingWizard({
                     <select
                       value={openTime}
                       onChange={(e) => setOpenTime(e.target.value)}
-                      className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     >
                       {['7:00 AM', '7:30 AM', '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', '10:00 AM', '11:00 AM'].map(time => (
                         <option key={time} value={time}>{time}</option>
@@ -842,7 +948,7 @@ export function OnboardingWizard({
                     <select
                       value={closeTime}
                       onChange={(e) => setCloseTime(e.target.value)}
-                      className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="p-2.5 bg-surface-base border border-surface-border rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     >
                       {['3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM', '6:00 PM', '6:30 PM', '7:00 PM', '8:00 PM'].map(time => (
                         <option key={time} value={time}>{time}</option>
@@ -855,7 +961,7 @@ export function OnboardingWizard({
 
             <button
               type="submit"
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs mt-2"
             >
               Continue
             </button>
@@ -872,7 +978,7 @@ export function OnboardingWizard({
           </div>
 
           {isWAConnected ? (
-            /* --- Connected -------------------------------------------------- */
+            /* ================= CONNECTED ==================================== */
             <div className="text-center py-4 space-y-6">
               <div className="w-16 h-16 bg-status-successBg text-status-success rounded-full flex items-center justify-center mx-auto border border-status-success/20 shadow-sm">
                 <CheckCircle2 size={32} />
@@ -887,12 +993,151 @@ export function OnboardingWizard({
               </div>
               <button
                 onClick={() => setOnboardingStep(4)}
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs"
+                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs"
               >
                 Continue to Staff Setup
               </button>
             </div>
+          ) : waStatus === 'VERIFICATION_PENDING' ? (
+            /* ================= PENDING (waiting on the Zero team) =========== */
+            <div className="py-2 space-y-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-ai-500/10 text-ai-600 rounded-full flex items-center justify-center mx-auto border border-ai-500/15">
+                  <Clock size={30} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold text-text-primary">We're setting up your WhatsApp</h3>
+                  <p className="text-[11px] text-text-secondary leading-relaxed max-w-[340px] mx-auto">
+                    This usually takes a few minutes — sometimes up to an hour. Feel free to close this and carry on with your day.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-surface-subtle border border-surface-border/60 rounded-xl p-4 space-y-2.5">
+                <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                  <MessageSquare size={13} className="text-text-muted flex-shrink-0" />
+                  <span>Connecting <strong className="text-text-primary">{waPhoneInput || 'your number'}</strong></span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                  <Mail size={13} className="text-text-muted flex-shrink-0" />
+                  <span>We'll email <strong className="text-text-primary">{waEmailInput || 'you'}</strong> the moment your code is ready.</span>
+                </div>
+              </div>
+
+              {/* "I'm ready" — nudges us to run verification while they're online */}
+              {imReadyDone ? (
+                <div className="p-3 bg-status-successBg text-status-success border border-status-success/15 rounded-xl text-[11px] flex items-start gap-2">
+                  <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />
+                  <span>{waNotice}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleImReady}
+                  disabled={waBusy}
+                  className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs flex items-center justify-center gap-2"
+                >
+                  {waBusy ? <RefreshCw className="animate-spin" size={14} /> : <ShieldCheck size={14} />}
+                  <span>I'm ready to receive my code now</span>
+                </button>
+              )}
+              <p className="text-[10px] text-text-muted text-center leading-relaxed">
+                Tap this when you're at your phone — codes expire in ~10 minutes, so it's best to be ready when it arrives.
+              </p>
+
+              {waError && (
+                <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-start gap-2">
+                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                  <span>{waError}</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => setOnboardingStep(4)}
+                className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+              >
+                Continue setup while you wait
+              </button>
+            </div>
+          ) : waStatus === 'AWAITING_OTP' ? (
+            /* ================= AWAITING OTP (clinic enters the code) ======== */
+            <div className="py-2 space-y-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-ai-500/10 text-ai-600 rounded-full flex items-center justify-center mx-auto border border-ai-500/15">
+                  <ShieldCheck size={30} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold text-text-primary">Enter your verification code</h3>
+                  <p className="text-[11px] text-text-secondary leading-relaxed max-w-[340px] mx-auto">
+                    Meta is sending a 6-digit code to <strong className="text-text-primary">{waPhoneInput || 'your number'}</strong> by SMS or call. Enter it below <strong className="text-text-primary">right away</strong> — codes expire in about 10 minutes.
+                  </p>
+                </div>
+              </div>
+
+              {otpSubmitted ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-status-successBg text-status-success border border-status-success/15 rounded-xl text-[11px] flex items-start gap-2">
+                    <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5" />
+                    <span>{waNotice || "Code received — we're finishing your setup now. This page will update automatically."}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-text-muted">
+                    <RefreshCw className="animate-spin" size={12} />
+                    <span>Waiting for confirmation…</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSubmitted(false); setOtpInput(''); setWaNotice(null); }}
+                    className="w-full py-2.5 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-[11px] transition duration-150"
+                  >
+                    Entered the wrong code? Re-enter it
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <input
+                    value={otpInput}
+                    onChange={(e) => { setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 8)); setWaError(null); }}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Enter the code"
+                    className="w-full text-center tracking-[0.4em] text-lg font-bold py-3 rounded-xl border border-surface-border bg-surface-base text-text-primary placeholder:tracking-normal placeholder:text-sm placeholder:font-normal placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSubmitOtp}
+                    disabled={waBusy}
+                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs flex items-center justify-center gap-2"
+                  >
+                    {waBusy ? <RefreshCw className="animate-spin" size={14} /> : <ShieldCheck size={14} />}
+                    <span>Submit code</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleImReady}
+                    disabled={waBusy}
+                    className="w-full text-[10px] text-text-muted hover:text-text-secondary transition duration-150 leading-relaxed"
+                  >
+                    Didn't get a code? Give it a minute, then tap here to ask us to resend it.
+                  </button>
+                </div>
+              )}
+
+              {waError && (
+                <div className="p-3 bg-status-dangerBg text-status-danger border border-status-danger/15 rounded-xl text-xs flex items-start gap-2">
+                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                  <span>{waError}</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => setOnboardingStep(4)}
+                className="w-full py-3 border border-surface-border hover:bg-surface-subtle text-text-secondary font-semibold rounded-xl text-xs transition duration-150"
+              >
+                Continue setup while you wait
+              </button>
+            </div>
           ) : (
+            /* ================= REQUEST (not connected yet) ================== */
             <>
               {/* --- Q1: does the clinic already use WhatsApp Business? -------- */}
               <div className="space-y-3">
@@ -945,6 +1190,9 @@ export function OnboardingWizard({
                       <p className="text-[11px] text-text-secondary leading-relaxed">
                         Connecting to Zero will permanently disconnect your current WhatsApp Business app. Your chat history won't transfer. You can use a new number instead if you prefer.
                       </p>
+                      <p className="text-[11px] text-text-secondary leading-relaxed">
+                        If you migrate, you'll first need to remove the number from your existing WhatsApp Business app before it can verify.
+                      </p>
                     </div>
                   </div>
 
@@ -975,41 +1223,81 @@ export function OnboardingWizard({
                 </div>
               )}
 
-              {/* --- Connect ---------------------------------------------------- */}
+              {/* --- Connect / request ----------------------------------------- */}
               {resolvedChoice && (
                 <div className="space-y-3 animate-fade-in">
-                  {!isWhatsAppSignupConfigured() ? (
-                    <div className="p-4 bg-status-warningBg border border-status-warning/20 rounded-xl flex gap-3">
-                      <AlertTriangle size={14} className="text-status-warning flex-shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-text-secondary leading-relaxed">
-                        WhatsApp connection isn't configured on this environment yet. You can skip this for now and connect later from Settings.
-                      </p>
-                    </div>
+                  {USE_EMBEDDED_SIGNUP ? (
+                    /* Parked: Meta self-serve popup (see USE_EMBEDDED_SIGNUP). */
+                    !isWhatsAppSignupConfigured() ? (
+                      <div className="p-4 bg-status-warningBg border border-status-warning/20 rounded-xl flex gap-3">
+                        <AlertTriangle size={14} className="text-status-warning flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-text-secondary leading-relaxed">
+                          WhatsApp connection isn't configured on this environment yet. You can skip this for now and connect later from Settings.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleConnectWhatsApp}
+                          disabled={waConnecting}
+                          className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs flex items-center justify-center gap-2"
+                        >
+                          {waConnecting ? (
+                            <><RefreshCw className="animate-spin" size={14} /><span>Waiting for WhatsApp…</span></>
+                          ) : (
+                            <><MessageSquare size={14} /><span>Connect WhatsApp</span></>
+                          )}
+                        </button>
+                        {waConnecting && (
+                          <p className="text-[10px] text-text-muted text-center leading-relaxed">
+                            Finish signing in and verify your number in the Meta window. Keep this tab open.
+                          </p>
+                        )}
+                      </>
+                    )
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleConnectWhatsApp}
-                      disabled={waConnecting}
-                      className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs flex items-center justify-center gap-2"
-                    >
-                      {waConnecting ? (
-                        <>
-                          <RefreshCw className="animate-spin" size={14} />
-                          <span>Waiting for WhatsApp…</span>
-                        </>
-                      ) : (
-                        <>
-                          <MessageSquare size={14} />
-                          <span>Connect WhatsApp</span>
-                        </>
-                      )}
-                    </button>
-                  )}
-
-                  {waConnecting && (
-                    <p className="text-[10px] text-text-muted text-center leading-relaxed">
-                      Finish signing in and verify your number in the Meta window. Keep this tab open.
-                    </p>
+                    /* Live: manual concierge request form. */
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                          {resolvedChoice === 'migrate' ? 'Number to migrate' : 'WhatsApp number to set up'}
+                        </label>
+                        <input
+                          value={waPhoneInput}
+                          onChange={(e) => { setWaPhoneInput(e.target.value); setWaError(null); }}
+                          type="tel"
+                          placeholder="+234 801 234 5678"
+                          className="w-full py-2.5 px-3 rounded-xl border border-surface-border bg-surface-base text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                          Email for updates
+                        </label>
+                        <input
+                          value={waEmailInput}
+                          onChange={(e) => { setWaEmailInput(e.target.value); setWaError(null); }}
+                          type="email"
+                          placeholder="you@clinic.com"
+                          className="w-full py-2.5 px-3 rounded-xl border border-surface-border bg-surface-base text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                        />
+                      </div>
+                      <div className="bg-surface-subtle border border-surface-border/60 rounded-xl p-3">
+                        <p className="text-[10px] text-text-muted leading-relaxed">
+                          Our team connects your number to WhatsApp for you. After you submit, we'll get it ready and email you a verification code to enter — usually within a few minutes to an hour.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRequestWhatsApp}
+                        disabled={waBusy}
+                        className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs flex items-center justify-center gap-2"
+                      >
+                        {waBusy ? <RefreshCw className="animate-spin" size={14} /> : <MessageSquare size={14} />}
+                        <span>Connect WhatsApp</span>
+                      </button>
+                    </>
                   )}
 
                   {waError && (
@@ -1057,7 +1345,7 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingDoctorName(e.target.value)}
                   required
                   placeholder="e.g. Dr. Lan Mandragoran"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                 />
               </div>
 
@@ -1098,7 +1386,7 @@ export function OnboardingWizard({
                     onFocus={() => setIsDoctorRoleDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setIsDoctorRoleDropdownOpen(false), 200)}
                     placeholder={selectedDoctorRoles.length === 0 ? "Search or type specialization..." : "Add another..."}
-                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                   />
 
                   {/* Dropdown Menu */}
@@ -1164,14 +1452,14 @@ export function OnboardingWizard({
                   onChange={(e) => setOnboardingDoctorEmail(e.target.value)}
                   required
                   placeholder="e.g. lan.m@apexfamily.com"
-                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+                  className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-xs"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs mt-2"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs mt-2"
             >
               Continue to Preview
             </button>
@@ -1253,7 +1541,7 @@ export function OnboardingWizard({
                 setIsOnboarded(true);
                 setCurrentRoute('dashboard');
               }}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-sm text-xs"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition duration-150 shadow-brand-glow text-xs"
             >
               Go to Dashboard
             </button>

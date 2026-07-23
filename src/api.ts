@@ -186,6 +186,8 @@ export interface MeResponse {
     plan?: string;
   } | null;
   onboardingComplete: boolean;
+  // True when the signed-in user may open the internal Zero admin dashboard.
+  isPlatformAdmin?: boolean;
 }
 
 export interface DashboardSummary {
@@ -209,10 +211,36 @@ export interface DashboardSummary {
 }
 
 // Mirrors the Prisma WhatsAppStatus enum in zero-ai.
-export type WhatsAppStatus = 'NOT_CONNECTED' | 'VERIFICATION_PENDING' | 'CONNECTED' | 'SANDBOX';
+// AWAITING_OTP = we've triggered Meta; the clinic must now enter the code.
+export type WhatsAppStatus =
+  | 'NOT_CONNECTED'
+  | 'VERIFICATION_PENDING'
+  | 'AWAITING_OTP'
+  | 'CONNECTED'
+  | 'SANDBOX';
 
 export interface WhatsAppStatusResponse {
   whatsappStatus: WhatsAppStatus;
+  phoneNumber: string | null;
+  phoneNumberId: string | null;
+  // Present during / after a manual connection request.
+  whatsappRequestedNumber?: string | null;
+  whatsappSetupChoice?: 'new' | 'migrate' | null;
+  whatsappOtpSubmittedAt?: string | null;
+}
+
+// One clinic as seen in the internal admin dashboard's WhatsApp pipeline.
+export interface AdminClinic {
+  id: string;
+  name: string;
+  whatsappStatus: WhatsAppStatus;
+  requestedNumber: string | null;
+  setupChoice: 'new' | 'migrate' | null;
+  notifyEmail: string | null;
+  requestedAt: string | null;
+  clinicReadyAt: string | null;
+  otpCode: string | null;
+  otpSubmittedAt: string | null;
   phoneNumber: string | null;
   phoneNumberId: string | null;
 }
@@ -301,11 +329,27 @@ export const api = {
     update: (body: ClinicUpdate) => request<ClinicDTO>("PATCH", "/api/clinic", body),
     completeOnboarding: () => request<ClinicDTO>("POST", "/api/clinic/complete-onboarding"),
     whatsappStatus: () => request<WhatsAppStatusResponse>("GET", "/api/clinic/whatsapp-status"),
-    // Hands Meta's Embedded Signup result to the backend, which exchanges the
-    // short-lived `code` for a permanent token, stores it against the clinic,
-    // and subscribes the WABA to our webhook. Path/shape match the backend's
-    // connectWhatsApp handler (zero-ai src/modules/clinic/handlers.ts) exactly —
-    // code, phoneNumberId, wabaId are all required there.
+
+    // ── Manual "concierge" WhatsApp connection (current live flow) ──────────
+    // The clinic submits the number they want connected; our team adds it to
+    // our Meta Business Manager by hand and relays the OTP for them.
+    requestWhatsapp: (body: {
+      phoneNumber: string;
+      email: string;
+      setupChoice: 'new' | 'migrate';
+    }) => request<WhatsAppStatusResponse>("POST", "/api/clinic/request-whatsapp", body),
+    // "I'm ready to receive my code" — nudges our team to run verification now.
+    whatsappReady: () =>
+      request<{ success: boolean; whatsappStatus: WhatsAppStatus }>("POST", "/api/clinic/whatsapp-ready"),
+    // Clinic relays the code Meta texted them.
+    submitOtp: (body: { code: string }) =>
+      request<{ success: boolean; whatsappStatus: WhatsAppStatus; whatsappOtpSubmittedAt: string | null }>(
+        "POST", "/api/clinic/submit-otp", body
+      ),
+
+    // ── Meta self-serve Embedded Signup (parked until Meta verification clears) ─
+    // Not called by the current UI, kept for the eventual switch back. Hands
+    // Meta's popup result to the backend to exchange for a token.
     connectWhatsapp: (body: {
       code: string;
       phoneNumberId: string;
@@ -314,6 +358,21 @@ export const api = {
     }) => request<WhatsAppStatusResponse>("POST", "/api/clinic/connect-whatsapp", body),
     disconnectWhatsapp: () =>
       request<{ success: boolean; whatsappStatus: WhatsAppStatus }>("POST", "/api/clinic/disconnect-whatsapp"),
+  },
+
+  // Internal Zero-team dashboard. Every call is 403'd by the backend unless the
+  // signed-in user's email is in PLATFORM_ADMIN_EMAILS.
+  admin: {
+    listClinics: () => request<AdminClinic[]>("GET", "/api/admin/clinics"),
+    // Team is about to trigger Meta's code send → flips clinic to AWAITING_OTP.
+    sendOtp: (id: string) =>
+      request<AdminClinic>("POST", `/api/admin/clinics/${id}/send-otp`),
+    // Number is verified & live on our WABA → store its phoneNumberId, go live.
+    markConnected: (id: string, body: { phoneNumberId: string; phoneNumber?: string }) =>
+      request<AdminClinic>("POST", `/api/admin/clinics/${id}/mark-connected`, body),
+    // Send the clinic back to the start (wrong number, redo, etc.).
+    reset: (id: string) =>
+      request<AdminClinic>("POST", `/api/admin/clinics/${id}/reset`),
   },
   staff: {
     list: () => request<StaffMemberDTO[]>("GET", "/api/staff"),

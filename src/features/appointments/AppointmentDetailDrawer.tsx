@@ -47,7 +47,7 @@ export function AppointmentDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       ></div>
 
@@ -56,7 +56,7 @@ export function AppointmentDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Appointment details"
-        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
       >
         <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
           {/* Close Button Row */}
@@ -64,7 +64,7 @@ export function AppointmentDetailDrawer({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border"
             >
               <X size={16} />
             </button>
@@ -198,7 +198,7 @@ export function AppointmentDetailDrawer({
             {/* Notes / Visit details */}
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Notes</span>
-              <div className="bg-white border border-surface-border/30 rounded-xl p-3.5 text-xs text-text-primary leading-relaxed font-semibold">
+              <div className="bg-white border border-surface-border rounded-xl p-3.5 text-xs text-text-primary leading-relaxed font-semibold">
                 {appt.notes || "No additional visit notes provided."}
               </div>
             </div>
@@ -239,7 +239,7 @@ export function AppointmentDetailDrawer({
                       console.error("Failed to complete appointment:", err);
                     }
                   }}
-                  className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200"
+                  className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-brand-glow transition duration-200"
                 >
                   Mark Complete
                 </button>

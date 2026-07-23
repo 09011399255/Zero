@@ -109,7 +109,7 @@ export function ZeroChatPage({
   };
 
   return (
-    <div className="flex bg-surface-base rounded-2xl border border-surface-border/25 shadow-soft overflow-hidden h-[calc(100vh-170px)] animate-fade-in">
+    <div className="flex bg-surface-base rounded-2xl border border-surface-border shadow-card overflow-hidden h-[calc(100vh-170px)] animate-fade-in">
       {/* CONVERSATION LIST (LEFT PANEL) — full-width on mobile, hidden there once a thread is open */}
       <div className={`w-full lg:w-[320px] border-r border-surface-border/25 flex-col bg-surface-base h-full flex-shrink-0 ${selectedChatId ? 'hidden lg:flex' : 'flex'}`}>
         {/* List Search Header */}
@@ -121,7 +121,7 @@ export function ZeroChatPage({
               placeholder="Search patient..."
               value={chatSearchQuery}
               onChange={(e) => setChatSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 bg-surface-subtle border border-surface-border/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans"
+              className="w-full pl-8 pr-4 py-2 bg-surface-subtle border border-surface-border/50 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-sans"
             />
           </div>
         </div>
@@ -244,7 +244,7 @@ export function ZeroChatPage({
                 >
                   <ArrowLeft size={18} />
                 </button>
-                <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0 font-sans">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0 font-sans">
                   {getInitials(selectedConv.patientName)}
                 </div>
                 <div className="min-w-0">
@@ -290,7 +290,7 @@ export function ZeroChatPage({
                 {selectedConv.status !== 'RESOLVED' && (
                   <button
                     onClick={() => onResolve(selectedConv.id)}
-                    className="px-3 py-1.5 text-xs font-bold bg-status-success hover:bg-status-success/90 text-white rounded-xl transition duration-150 shadow-sm"
+                    className="px-3 py-1.5 text-xs font-bold bg-status-success hover:bg-status-success/90 text-white rounded-lg transition duration-150 shadow-sm"
                   >
                     Resolve
                   </button>
@@ -403,7 +403,7 @@ export function ZeroChatPage({
                         : "Type your message..."
                       : "Click 'Take Over' to reply manually..."
                   }
-                  className={`flex-1 px-4 py-3 bg-surface-subtle border rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans ${
+                  className={`flex-1 px-4 py-3 bg-surface-subtle border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-sans ${
                     !selectedConv.assignedStaff || selectedConv.status === 'RESOLVED' || sendingMessage
                       ? 'cursor-not-allowed text-text-muted border-surface-border/50'
                       : 'text-text-primary border-surface-border/80'

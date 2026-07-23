@@ -103,16 +103,16 @@ export function SettingsPage({
     <div className="max-w-4xl mx-auto space-y-6 pb-16 animate-fade-in font-sans text-xs">
       {/* PAGE HEADER */}
       <div>
-        <h2 className="text-[24px] font-semibold text-text-primary leading-tight font-sans">Settings</h2>
+        <h2 className="text-[26px] font-bold text-text-primary leading-tight tracking-tighter2 font-sans">Settings</h2>
         <p className="text-[14px] text-text-secondary mt-1">
           Manage your clinic's configuration, connections, and team
         </p>
       </div>
 
       {/* SECTION 1: CLINIC INFO */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4">
-          <h3 className="text-sm font-bold text-text-primary">Clinic Information</h3>
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
+        <div className="border-b border-surface-border pb-4">
+          <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">Clinic Information</h3>
           <p className="text-text-secondary mt-0.5">Basic details about your healthcare practice</p>
         </div>
 
@@ -126,7 +126,7 @@ export function SettingsPage({
                 onChange={(e) => setSettingsClinicName(e.target.value)}
                 required
                 placeholder="e.g. Apex Family Clinic"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
             </div>
 
@@ -137,7 +137,7 @@ export function SettingsPage({
                 value={settingsServices}
                 onChange={(e) => setSettingsServices(e.target.value)}
                 placeholder="e.g. Cardiology, Dermatology, Physiotherapy"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
             </div>
           </div>
@@ -151,7 +151,7 @@ export function SettingsPage({
                 onChange={(e) => setSettingsAddress(e.target.value)}
                 required
                 placeholder="e.g. 123 Eldene Way, Suite 400, Apex City"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
             </div>
 
@@ -163,7 +163,7 @@ export function SettingsPage({
                 onChange={(e) => setSettingsHours(e.target.value)}
                 required
                 placeholder="e.g. Mon - Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 1:00 PM"
-                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
             </div>
           </div>
@@ -185,10 +185,10 @@ export function SettingsPage({
       </div>
 
       {/* SECTION 2: WHATSAPP CONNECTION */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4 flex items-center justify-between gap-4">
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
+        <div className="border-b border-surface-border pb-4 flex items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-bold text-text-primary">WhatsApp Business Connection</h3>
+            <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">WhatsApp Business Connection</h3>
             <p className="text-text-secondary mt-0.5">Integrate your official WhatsApp business number</p>
           </div>
 
@@ -232,10 +232,10 @@ export function SettingsPage({
       </div>
 
       {/* SECTION 3: STAFF */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
+        <div className="border-b border-surface-border pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-text-primary">Staff Management</h3>
+            <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">Staff Management</h3>
             <p className="text-text-secondary mt-0.5">Configure access roles for clinic practitioners and admins</p>
           </div>
 
@@ -259,7 +259,7 @@ export function SettingsPage({
                 required
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
-                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
               <input
                 type="email"
@@ -267,12 +267,12 @@ export function SettingsPage({
                 required
                 value={newStaffEmail}
                 onChange={(e) => setNewStaffEmail(e.target.value)}
-                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
               <select
                 value={newStaffRole}
                 onChange={(e) => setNewStaffRole(e.target.value)}
-                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="p-2.5 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               >
                 <option value="Lead Physician">Lead Physician</option>
                 <option value="Chief of Staff">Chief of Staff</option>
@@ -303,7 +303,7 @@ export function SettingsPage({
         <div className="md:hidden space-y-2">
           {staffList.map((staff) => (
             <div key={staff.id} className="flex items-center gap-3 p-3 border border-surface-border/20 rounded-xl">
-              <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-bold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                 {staff.initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -324,7 +324,7 @@ export function SettingsPage({
         <div className="hidden md:block border border-surface-border/20 rounded-xl overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">
+              <tr className="border-b border-surface-border text-left bg-surface-subtle">
                 <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Staff Member</th>
                 <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Role</th>
                 <th className="py-2.5 px-4 text-[10px] font-bold text-text-muted uppercase tracking-wider">Email Address</th>
@@ -335,7 +335,7 @@ export function SettingsPage({
               {staffList.map((staff) => (
                 <tr key={staff.id} className="hover:bg-surface-subtle/30 transition duration-150">
                   <td className="py-3 px-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                       {staff.initials}
                     </div>
                     <span className="font-bold text-text-primary text-xs">{staff.name}</span>
@@ -363,9 +363,9 @@ export function SettingsPage({
       </div>
 
       {/* SECTION 4: NOTIFICATIONS */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4">
-          <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
+        <div className="border-b border-surface-border pb-4">
+          <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">Notifications</h3>
           <p className="text-text-secondary mt-0.5">Control how and when your staff is notified about clinic events</p>
         </div>
 
@@ -380,7 +380,7 @@ export function SettingsPage({
               type="button"
               onClick={() => setNotificationEscalation(!notificationEscalation)}
               className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
-                notificationEscalation ? 'bg-brand-500' : 'bg-gray-300'
+                notificationEscalation ? "bg-brand-500" : "bg-surface-muted"
               }`}
             >
               <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
@@ -399,7 +399,7 @@ export function SettingsPage({
               type="button"
               onClick={() => setNotificationRecall(!notificationRecall)}
               className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
-                notificationRecall ? 'bg-brand-500' : 'bg-gray-300'
+                notificationRecall ? "bg-brand-500" : "bg-surface-muted"
               }`}
             >
               <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
@@ -418,7 +418,7 @@ export function SettingsPage({
               type="button"
               onClick={() => setNotificationNoShow(!notificationNoShow)}
               className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
-                notificationNoShow ? 'bg-brand-500' : 'bg-gray-300'
+                notificationNoShow ? "bg-brand-500" : "bg-surface-muted"
               }`}
             >
               <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
@@ -437,7 +437,7 @@ export function SettingsPage({
               type="button"
               onClick={() => setNotificationSummary(!notificationSummary)}
               className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ${
-                notificationSummary ? 'bg-brand-500' : 'bg-gray-300'
+                notificationSummary ? "bg-brand-500" : "bg-surface-muted"
               }`}
             >
               <span className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
@@ -449,9 +449,9 @@ export function SettingsPage({
       </div>
 
       {/* SECTION 5: BILLING */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 p-6 space-y-5">
-        <div className="border-b border-surface-border/30 pb-4">
-          <h3 className="text-sm font-bold text-text-primary">Subscription & Billing</h3>
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
+        <div className="border-b border-surface-border pb-4">
+          <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">Subscription & Billing</h3>
           <p className="text-text-secondary mt-0.5">Manage plan tiers and invoicing details</p>
         </div>
 

@@ -39,7 +39,7 @@ export function NotificationsDropdown({
         className={`relative w-9 h-9 flex items-center justify-center rounded-xl transition duration-150 border ${
           isOpen
             ? 'bg-brand-50 border-brand-200 text-brand-600'
-            : 'text-text-secondary hover:bg-surface-subtle border-surface-border/30'
+            : 'text-text-secondary hover:bg-surface-muted border-surface-border'
         }`}
       >
         <Bell size={18} />
@@ -53,9 +53,9 @@ export function NotificationsDropdown({
       {isOpen && (
         <div
           id="notification-dropdown-panel"
-          className="absolute right-0 mt-2 w-80 bg-surface-base rounded-2xl shadow-soft border border-surface-border/60 py-3 z-50 animate-fade-in text-xs"
+          className="absolute right-0 mt-2 w-80 bg-surface-base rounded-2xl shadow-elevated border border-surface-border py-3 z-50 animate-fade-in text-xs"
         >
-          <div className="px-4 pb-2 border-b border-surface-border/30 flex items-center justify-between">
+          <div className="px-4 pb-2.5 border-b border-surface-border flex items-center justify-between">
             <span className="font-bold text-text-primary text-xs">Notifications</span>
             <button
               onClick={onMarkAllRead}
@@ -70,7 +70,7 @@ export function NotificationsDropdown({
             </button>
           </div>
 
-          <div className="max-h-64 overflow-y-auto divide-y divide-surface-border/10">
+          <div className="max-h-64 overflow-y-auto divide-y divide-surface-border/60">
             {notifications.length === 0 ? (
               <div className="px-4 py-6 text-center text-text-muted">
                 You're all caught up!
@@ -82,7 +82,7 @@ export function NotificationsDropdown({
                   <div
                     key={notif.id}
                     onClick={() => onNotificationClick(notif)}
-                    className={`px-4 py-3 cursor-pointer transition duration-150 flex items-start gap-3 hover:bg-surface-subtle/50 ${
+                    className={`px-4 py-3 cursor-pointer transition duration-150 flex items-start gap-3 hover:bg-surface-muted/60 ${
                       isUnread ? 'bg-brand-50/20' : ''
                     }`}
                   >

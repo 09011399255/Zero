@@ -163,16 +163,16 @@ export function LiveQueuePage({
   const rowAction = (item: QueueEntry) => {
     const tab = statusToTab[item.status];
     if (tab === 'waiting') return (
-      <button onClick={() => handleCallIn(item.id)} className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150">Call In</button>
+      <button onClick={() => handleCallIn(item.id)} className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-lg text-[12px] shadow-brand-glow transition duration-150">Call In</button>
     );
     if (tab === 'with_doctor') return (
-      <button onClick={() => handleComplete(item.id)} className="px-3 py-1.5 bg-status-success hover:bg-status-success/90 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150">Complete</button>
+      <button onClick={() => handleComplete(item.id)} className="px-3 py-1.5 bg-status-success hover:bg-status-success/90 text-white font-semibold rounded-lg text-[12px] shadow-sm transition duration-150">Complete</button>
     );
     if (tab === 'completed' && item.patientId) return (
-      <button onClick={() => onSelectPatient(item.patientId!)} className="text-brand-500 hover:text-brand-600 hover:underline font-bold text-xs transition duration-150">View</button>
+      <button onClick={() => onSelectPatient(item.patientId!)} className="px-3 py-1.5 border border-surface-border hover:border-brand-300 text-text-secondary hover:text-brand-600 hover:bg-brand-50/50 font-semibold rounded-lg text-[12px] transition duration-150">View</button>
     );
     if (tab === 'no_show') return (
-      <button onClick={() => handleMarkArrived(item.id)} className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-[11px] shadow-sm transition duration-150">Mark Arrived</button>
+      <button onClick={() => handleMarkArrived(item.id)} className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-lg text-[12px] shadow-brand-glow transition duration-150">Mark Arrived</button>
     );
     return null;
   };
@@ -182,7 +182,7 @@ export function LiveQueuePage({
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[24px] font-semibold text-text-primary leading-tight">Live Queue</h2>
+          <h2 className="text-[26px] font-bold text-text-primary leading-tight tracking-tighter2">Live Queue</h2>
           <p className="text-[14px] text-text-secondary mt-1">
             {waitingCount} waiting · {withDoctorCount} with doctor · {completedCount} completed today
           </p>
@@ -197,7 +197,7 @@ export function LiveQueuePage({
             setWalkInDoctor(doctorOptions[0]);
             setIsNewWalkInDrawerOpen(true);
           }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-brand-500 text-brand-500 hover:bg-brand-50 font-semibold rounded-xl text-xs transition duration-200"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-[13px] shadow-brand-glow hover:shadow-elevated transition duration-200"
         >
           <Plus size={16} />
           <span>Add Walk-in</span>
@@ -228,79 +228,39 @@ export function LiveQueuePage({
         </div>
       )}
 
-      {/* STATUS TABS */}
-      <div className="flex border-b border-surface-border/30 gap-6 overflow-x-auto">
-        <button
-          onClick={() => setQueueTab('waiting')}
-          className={`pb-3 text-sm font-semibold relative transition duration-150 flex items-center gap-2 ${
-            queueTab === 'waiting' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <span>Waiting</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            queueTab === 'waiting' ? 'bg-status-warningBg text-status-warning' : 'bg-surface-subtle text-text-muted'
-          }`}>
-            {waitingCount}
-          </span>
-          {queueTab === 'waiting' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setQueueTab('with_doctor')}
-          className={`pb-3 text-sm font-semibold relative transition duration-150 flex items-center gap-2 ${
-            queueTab === 'with_doctor' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <span>With Doctor</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            queueTab === 'with_doctor' ? 'bg-brand-100 text-brand-700' : 'bg-surface-subtle text-text-muted'
-          }`}>
-            {withDoctorCount}
-          </span>
-          {queueTab === 'with_doctor' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setQueueTab('completed')}
-          className={`pb-3 text-sm font-semibold relative transition duration-150 flex items-center gap-2 ${
-            queueTab === 'completed' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <span>Completed</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            queueTab === 'completed' ? 'bg-status-successBg text-status-success' : 'bg-surface-subtle text-text-muted'
-          }`}>
-            {completedCount}
-          </span>
-          {queueTab === 'completed' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setQueueTab('no_show')}
-          className={`pb-3 text-sm font-semibold relative transition duration-150 flex items-center gap-2 ${
-            queueTab === 'no_show' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          <span>No-show</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            queueTab === 'no_show' ? 'bg-status-dangerBg text-status-danger' : 'bg-surface-subtle text-text-muted'
-          }`}>
-            {noShowCount}
-          </span>
-          {queueTab === 'no_show' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
-        </button>
+      {/* STATUS TABS — segmented control */}
+      <div className="inline-flex items-center gap-1 p-1 bg-surface-muted rounded-xl border border-surface-border/70 overflow-x-auto max-w-full">
+        {([
+          { key: 'waiting', label: 'Waiting', count: waitingCount, dot: 'bg-status-warning' },
+          { key: 'with_doctor', label: 'With Doctor', count: withDoctorCount, dot: 'bg-brand-500' },
+          { key: 'completed', label: 'Completed', count: completedCount, dot: 'bg-status-success' },
+          { key: 'no_show', label: 'No-show', count: noShowCount, dot: 'bg-status-danger' },
+        ] as const).map((t) => {
+          const active = queueTab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setQueueTab(t.key)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold whitespace-nowrap transition duration-150 ${
+                active
+                  ? 'bg-surface-base text-text-primary shadow-card'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${active ? t.dot : 'bg-text-muted/40'}`} />
+              <span>{t.label}</span>
+              <span className={`min-w-[18px] px-1 rounded-md text-[10px] font-bold tabular-nums ${
+                active ? 'bg-surface-muted text-text-secondary' : 'text-text-muted'
+              }`}>
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* QUEUE TABLE — table on lg+, stacked cards below lg */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 overflow-hidden flex flex-col justify-between min-h-[500px]">
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border overflow-hidden flex flex-col justify-between min-h-[500px]">
         {queueLoading ? (
           <div className="flex flex-col items-center justify-center py-40 text-center">
             <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
@@ -386,19 +346,19 @@ export function LiveQueuePage({
             <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans w-16">No.</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Patient</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Arrival Time</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Doctor</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Reason</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Wait Time</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Source</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Status</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider text-right font-sans">Actions</th>
+                <tr className="border-b border-surface-border text-left bg-surface-subtle">
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans w-16">No.</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Patient</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Arrival</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Doctor</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Reason</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Wait</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Source</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Status</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] text-right font-sans">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border/20">
+              <tbody className="divide-y divide-surface-border/70">
                 {filteredQueue.map((item, index) => {
                   const positionNumber = index + 1;
                   return (
@@ -410,49 +370,51 @@ export function LiveQueuePage({
                         }
                       }}
                       className={`transition duration-150 ${
-                        item.patientId ? 'hover:bg-surface-subtle/50 cursor-pointer' : ''
+                        item.patientId ? 'hover:bg-surface-muted/60 cursor-pointer' : ''
                       }`}
                     >
-                      <td className="py-3.5 px-6 text-xs font-bold text-text-secondary">
-                        {positionNumber}
+                      <td className="py-3 px-6">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-surface-muted text-[11px] font-bold text-text-secondary tabular-nums">
+                          {positionNumber}
+                        </span>
                       </td>
-                      <td className="py-3.5 px-6">
+                      <td className="py-3 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                             {item.initials}
                           </div>
                           <div>
-                            <span className="text-xs font-semibold text-text-primary block">{item.name}</span>
-                            <span className="text-[10px] text-text-secondary mt-0.5 block">{item.phone}</span>
+                            <span className="text-[13px] font-semibold text-text-primary block">{item.name}</span>
+                            <span className="text-[11px] text-text-muted mt-0.5 block tabular-nums">{item.phone}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-6 text-xs font-medium text-text-primary">
+                      <td className="py-3 px-6 text-[13px] font-semibold text-text-primary tabular-nums">
                         {item.arrivalTime}
                       </td>
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">
+                      <td className="py-3 px-6 text-[13px] text-text-secondary font-medium">
                         {item.doctor || '—'}
                       </td>
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-medium max-w-[200px] truncate">
+                      <td className="py-3 px-6 text-[13px] text-text-secondary font-medium max-w-[200px] truncate">
                         {item.reason}
                       </td>
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">
+                      <td className="py-3 px-6 text-[13px] text-text-secondary font-medium">
                         {item.waitTime}
                       </td>
-                      <td className="py-3.5 px-6">
+                      <td className="py-3 px-6">
                         {item.source === 'zero' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-ai-50 text-ai-600 border border-ai-100/50">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-ai-50 text-ai-600 border border-ai-100">
                             <span className="w-1.5 h-1.5 rounded-full bg-ai-500"></span>
                             via Zero
                           </span>
                         ) : (
-                          <span className="text-xs text-text-secondary font-medium">Walk-in</span>
+                          <span className="text-[13px] text-text-secondary font-medium">Walk-in</span>
                         )}
                       </td>
-                      <td className="py-3.5 px-6">
+                      <td className="py-3 px-6">
                         {statusBadge(item.status)}
                       </td>
-                      <td className="py-3.5 px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-3 px-6 text-right" onClick={(e) => e.stopPropagation()}>
                         {rowAction(item)}
                       </td>
                     </tr>
@@ -469,7 +431,7 @@ export function LiveQueuePage({
       {isNewWalkInDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+            className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
             onClick={() => setIsNewWalkInDrawerOpen(false)}
           ></div>
 
@@ -478,15 +440,15 @@ export function LiveQueuePage({
             role="dialog"
             aria-modal="true"
             aria-label="Add walk-in patient"
-            className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans text-xs font-semibold"
+            className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col z-10 animate-slide-in overflow-hidden font-sans text-xs font-semibold"
           >
             {/* Header */}
-            <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
-              <h3 className="text-base font-bold text-text-primary">Add Walk-in Patient</h3>
+            <div className="p-5 border-b border-surface-border flex items-center justify-between flex-shrink-0">
+              <h3 className="text-[17px] font-bold text-text-primary tracking-tightish">Add Walk-in Patient</h3>
               <button
                 onClick={() => setIsNewWalkInDrawerOpen(false)}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border"
               >
                 <X size={16} />
               </button>
@@ -577,7 +539,7 @@ export function LiveQueuePage({
                     value={walkInPatientId || ''}
                     onChange={(e) => setWalkInPatientId(e.target.value)}
                     required
-                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   >
                     <option value="">Select patient...</option>
                     {patients.map(p => (
@@ -595,7 +557,7 @@ export function LiveQueuePage({
                       onChange={(e) => setWalkInNewPatientName(e.target.value)}
                       placeholder="Enter full name..."
                       required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     />
                   </div>
                   <div className="space-y-1.5 flex flex-col">
@@ -606,7 +568,7 @@ export function LiveQueuePage({
                       onChange={(e) => setWalkInNewPatientPhone(e.target.value)}
                       placeholder="e.g. +1 (555) 012-3456"
                       required
-                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                      className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     />
                   </div>
                 </div>
@@ -619,7 +581,7 @@ export function LiveQueuePage({
                   value={walkInDoctor}
                   onChange={(e) => setWalkInDoctor(e.target.value)}
                   required
-                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 >
                   {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
@@ -633,7 +595,7 @@ export function LiveQueuePage({
                   value={walkInReason}
                   onChange={(e) => setWalkInReason(e.target.value)}
                   placeholder="e.g. Hypertension checkup, general consulting..."
-                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                 />
               </div>
 

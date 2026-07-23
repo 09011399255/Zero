@@ -42,7 +42,7 @@ export function PatientDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       ></div>
 
@@ -51,7 +51,7 @@ export function PatientDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Patient details"
-        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col z-10 animate-slide-in overflow-hidden"
       >
         <div className="p-6 border-b border-surface-border/20 flex-shrink-0">
           {/* Close Button Row */}
@@ -59,7 +59,7 @@ export function PatientDetailDrawer({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border"
             >
               <X size={16} />
             </button>
@@ -74,7 +74,7 @@ export function PatientDetailDrawer({
             <>
               {/* Patient Information Row */}
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-brand-50 text-brand-500 font-bold text-base flex items-center justify-center border border-brand-100 flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-base flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                   {selectedPatient.initials || selectedPatient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
                 </div>
                 <div>
@@ -298,7 +298,7 @@ export function PatientDetailDrawer({
             <div className="px-6 pt-6 pb-8 border-t border-surface-border/20 bg-surface-subtle/20 flex gap-3 flex-shrink-0">
               <button
                 onClick={() => toast.info(`Booking flow triggered for ${selectedPatient.name}`)}
-                className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-sm transition duration-200 font-sans"
+                className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-brand-glow transition duration-200 font-sans"
               >
                 Book Appointment
               </button>

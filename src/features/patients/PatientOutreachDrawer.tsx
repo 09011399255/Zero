@@ -36,7 +36,7 @@ export function PatientOutreachDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       ></div>
 
@@ -45,10 +45,10 @@ export function PatientOutreachDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Recall outreach"
-        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col justify-between z-10 animate-slide-in"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col justify-between z-10 animate-slide-in"
       >
         {/* HEADER */}
-        <div className="p-6 border-b border-surface-border/20 flex items-center justify-between">
+        <div className="p-5 border-b border-surface-border flex items-center justify-between">
           <div className="overflow-hidden">
             <h3 className="text-base font-bold text-text-primary truncate">{p.name}</h3>
             <p className="text-xs text-text-secondary mt-0.5 truncate">Recall Reason: {p.recallReason || '—'}</p>
@@ -57,7 +57,7 @@ export function PatientOutreachDrawer({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30 flex-shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border flex-shrink-0"
           >
             <X size={16} />
           </button>

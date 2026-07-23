@@ -116,11 +116,11 @@ export function PatientsPage({
     <div
       key={patient.id}
       onClick={() => onSelectPatient(patient.id)}
-      className="p-4 flex flex-col gap-3 border border-surface-border/20 rounded-2xl bg-surface-base hover:shadow-soft active:bg-surface-subtle/50 transition duration-150 cursor-pointer"
+      className="p-4 flex flex-col gap-3 border border-surface-border rounded-2xl bg-surface-base shadow-card hover:shadow-elevated hover:-translate-y-0.5 active:bg-surface-muted/50 transition-all duration-150 cursor-pointer"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
             {patient.initials}
           </div>
           <div className="min-w-0">
@@ -167,7 +167,7 @@ export function PatientsPage({
         )}
         <button
           onClick={() => onSelectPatient(patient.id)}
-          className="px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
+          className="px-3 py-1.5 border border-surface-border text-text-secondary hover:text-brand-600 hover:border-brand-300 bg-surface-base hover:bg-brand-50/50 font-semibold rounded-lg text-xs transition duration-150"
         >
           View
         </button>
@@ -180,7 +180,7 @@ export function PatientsPage({
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[24px] font-semibold text-text-primary leading-tight">Patients</h2>
+          <h2 className="text-[26px] font-bold text-text-primary leading-tight tracking-tighter2">Patients</h2>
           <p className="text-[14px] text-text-secondary mt-1">
             {totalPatientsCount} patients · <span className="font-semibold text-status-warning">{totalRecallCount} overdue for recall</span>
           </p>
@@ -216,7 +216,7 @@ export function PatientsPage({
           </div>
 
           {/* Card/Table view toggle — desktop/tablet only; mobile always shows cards */}
-          <div className="hidden md:flex bg-surface-base border border-surface-border/50 p-1 rounded-xl items-center shadow-soft flex-shrink-0">
+          <div className="hidden md:flex bg-surface-base border border-surface-border p-1 rounded-xl items-center shadow-card flex-shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('table')}
@@ -242,7 +242,7 @@ export function PatientsPage({
           {/* Add Patient Button */}
           <button
             onClick={onOpenAddPatientModal}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-brand-500 text-brand-500 hover:bg-brand-50 font-semibold rounded-xl text-xs transition duration-200"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-[13px] shadow-brand-glow hover:shadow-elevated transition duration-200"
           >
             <Plus size={16} />
             <span>Add Patient</span>
@@ -250,21 +250,18 @@ export function PatientsPage({
         </div>
       </div>
 
-      {/* TAB SWITCHER */}
-      <div className="flex border-b border-surface-border/30 gap-6">
+      {/* TAB SWITCHER — segmented control */}
+      <div className="inline-flex items-center gap-1 p-1 bg-surface-muted rounded-xl border border-surface-border/70">
         <button
           onClick={() => {
             setPatientsTab('all');
             setCurrentPage(1);
           }}
-          className={`pb-3 text-sm font-semibold relative transition duration-150 ${
-            patientsTab === 'all' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
+          className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition duration-150 ${
+            patientsTab === 'all' ? 'bg-surface-base text-text-primary shadow-card' : 'text-text-secondary hover:text-text-primary'
           }`}
         >
           All Patients
-          {patientsTab === 'all' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
         </button>
 
         <button
@@ -272,24 +269,21 @@ export function PatientsPage({
             setPatientsTab('recall');
             setCurrentPage(1);
           }}
-          className={`pb-3 text-sm font-semibold relative flex items-center gap-2 transition duration-150 ${
-            patientsTab === 'recall' ? 'text-brand-500' : 'text-text-secondary hover:text-text-primary'
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition duration-150 ${
+            patientsTab === 'recall' ? 'bg-surface-base text-text-primary shadow-card' : 'text-text-secondary hover:text-text-primary'
           }`}
         >
           Recall Due
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-            totalRecallCount > 0 ? 'bg-status-warningBg text-status-warning' : 'bg-surface-subtle text-text-muted'
+          <span className={`min-w-[18px] px-1 rounded-md text-[10px] font-bold tabular-nums ${
+            totalRecallCount > 0 ? 'bg-status-warningBg text-status-warning' : 'bg-surface-muted text-text-muted'
           }`}>
             {totalRecallCount}
           </span>
-          {patientsTab === 'recall' && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-500 rounded-full"></span>
-          )}
         </button>
       </div>
 
       {/* TABLE / CARD CONTAINER */}
-      <div className="bg-surface-base rounded-2xl shadow-soft border border-surface-border/20 overflow-hidden flex flex-col justify-between min-h-[500px]">
+      <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border overflow-hidden flex flex-col justify-between min-h-[500px]">
         {activeLoading ? (
           <div className="flex flex-col items-center justify-center py-40 text-center">
             <RefreshCw className="animate-spin text-brand-500 mb-4" size={32} />
@@ -342,21 +336,21 @@ export function PatientsPage({
                 <table className="w-full">
               <thead>
                 <tr className="border-b border-surface-border/30 text-left bg-surface-subtle/35">
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Patient</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Phone</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Last Visit</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Next Appointment</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Recall Status</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Patient</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Phone</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Last Visit</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Next Appointment</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Recall Status</th>
 
                   {patientsTab === 'recall' && (
                     <>
-                      <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">Recall Reason</th>
-                      <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans">AI Outreach</th>
+                      <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">Recall Reason</th>
+                      <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans">AI Outreach</th>
                     </>
                   )}
 
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider font-sans text-right">Conversations</th>
-                  <th className="py-3 px-6 text-xs font-semibold text-text-secondary tracking-wider text-right font-sans">Actions</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] font-sans text-right">Conversations</th>
+                  <th className="py-3 px-6 text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] text-right font-sans">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border/20">
@@ -365,25 +359,25 @@ export function PatientsPage({
                     <tr
                       key={patient.id}
                       onClick={() => onSelectPatient(patient.id)}
-                      className="hover:bg-surface-subtle/50 transition duration-150 cursor-pointer"
+                      className="hover:bg-surface-muted/60 transition duration-150 cursor-pointer"
                     >
-                      <td className="py-3.5 px-6 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-semibold text-xs flex items-center justify-center border border-brand-100 flex-shrink-0">
+                      <td className="py-3 px-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                           {patient.initials}
                         </div>
-                        <span className="text-xs font-semibold text-text-primary">{patient.name}</span>
+                        <span className="text-[13px] font-semibold text-text-primary">{patient.name}</span>
                       </td>
-                      <td className="py-3.5 px-6 text-xs font-medium text-text-primary">{patient.phone}</td>
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">{patient.lastVisit}</td>
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-medium">{patient.nextAppointment}</td>
-                       <td className="py-3.5 px-6">
+                      <td className="py-3 px-6 text-xs font-medium text-text-primary">{patient.phone}</td>
+                      <td className="py-3 px-6 text-xs text-text-secondary font-medium">{patient.lastVisit}</td>
+                      <td className="py-3 px-6 text-xs text-text-secondary font-medium">{patient.nextAppointment}</td>
+                       <td className="py-3 px-6">
                         {recallBadge(patient)}
                       </td>
 
                       {patientsTab === 'recall' && (
                         <>
-                          <td className="py-3.5 px-6 text-xs text-text-primary font-medium">{patient.recallReason || '—'}</td>
-                          <td className="py-3.5 px-6" onClick={(e) => e.stopPropagation()}>
+                          <td className="py-3 px-6 text-xs text-text-primary font-medium">{patient.recallReason || '—'}</td>
+                          <td className="py-3 px-6" onClick={(e) => e.stopPropagation()}>
                             {patient.aiOutreachDraft ? (
                               <button
                                 onClick={() => onExpandOutreach(patient.id, patient.aiOutreachDraft || '')}
@@ -400,13 +394,13 @@ export function PatientsPage({
                         </>
                       )}
 
-                      <td className="py-3.5 px-6 text-xs text-text-secondary font-semibold text-right font-sans">
+                      <td className="py-3 px-6 text-xs text-text-secondary font-semibold text-right font-sans">
                         {patient.conversationsCount}
                       </td>
-                      <td className="py-3.5 px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-3 px-6 text-right" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => onSelectPatient(patient.id)}
-                          className="px-3 py-1.5 border border-surface-border text-text-secondary hover:text-text-primary bg-surface-base hover:bg-surface-subtle font-medium rounded-xl text-xs transition duration-150 shadow-sm"
+                          className="px-3 py-1.5 border border-surface-border text-text-secondary hover:text-brand-600 hover:border-brand-300 bg-surface-base hover:bg-brand-50/50 font-semibold rounded-lg text-xs transition duration-150"
                         >
                           View
                         </button>

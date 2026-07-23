@@ -173,11 +173,11 @@ export function AppointmentsPage({
       <div
         key={appt.id}
         onClick={() => onSelectAppointment(appt.id)}
-        className="p-4 flex flex-col gap-3 border border-surface-border/20 rounded-2xl bg-surface-base hover:shadow-soft active:bg-surface-subtle/50 transition duration-150 cursor-pointer"
+        className="p-4 flex flex-col gap-3 border border-surface-border rounded-2xl bg-surface-base shadow-card hover:shadow-elevated hover:-translate-y-0.5 active:bg-surface-muted/50 transition-all duration-150 cursor-pointer"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-brand-50 text-brand-500 font-bold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
               {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
             </div>
             <div className="min-w-0">
@@ -217,7 +217,7 @@ export function AppointmentsPage({
           <button
             type="button"
             onClick={() => onSelectAppointment(appt.id)}
-            className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-[10px] transition duration-150"
+            className="px-3 py-1.5 border border-surface-border hover:border-brand-300 hover:bg-brand-50/50 text-text-secondary hover:text-brand-600 font-semibold rounded-lg text-[11px] transition duration-150"
           >
             View Details
           </button>
@@ -231,7 +231,7 @@ export function AppointmentsPage({
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[24px] font-semibold text-text-primary leading-tight flex items-center gap-2">
+          <h2 className="text-[26px] font-bold text-text-primary leading-tight tracking-tighter2 flex items-center gap-2">
             <span>Appointments</span>
             {appointmentsLoading && (
               <span className="text-xs font-normal text-text-muted animate-pulse">(Updating...)</span>
@@ -301,7 +301,7 @@ export function AppointmentsPage({
           <button
             type="button"
             onClick={() => onOpenNewAppointment({ date: "2026-06-23", time: "09:00 AM" })}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl text-sm transition duration-200 shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-[13px] transition duration-200 shadow-brand-glow hover:shadow-elevated"
           >
             <Plus size={16} />
             <span>New Appointment</span>
@@ -310,7 +310,7 @@ export function AppointmentsPage({
       </div>
 
       {/* DATE NAVIGATION & CONTROLS ROW */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-base p-4 rounded-2xl border border-surface-border/50 shadow-soft">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-base p-4 rounded-2xl border border-surface-border shadow-card">
         {/* Week nav — the primary control on desktop/tablet always; on mobile
             it's replaced by the single-day nav below when in Calendar View
             (List View isn't week-scoped, so it keeps this nav on mobile too). */}
@@ -488,7 +488,7 @@ export function AppointmentsPage({
 
       {/* MAIN VIEWS */}
       {appointmentsError && appointments.length === 0 ? (
-        <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft">
+        <div className="bg-surface-base rounded-2xl border border-surface-border shadow-card">
           <ErrorState message={appointmentsError} onRetry={onRetryAppointments} />
         </div>
       ) : apptViewMode === 'calendar' ? (
@@ -496,7 +496,7 @@ export function AppointmentsPage({
           {/* Mobile: single-day vertical list — the 7-day grid genuinely
               doesn't fit a phone screen, so this is a real layout swap, not
               a shrunk version of the desktop grid. */}
-          <div className="md:hidden bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft divide-y divide-surface-border/30">
+          <div className="md:hidden bg-surface-base rounded-2xl border border-surface-border shadow-card divide-y divide-surface-border/30">
             {timeSlots.map((slot) => {
               const dateStr = formatDateString(weekDays[mobileDayIndex]);
               const slotAppts = appointments.filter(a => a.date === dateStr && a.time === slot);
@@ -526,7 +526,7 @@ export function AppointmentsPage({
           </div>
 
           {/* Desktop/tablet: full 7-day grid */}
-          <div className="hidden md:block bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-x-auto">
+          <div className="hidden md:block bg-surface-base rounded-2xl border border-surface-border shadow-card overflow-x-auto">
           <div className="min-w-[900px]">
             {/* Calendar Grid Header */}
             <div className="grid grid-cols-[80px_repeat(7,1fr)] border-b border-surface-border/50">
@@ -629,7 +629,7 @@ export function AppointmentsPage({
           </div>
         </>
       ) : (
-        <div className="bg-surface-base rounded-2xl border border-surface-border/50 shadow-soft overflow-hidden">
+        <div className="bg-surface-base rounded-2xl border border-surface-border shadow-card overflow-hidden">
           {paginatedAppts.length === 0 ? (
             <EmptyState
               icon={Calendar}
@@ -656,9 +656,9 @@ export function AppointmentsPage({
                   <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-surface-border/50 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-surface-subtle/30">
+                <tr className="border-b border-surface-border text-[10px] font-bold text-text-muted uppercase tracking-[0.12em] bg-surface-subtle">
                   <th className="p-4 pl-6">Patient</th>
-                  <th className="p-4">Date & Time</th>
+                  <th className="p-4">Date &amp; Time</th>
                   <th className="p-4">Doctor</th>
                   <th className="p-4">Department / Type</th>
                   <th className="p-4">Status</th>
@@ -666,15 +666,15 @@ export function AppointmentsPage({
                   <th className="p-4 text-right pr-6">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border/30 text-xs">
+              <tbody className="divide-y divide-surface-border/70 text-xs">
                 {paginatedAppts.map((appt) => {
                     const isZero = appt.bookedVia === 'zero';
                     return (
-                      <tr key={appt.id} className="hover:bg-surface-subtle/30 transition duration-150 font-medium">
+                      <tr key={appt.id} className="hover:bg-surface-muted/60 transition duration-150 font-medium">
                         {/* Patient info */}
                         <td className="p-4 pl-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-500 font-bold text-[11px] flex items-center justify-center border border-brand-100 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 font-bold text-[11px] flex items-center justify-center ring-1 ring-brand-200/60 flex-shrink-0">
                               {appt.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'PT'}
                             </div>
                             <div>
@@ -732,7 +732,7 @@ export function AppointmentsPage({
                           <button
                             type="button"
                             onClick={() => onSelectAppointment(appt.id)}
-                            className="px-3 py-1.5 border border-surface-border hover:bg-surface-subtle text-text-secondary hover:text-text-primary font-bold rounded-xl text-[10px] transition duration-150"
+                            className="px-3 py-1.5 border border-surface-border hover:border-brand-300 hover:bg-brand-50/50 text-text-secondary hover:text-brand-600 font-semibold rounded-lg text-[11px] transition duration-150"
                           >
                             View Details
                           </button>

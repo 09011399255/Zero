@@ -45,7 +45,7 @@ export function NewAppointmentDrawer({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 animate-fade-in"
+        className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
         onClick={onClose}
       ></div>
 
@@ -54,15 +54,15 @@ export function NewAppointmentDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="New appointment"
-        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-2xl border-l border-surface-border/20 flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
+        className="relative w-full sm:max-w-md bg-surface-base h-full shadow-elevated border-l border-surface-border flex flex-col z-10 animate-slide-in overflow-hidden font-sans"
       >
         {/* Header */}
-        <div className="p-6 border-b border-surface-border/20 flex items-center justify-between flex-shrink-0">
-          <h3 className="text-base font-bold text-text-primary">New Appointment</h3>
+        <div className="p-5 border-b border-surface-border flex items-center justify-between flex-shrink-0">
+          <h3 className="text-[17px] font-bold text-text-primary tracking-tightish">New Appointment</h3>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border/30"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-text-secondary hover:bg-surface-subtle transition duration-150 border border-surface-border"
           >
             <X size={16} />
           </button>
@@ -83,7 +83,7 @@ export function NewAppointmentDrawer({
               value={formPatientId || ''}
               onChange={(e) => setFormPatientId(e.target.value)}
               required
-              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
               <option value="">Select a patient...</option>
               {patients.map(p => (
@@ -100,7 +100,7 @@ export function NewAppointmentDrawer({
               value={formDate}
               onChange={(e) => setFormDate(e.target.value)}
               required
-              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
           </div>
 
@@ -111,7 +111,7 @@ export function NewAppointmentDrawer({
               value={formTime}
               onChange={(e) => setFormTime(e.target.value)}
               required
-              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
               {[
                 "08:00 AM",
@@ -137,7 +137,7 @@ export function NewAppointmentDrawer({
               value={formDoctor}
               onChange={(e) => setFormDoctor(e.target.value)}
               required
-              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
               {doctorOptions.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -150,7 +150,7 @@ export function NewAppointmentDrawer({
               value={formDept}
               onChange={(e) => setFormDept(e.target.value)}
               required
-              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full p-3 bg-surface-base border border-surface-border rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
               <option value="General Medicine">General Medicine</option>
               <option value="Cardiology">Cardiology</option>
@@ -168,7 +168,7 @@ export function NewAppointmentDrawer({
               value={formNotes}
               onChange={(e) => setFormNotes(e.target.value)}
               placeholder="Add any specific clinical notes or reason for visit..."
-              className="w-full min-h-[100px] p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 font-sans leading-relaxed resize-none font-semibold"
+              className="w-full min-h-[100px] p-3.5 bg-surface-base border border-surface-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-sans leading-relaxed resize-none font-semibold"
             />
           </div>
 
