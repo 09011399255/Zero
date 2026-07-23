@@ -1,5 +1,6 @@
 import { Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/shared/Toast';
+import { WhatsAppConnectPanel } from '../whatsapp/WhatsAppConnectPanel';
 
 export interface StaffListItem {
   id: string;
@@ -184,51 +185,15 @@ export function SettingsPage({
         </form>
       </div>
 
-      {/* SECTION 2: WHATSAPP CONNECTION */}
+      {/* SECTION 2: WHATSAPP CONNECTION — shared live panel */}
       <div className="bg-surface-base rounded-2xl shadow-card border border-surface-border p-6 space-y-5">
-        <div className="border-b border-surface-border pb-4 flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">WhatsApp Business Connection</h3>
-            <p className="text-text-secondary mt-0.5">Integrate your official WhatsApp business number</p>
-          </div>
-
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-status-warningBg text-status-warning border border-status-warning/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-status-warning animate-pulse"></span>
-            Pending Verification
-          </span>
+        <div className="border-b border-surface-border pb-4">
+          <h3 className="text-[15px] font-bold text-text-primary tracking-tightish">WhatsApp Business Connection</h3>
+          <p className="text-text-secondary mt-0.5">Connect or manage your official WhatsApp business number</p>
         </div>
-
-        <div className="bg-status-warningBg/30 border border-status-warning/10 rounded-xl p-4 space-y-3">
-          <p className="text-xs text-text-secondary leading-relaxed font-medium">
-            Your WhatsApp Business API connection is awaiting Meta verification. Once approved, Zero will connect directly to your clinic's WhatsApp number.
-          </p>
-
-          {/* Steps checklist */}
-          <div className="space-y-2 pt-1.5">
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-status-successBg text-status-success border border-status-success/20 flex items-center justify-center text-[9px] font-bold">✓</span>
-              <span className="text-[11px] font-bold text-text-primary">Business details submitted</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-status-warningBg text-status-warning border border-status-warning/20 flex items-center justify-center text-[9px] font-bold">●</span>
-              <span className="text-[11px] font-bold text-text-primary">Meta verification review in progress</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-surface-subtle text-text-muted border border-surface-border flex items-center justify-center text-[9px] font-bold">3</span>
-              <span className="text-[11px] font-medium text-text-secondary">Number linking and configuration pending</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-1">
-          <button
-            onClick={() => toast.info("Verification status: Still reviewing. Meta verification typically takes 1-3 business days.")}
-            className="inline-flex items-center gap-1.5 px-4 py-2 border border-surface-border text-text-secondary hover:bg-surface-subtle font-bold rounded-xl text-xs transition duration-150"
-          >
-            <RefreshCw size={12} className="animate-spin" style={{ animationDuration: '4s' }} />
-            <span>Check Status</span>
-          </button>
-        </div>
+        {/* Reflects live status and lets the clinic connect, enter their code, or
+            see it's live — the same flow as onboarding, available any time. */}
+        <WhatsAppConnectPanel card={false} header={false} />
       </div>
 
       {/* SECTION 3: STAFF */}

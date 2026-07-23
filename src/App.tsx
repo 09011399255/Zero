@@ -27,6 +27,7 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { AdminDashboard } from './features/admin/AdminDashboard';
+import { WhatsAppCodePrompt } from './features/whatsapp/WhatsAppCodePrompt';
 import { useToast } from './components/shared/Toast';
 import { formatAuthError } from './lib/authErrors';
 
@@ -1892,6 +1893,9 @@ if (!isOnboarded) {
 
                 {/* 3. MAIN CONTENT AREA */}
         <main className="p-4 md:p-8 flex-1 space-y-6 w-full max-w-full overflow-x-hidden">
+          {/* App-wide nudge to enter the WhatsApp code (banner + auto modal),
+              shown only while a code is expected. */}
+          <WhatsAppCodePrompt />
           <ErrorBoundary>
             {currentRoute === 'patients' ? (
             renderPatientsScreen()
