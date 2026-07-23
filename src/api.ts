@@ -255,6 +255,28 @@ export interface AdminOverview {
   conversations: number;
   staff: number;
   newThisMonth: number;
+  mrr: number;
+}
+
+export type PlanTier = 'STARTER' | 'NAVIGATOR' | 'ENTERPRISE';
+
+export interface AdminBillingPlanRow {
+  plan: PlanTier;
+  count: number;
+  monthly: number;
+  revenue: number;
+}
+export interface AdminBillingClinic {
+  id: string;
+  name: string;
+  plan: PlanTier;
+  planExpiresAt: string | null;
+}
+export interface AdminBilling {
+  mrr: number;
+  byPlan: AdminBillingPlanRow[];
+  renewalsDue: AdminBillingClinic[];
+  expired: AdminBillingClinic[];
 }
 
 // One row in the admin clinics table.
@@ -427,6 +449,13 @@ export const api = {
       request<{ id: string; suspended: boolean }>("POST", `/api/admin/clinics/${id}/suspend`),
     reactivate: (id: string) =>
       request<{ id: string; suspended: boolean }>("POST", `/api/admin/clinics/${id}/reactivate`),
+
+    // Billing
+    billing: () => request<AdminBilling>("GET", "/api/admin/billing"),
+    changePlan: (id: string, body: { plan: PlanTier; planExpiresAt?: string | null }) =>
+      request<{ id: string; plan: PlanTier; planExpiresAt: string | null }>(
+        "POST", `/api/admin/clinics/${id}/plan`, body
+      ),
 
     // WhatsApp connection pipeline
     whatsappPipeline: () => request<AdminClinic[]>("GET", "/api/admin/whatsapp-pipeline"),

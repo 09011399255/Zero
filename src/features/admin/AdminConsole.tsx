@@ -4,16 +4,22 @@
 
 import { useEffect, useState } from 'react';
 import {
-  AlertTriangle, ArrowLeft, Ban, Building2, CheckCircle2, LayoutGrid,
+  AlertTriangle, ArrowLeft, Ban, Building2, CheckCircle2, CreditCard, LayoutGrid,
   MessageSquare, RefreshCw, RotateCcw, Search, X,
 } from 'lucide-react';
 import {
   api, AdminOverview as OverviewStats, AdminClinicRow, AdminClinicDetail,
-  WhatsAppStatus,
+  AdminBilling, PlanTier, WhatsAppStatus,
 } from '../../api';
 import { AdminWhatsApp } from './AdminDashboard';
 
-type View = 'overview' | 'clinics' | 'whatsapp';
+type View = 'overview' | 'clinics' | 'billing' | 'whatsapp';
+
+function planName(p: string) { return p[0] + p.slice(1).toLowerCase(); }
+function fmtNaira(n: number) { return `₦${n.toLocaleString()}`; }
+function fmtDate(iso: string | null): string {
+  return iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+}
 
 const WA_LABEL: Record<WhatsAppStatus, { label: string; tone: string }> = {
   CONNECTED: { label: 'Live', tone: 'text-status-success' },
@@ -41,6 +47,7 @@ export function AdminConsole({ onExit }: { onExit: () => void }) {
   const tabs: { key: View; label: string; icon: typeof LayoutGrid }[] = [
     { key: 'overview', label: 'Overview', icon: LayoutGrid },
     { key: 'clinics', label: 'Clinics', icon: Building2 },
+    { key: 'billing', label: 'Billing', icon: CreditCard },
     { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
   ];
 
@@ -83,6 +90,7 @@ export function AdminConsole({ onExit }: { onExit: () => void }) {
 
         {view === 'overview' && <Overview onSeeClinics={() => setView('clinics')} />}
         {view === 'clinics' && <Clinics />}
+        {view === 'billing' && <Billing />}
         {view === 'whatsapp' && <AdminWhatsApp />}
       </div>
     </div>
@@ -106,15 +114,15 @@ function Overview({ onSeeClinics }: { onSeeClinics: () => void }) {
     return <p className="text-sm text-text-muted">Couldn't load platform stats.</p>;
   }
 
-  const tiles: { label: string; value: number; tone?: string }[] = [
-    { label: 'Clinics', value: stats.clinics },
-    { label: 'Active', value: stats.active, tone: 'text-status-success' },
-    { label: 'Suspended', value: stats.suspended, tone: stats.suspended ? 'text-status-danger' : undefined },
-    { label: 'WhatsApp live', value: stats.whatsappConnected },
-    { label: 'New this month', value: stats.newThisMonth },
-    { label: 'Patients', value: stats.patients },
-    { label: 'Conversations', value: stats.conversations },
-    { label: 'Staff', value: stats.staff },
+  const tiles: { label: string; display: string; tone?: string }[] = [
+    { label: 'Clinics', display: stats.clinics.toLocaleString() },
+    { label: 'Active', display: stats.active.toLocaleString(), tone: 'text-status-success' },
+    { label: 'Suspended', display: stats.suspended.toLocaleString(), tone: stats.suspended ? 'text-status-danger' : undefined },
+    { label: 'MRR', display: fmtNaira(stats.mrr) },
+    { label: 'WhatsApp live', display: stats.whatsappConnected.toLocaleString() },
+    { label: 'New this month', display: stats.newThisMonth.toLocaleString() },
+    { label: 'Patients', display: stats.patients.toLocaleString() },
+    { label: 'Conversations', display: stats.conversations.toLocaleString() },
   ];
 
   return (
@@ -123,7 +131,7 @@ function Overview({ onSeeClinics }: { onSeeClinics: () => void }) {
         {tiles.map((t) => (
           <div key={t.label} className="bg-surface-base border border-surface-border/60 rounded-xl p-4">
             <div className="text-[11px] text-text-secondary">{t.label}</div>
-            <div className={`text-2xl font-bold ${t.tone || 'text-text-primary'}`}>{t.value.toLocaleString()}</div>
+            <div className={`text-2xl font-bold ${t.tone || 'text-text-primary'}`}>{t.display}</div>
           </div>
         ))}
       </div>
@@ -133,6 +141,83 @@ function Overview({ onSeeClinics }: { onSeeClinics: () => void }) {
       >
         View all clinics →
       </button>
+    </div>
+  );
+}
+
+// ── Billing ─────────────────────────────────────────────────────────────────
+
+function Billing() {
+  const [data, setData] = useState<AdminBilling | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.admin.billing().then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="py-16 text-center text-text-muted text-sm flex items-center justify-center gap-2"><RefreshCw size={16} className="animate-spin" /> Loading…</div>;
+  }
+  if (!data) return <p className="text-sm text-text-muted">Couldn't load billing.</p>;
+
+  const List = ({ title, rows, empty, danger }: { title: string; rows: typeof data.renewalsDue; empty: string; danger?: boolean }) => (
+    <section className="space-y-2">
+      <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{title} ({rows.length})</h3>
+      {rows.length === 0 ? (
+        <p className="text-[11px] text-text-muted">{empty}</p>
+      ) : (
+        <div className="bg-surface-base border border-surface-border/60 rounded-xl divide-y divide-surface-border/60">
+          {rows.map((c) => (
+            <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-text-primary truncate">{c.name}</div>
+                <div className="text-[10px] text-text-muted">{planName(c.plan)}</div>
+              </div>
+              <span className={`text-[11px] font-semibold ${danger ? 'text-status-danger' : 'text-text-secondary'}`}>
+                {fmtDate(c.planExpiresAt)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-surface-base border border-surface-border/60 rounded-xl p-4">
+        <div className="text-[11px] text-text-secondary">Monthly recurring revenue</div>
+        <div className="text-3xl font-bold text-text-primary">{fmtNaira(data.mrr)}</div>
+        <p className="text-[10px] text-text-muted mt-1">
+          From active clinics' plans. Set real prices in <code>zero-ai/src/modules/admin/pricing.ts</code>.
+        </p>
+      </div>
+
+      <div className="bg-surface-base border border-surface-border/60 rounded-2xl overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-text-secondary bg-surface-subtle">
+              <th className="py-2.5 px-4 font-semibold">Plan</th>
+              <th className="py-2.5 px-2 font-semibold text-right">Clinics</th>
+              <th className="py-2.5 px-2 font-semibold text-right">Monthly</th>
+              <th className="py-2.5 px-4 font-semibold text-right">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.byPlan.map((b) => (
+              <tr key={b.plan} className="border-t border-surface-border/60">
+                <td className="py-2.5 px-4 font-bold text-text-primary">{planName(b.plan)}</td>
+                <td className="py-2.5 px-2 text-right text-text-secondary">{b.count}</td>
+                <td className="py-2.5 px-2 text-right text-text-secondary">{fmtNaira(b.monthly)}</td>
+                <td className="py-2.5 px-4 text-right font-semibold text-text-primary">{fmtNaira(b.revenue)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <List title="Renewals due (next 14 days)" rows={data.renewalsDue} empty="Nothing due soon." />
+      <List title="Expired" rows={data.expired} empty="No expired plans." danger />
     </div>
   );
 }
@@ -265,16 +350,40 @@ function ClinicDetailDrawer({ id, onClose, onChanged }: { id: string; onClose: (
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [planInput, setPlanInput] = useState<PlanTier>('STARTER');
+  const [expiryInput, setExpiryInput] = useState('');
+  const [planBusy, setPlanBusy] = useState(false);
+  const [planSaved, setPlanSaved] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      setC(await api.admin.clinic(id));
+      const detail = await api.admin.clinic(id);
+      setC(detail);
+      setPlanInput(detail.plan as PlanTier);
+      setExpiryInput(detail.planExpiresAt ? detail.planExpiresAt.slice(0, 10) : '');
       setError(null);
     } catch (err: any) {
       setError(err?.message || 'Failed to load clinic.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const savePlan = async () => {
+    setPlanBusy(true);
+    setError(null);
+    setPlanSaved(false);
+    try {
+      await api.admin.changePlan(id, { plan: planInput, planExpiresAt: expiryInput || null });
+      await load();
+      onChanged();
+      setPlanSaved(true);
+      setTimeout(() => setPlanSaved(false), 2500);
+    } catch (err: any) {
+      setError(err?.message || 'Couldn\'t update the plan.');
+    } finally {
+      setPlanBusy(false);
     }
   };
 
@@ -373,6 +482,41 @@ function ClinicDetailDrawer({ id, onClose, onChanged }: { id: string; onClose: (
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Plan & billing */}
+            <div className="border border-surface-border/60 rounded-xl p-4 space-y-3">
+              <h3 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Plan &amp; billing</h3>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Plan</label>
+                <select
+                  value={planInput}
+                  onChange={(e) => { setPlanInput(e.target.value as PlanTier); setPlanSaved(false); }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-surface-border bg-surface-base text-text-primary text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                >
+                  <option value="STARTER">Starter</option>
+                  <option value="NAVIGATOR">Navigator</option>
+                  <option value="ENTERPRISE">Enterprise</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Expires</label>
+                <input
+                  type="date"
+                  value={expiryInput}
+                  onChange={(e) => { setExpiryInput(e.target.value); setPlanSaved(false); }}
+                  className="w-full py-2.5 px-3 rounded-xl border border-surface-border bg-surface-base text-text-primary text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+                <p className="text-[10px] text-text-muted">Leave blank for no expiry (e.g. a comped account).</p>
+              </div>
+              <button
+                onClick={savePlan}
+                disabled={planBusy}
+                className="w-full py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:bg-brand-400 text-white text-xs font-bold flex items-center justify-center gap-2 transition"
+              >
+                {planBusy ? <RefreshCw size={14} className="animate-spin" /> : planSaved ? <CheckCircle2 size={14} /> : null}
+                {planSaved ? 'Saved' : 'Save plan'}
+              </button>
             </div>
 
             {/* Suspend / reactivate */}
