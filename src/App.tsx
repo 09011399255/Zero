@@ -33,6 +33,9 @@ import { WhatsAppCodePrompt } from './features/whatsapp/WhatsAppCodePrompt';
 const AdminConsole = lazy(() =>
   import('./features/admin/AdminConsole').then((m) => ({ default: m.AdminConsole }))
 );
+const LandingPage = lazy(() =>
+  import('./features/landing/LandingPage').then((m) => ({ default: m.LandingPage }))
+);
 import { useToast } from './components/shared/Toast';
 import { formatAuthError } from './lib/authErrors';
 
@@ -297,7 +300,7 @@ function App() {
       return;
     }
 
-    const socket = io("https://zero-ai-production-5544.up.railway.app");
+    const socket = io(import.meta.env.VITE_API_BASE_URL as string);
     socketRef.current = socket;
 
     socket.emit("join:clinic", clinicId);
@@ -1840,6 +1843,18 @@ const renderOnboardingWizard = () => (
       <div className="flex min-h-screen dot-grid-bg justify-center items-center p-6 w-full relative">
         {renderResetPasswordScreen()}
       </div>
+    );
+  }
+
+  // Public marketing landing page. No auth — CTAs route into signup/login.
+  if (currentRoute === 'landing') {
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-text-muted text-sm">Loading…</div>}>
+        <LandingPage
+          onGetStarted={() => { setOnboardingAuthMode('signup'); setCurrentRoute('dashboard'); }}
+          onLogin={() => { setOnboardingAuthMode('login'); setCurrentRoute('dashboard'); }}
+        />
+      </Suspense>
     );
   }
 

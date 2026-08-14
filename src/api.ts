@@ -1,4 +1,4 @@
-const BASE_URL = "https://zero-ai-production-5544.up.railway.app";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
 // Fired whenever an authenticated request comes back 401 (expired/invalid
 // token) so the app can react in one place instead of every call site
