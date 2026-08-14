@@ -30,3 +30,6 @@ dist-ssr
 
 # Scratch folder
 scratch/
+
+.vercel
+.env*
