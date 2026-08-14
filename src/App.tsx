@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { api, Appointment, AppointmentStatus, Conversation, ConversationMessage, ConversationStatus, DashboardSummary, Patient, StaffMemberDTO, UNAUTHORIZED_EVENT } from './api';
 
 import { io, Socket } from 'socket.io-client';
@@ -95,6 +95,7 @@ function App() {
   const [isVerificationPending, setIsVerificationPending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [verificationState, setVerificationState] = useState<'loading' | 'success' | 'expired' | 'invalid' | 'missing'>('loading');
+  const [devVerifyToken, setDevVerifyToken] = useState<string | null>(null);
 
   // Forgot / Reset Password States
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
@@ -150,7 +151,10 @@ function App() {
     if (resendCooldown > 0) return;
     try {
       setResendCooldown(30);
-      await api.auth.resendVerification({ email });
+      const res = await api.auth.resendVerification({ email });
+      if (res._devVerifyToken) {
+        setDevVerifyToken(res._devVerifyToken);
+      }
       toast.success("Verification email sent. Check your inbox.");
     } catch (err: any) {
       console.error("Failed to resend verification:", err);
@@ -1698,6 +1702,8 @@ const renderOnboardingWizard = () => (
     setOnboardingEmail={setOnboardingEmail}
     resendCooldown={resendCooldown}
     onResendVerification={handleResendVerification}
+    devVerifyToken={devVerifyToken}
+    setDevVerifyToken={setDevVerifyToken}
     onboardingAuthMode={onboardingAuthMode}
     setOnboardingAuthMode={setOnboardingAuthMode}
     onboardingAdminName={onboardingAdminName}

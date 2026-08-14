@@ -401,7 +401,7 @@ export const api = {
       email: string;
       password: string;
       clinicName: string;
-    }) => request<{ token: string; staff: { clinicId?: string }; clinic: { id?: string } }>(
+    }) => request<{ token: string; staff: { clinicId?: string }; clinic: { id?: string }; _devVerifyToken?: string }>(
       "POST", "/api/auth/register", body, false
     ),
     login: (body: { email: string; password: string }) =>
@@ -414,7 +414,7 @@ export const api = {
     verifyEmail: (body: { token: string }) =>
       request<{ success: boolean; message: string }>("POST", "/api/auth/verify-email", body, false),
     resendVerification: (body: { email: string }) =>
-      request<{ success: boolean }>("POST", "/api/auth/resend-verification", body, false),
+      request<{ success: boolean; _devVerifyToken?: string }>("POST", "/api/auth/resend-verification", body, false),
     forgotPassword: (body: { email: string }) =>
       request<{ success: boolean }>("POST", "/api/auth/forgot-password", body, false),
     resetPassword: (body: { token: string; password: string }) =>

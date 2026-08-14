@@ -54,6 +54,8 @@ interface OnboardingWizardProps {
   setOnboardingEmail: (v: string) => void;
   resendCooldown: number;
   onResendVerification: (email: string) => void;
+  devVerifyToken?: string | null;
+  setDevVerifyToken?: (v: string | null) => void;
   onboardingAuthMode: 'signup' | 'login' | 'forgot';
   setOnboardingAuthMode: (mode: 'signup' | 'login' | 'forgot') => void;
   onboardingAdminName: string;
@@ -118,6 +120,8 @@ export function OnboardingWizard({
   setOnboardingEmail,
   resendCooldown,
   onResendVerification,
+  devVerifyToken,
+  setDevVerifyToken,
   onboardingAuthMode,
   setOnboardingAuthMode,
   onboardingAdminName,
@@ -269,6 +273,46 @@ export function OnboardingWizard({
                   Back to Sign Up
                 </button>
               </div>
+
+              {devVerifyToken && (
+                <div className="mt-4 p-4 bg-brand-50 border border-brand-100 rounded-2xl text-center space-y-2.5">
+                  <div className="flex items-center justify-center gap-1.5 text-brand-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-ping"></span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                      Developer Bypass Mode Active
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">
+                    Brevo email delivery is simulated/blocked. Click below to verify your account instantly.
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={async () => {
+                      try {
+                        setIsLoading(true);
+                        await api.auth.verifyEmail({ token: devVerifyToken });
+                        if (setDevVerifyToken) setDevVerifyToken(null);
+                        await onCheckSession();
+                      } catch (err) {
+                        console.error("Bypass verification failed:", err);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-bold rounded-xl text-xs transition duration-150 shadow-brand-glow flex items-center justify-center gap-1.5"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="animate-spin" size={13} />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <span>Verify Instantly</span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -425,6 +469,9 @@ export function OnboardingWizard({
                   if (cId) {
                     localStorage.setItem("zero_clinic_id", cId);
                     setClinicId(cId);
+                  }
+                  if (res._devVerifyToken && setDevVerifyToken) {
+                    setDevVerifyToken(res._devVerifyToken);
                   }
                   setIsVerificationPending(true);
                 } catch (err: any) {
